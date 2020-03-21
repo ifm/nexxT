@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "definitions": {
+    "identifier": {
+      "description": "Used for matching identifier names. Usual c identifiers including minus sign",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+    },
+    "portlist": {
+      "description": "Used for specifying filter ports.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/identifier"
+      }
+    },
+    "connection": {
+      "description": "Used for specifying a connection.",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_-]*[.][A-Za-z_][A-Za-z0-9_-]*\\s*[-][>]\\s*[A-Za-z_][A-Za-z0-9_-]*[.][A-Za-z_][A-Za-z0-9_-]*$"
+    },
+    "propertySection": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/definitions/identifier" },
+      "patternProperties": {
+        "^.*$": {"type":  ["string", "number", "boolean"]}
+      }
+    },
+    "sub_graph": {
+      "description": "sub-graph definition as used by applications and composite filters.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "nodes", "connections"],
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/identifier"
+        },
+        "_guiState": {
+          "propertyNames": { "$ref": "#/definitions/identifier" },
+          "properties" : {
+            "$ref": "#/definitions/propertySection"
+          },
+          "default": {}
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "library", "factoryFunction"],
+            "properties": {
+              "name": {
+                "$ref": "#/definitions/identifier"
+              },
+              "library": {
+                "type": "string"
+              },
+              "factoryFunction": {
+                "type": "string"
+              },
+              "thread": {
+                "$ref": "#/definitions/identifier",
+                "default": "main"
+              },
+              "dynamicInputPorts": {
+                "$ref": "#/definitions/portlist",
+                "default": []
+              },
+              "dynamicOutputPorts": {
+                "$ref": "#/definitions/portlist",
+                "default": []
+              },
+              "staticInputPorts": {
+                "$ref": "#/definitions/portlist",
+                "default": []
+              },
+              "staticOutputPorts": {
+                "$ref": "#/definitions/portlist",
+                "default": []
+              },
+              "properties": {
+                "$ref": "#/definitions/propertySection",
+                "default": {}
+              }
+            }
+          }
+        },
+        "connections": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/connection"
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "required": ["applications"],
+  "properties": {
+    "composite_filters": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/definitions/sub_graph"
+      }
+    },
+    "applications": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/sub_graph"
+      }
+    },
+    "_guiState": {
+      "$ref": "#/definitions/propertySection",
+      "default": {}
+    }
+  }
+}
