@@ -98,4 +98,5 @@ Depends(dummy, apilib)
 
 # install python extension and library files into project directory
 env.RegisterTargets(env.Install(srcDir.Dir("..").Dir("binary").Dir(env.subst("$target_platform")).Dir(env.subst("$variant")).abspath, pyext+apilib))
-env.RegisterTargets(env.Install(srcDir.Dir("..").Dir("include").abspath, Glob(srcDir.abspath + "/*.hpp")))
+if env["variant"] == "release":
+    env.RegisterTargets(env.Install(srcDir.Dir("..").Dir("include").abspath, Glob(srcDir.abspath + "/*.hpp")))
