@@ -1,0 +1,8 @@
+PySide2==5.14.1
+scons==3.1.2
+shiboken2==5.14.1
+shiboken2-generator==5.14.1
+pytest==4.3.0
+pytest-cov==2.8.1
+pylint==2.4.4
+-e ..

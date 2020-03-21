@@ -36,5 +36,7 @@ else:
                         LINKFLAGS=Split("/nologo /DEBUG"),
                         variant="release")
 
-SConscript('../nexxT/src/SConscript.py', variant_dir="build/nonopt", exports=dict(env=dbg_env), duplicate=0)
-SConscript('../nexxT/src/SConscript.py', variant_dir="build/release", exports=dict(env=rel_env), duplicate=0)
+SConscript('../nexxT/src/SConscript.py', variant_dir=dbg_env.subst("build/${target_platform}_${variant}/nexxT/src"), exports=dict(env=dbg_env), duplicate=0)
+SConscript('../nexxT/src/SConscript.py', variant_dir=rel_env.subst("build/${target_platform}_${variant}/nexxT/src"), exports=dict(env=rel_env), duplicate=0)
+SConscript('../nexxT/tests/src/SConscript.py', variant_dir=dbg_env.subst("build/${target_platform}_${variant}/nexxT/tests/src"), exports=dict(env=dbg_env), duplicate=0)
+SConscript('../nexxT/tests/src/SConscript.py', variant_dir=rel_env.subst("build/${target_platform}_${variant}/nexxT/tests/src"), exports=dict(env=rel_env), duplicate=0)
