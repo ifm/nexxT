@@ -15,7 +15,7 @@ from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.SubConfiguration import SubConfiguration
 from nexxT.core.ActiveApplication import ActiveApplication
 from nexxT.core.Exceptions import NexTRuntimeError, PropertyCollectionChildNotFound
-from nexxT.core.Utils import MethodInvoker, assertMainThread
+from nexxT.core.Utils import MethodInvoker, assertMainThread, handle_exception
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +48,7 @@ class Application(SubConfiguration):
 
 
     @staticmethod
+    @handle_exception
     def unactivate():
         """
         if an active application exists, close it.
@@ -61,6 +62,7 @@ class Application(SubConfiguration):
             Application.activeApplication = None
         logger.internal("leaving unactivate")
 
+    @handle_exception
     def activate(self):
         """
         puts this application to active
@@ -73,6 +75,7 @@ class Application(SubConfiguration):
         logger.internal("leaving activate")
 
     @staticmethod
+    @handle_exception
     def initialize():
         """
         Initialize the active application such that the filters are active.
@@ -82,9 +85,11 @@ class Application(SubConfiguration):
         if Application.activeApplication is None:
             raise NexTRuntimeError("No active application to initialize")
         MethodInvoker(Application.activeApplication.init, Qt.DirectConnection)
+        MethodInvoker(Application.activeApplication.open, Qt.DirectConnection)
         MethodInvoker(Application.activeApplication.start, Qt.DirectConnection)
 
     @staticmethod
+    @handle_exception
     def deInitialize():
         """
         Deinitialize the active application such that the filters are in CONSTRUCTED state
@@ -94,4 +99,5 @@ class Application(SubConfiguration):
         if Application.activeApplication is None:
             raise NexTRuntimeError("No active application to initialize")
         MethodInvoker(Application.activeApplication.stop, Qt.DirectConnection)
+        MethodInvoker(Application.activeApplication.close, Qt.DirectConnection)
         MethodInvoker(Application.activeApplication.deinit, Qt.DirectConnection)

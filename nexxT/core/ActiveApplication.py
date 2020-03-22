@@ -121,6 +121,8 @@ class ActiveApplication(QObject):
         assertMainThread()
         if self._state == FilterState.ACTIVE:
             self.stop()
+        if self._state == FilterState.OPENED:
+            self.close()
         if self._state == FilterState.INITIALIZED:
             self.deinit()
         if self._state == FilterState.CONSTRUCTED:

@@ -33,7 +33,15 @@ class MethodInvoker(QObject):
     def __init__(self, callback, connectiontype, *args):
         super().__init__()
         self.args = args
-        self.callback = callback
+        if isinstance(callback, dict):
+            obj = callback["object"]
+            method = callback["method"]
+            self.callback = getattr(obj, method)
+            self.moveToThread(obj.thread())
+        else:
+            self.callback = callback
+            if connectiontype != Qt.DirectConnection:
+                logging.getLogger(__name__).warning("Using old style API, wrong thread might be used!")
         if connectiontype is self.IDLE_TASK:
             QTimer.singleShot(0, self.callbackWrapper)
         else:

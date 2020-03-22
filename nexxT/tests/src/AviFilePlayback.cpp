@@ -10,6 +10,7 @@
 #include "PropertyCollection.hpp"
 #include "Logger.hpp"
 #include <QtCore/QDateTime>
+#include <QtCore/QThread>
 #include <QtCore/QBuffer>
 #include <QtGui/QImageWriter>
 #include <QtMultimedia/QAbstractVideoSurface>
@@ -116,6 +117,10 @@ public:
 
 void VideoPlaybackDevice::openVideo()
 {
+    if( QThread::currentThread() != thread() )
+    {
+        throw std::runtime_error("unexpected thread.");
+    }
     NEXT_LOG_DEBUG("entering openVideo");
     pauseOnNextImage = false;
     player = new QMediaPlayer(this, QMediaPlayer::VideoSurface);

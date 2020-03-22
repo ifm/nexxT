@@ -16,8 +16,10 @@ from PySide2.QtCore import QObject, Signal, Slot, QDateTime, Qt, QDir, QTimer, Q
 from PySide2.QtWidgets import (QWidget, QGridLayout, QLabel, QBoxLayout, QSlider, QToolBar, QAction, QApplication,
                                QStyle, QLineEdit, QFileSystemModel, QTreeView, QHeaderView)
 from nexxT.interface import Services
+from nexxT.interface import FilterState
 from nexxT.core.Exceptions import NexTRuntimeError, PropertyCollectionPropertyNotFound
-from nexxT.core.Utils import FileSystemModelSortProxy, assertMainThread, MethodInvoker
+from nexxT.core.Application import Application
+from nexxT.core.Utils import FileSystemModelSortProxy, assertMainThread, MethodInvoker, handle_exception
 
 logger = logging.getLogger(__name__)
 
@@ -95,16 +97,26 @@ class MVCPlaybackControlBase(QObject):
                     featureset.add(feature)
                     connections.append((signal, slot))
 
-            #@Slot(str)
+            @handle_exception
             def setSequenceWrapper(filename):
+                assertMainThread()
+                if Application.activeApplication is None:
+                    return
+                if Application.activeApplication.getState() not in [FilterState.ACTIVE, FilterState.OPENED]:
+                    return
                 if QDir.match(nameFilters, pathlib.Path(filename).name):
                     logger.debug("setSequence %s", filename)
-                    setSequenceWrapper.invoke = MethodInvoker(playbackDevice.setSequence, Qt.QueuedConnection, filename)
+                    if Application.activeApplication.getState() == FilterState.ACTIVE:
+                        Application.activeApplication.stop()
+                    setSequenceWrapper.invoke = MethodInvoker(dict(object=playbackDevice,method="setSequence"),
+                                                              Qt.QueuedConnection, filename)
+                    Application.activeApplication.start()
+                    logger.debug("setSequence done")
                 else:
                     logger.debug("%s does not match filters: %s", filename, nameFilters)
 
             # setSequence is called only if filename matches the given filters
-            if self.setSequence.connect(setSequenceWrapper):
+            if self.setSequence.connect(setSequenceWrapper, Qt.DirectConnection):
                 featureset.add("setSequence")
                 connections.append((self.setSequence, setSequenceWrapper))
             for feature in ["sequenceOpened", "currentTimestampChanged", "playbackStarted", "playbackPaused",
