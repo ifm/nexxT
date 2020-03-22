@@ -24,7 +24,7 @@ def test_static_filter():
                            PropertyCollectionImpl("root", None) ) as staticPyFilter:
         f = staticPyFilter.getPlugin()
 
-        origCallbacks = dict(onInit=f.onInit, onStart=f.onStart, onStop=f.onStop,
+        origCallbacks = dict(onInit=f.onInit, onOpen=f.onOpen, onStart=f.onStart, onStop=f.onStop, onClose=f.onClose,
                              onDeinit=f.onDeinit, onPortDataChanged=f.onPortDataChanged)
         for callback in origCallbacks:
             setattr(f, callback,
@@ -49,7 +49,9 @@ def test_static_filter():
 
         assert len(function_calls) == 0
         expect_exception(staticPyFilter.start)
+        expect_exception(staticPyFilter.open)
         expect_exception(staticPyFilter.stop)
+        expect_exception(staticPyFilter.close)
         expect_exception(staticPyFilter.deinit)
         staticPyFilter.init()
         assert function_calls == [("onInit", None)]
@@ -58,6 +60,17 @@ def test_static_filter():
 
         expect_exception(staticPyFilter.init)
         expect_exception(staticPyFilter.stop)
+        expect_exception(staticPyFilter.start)
+        expect_exception(staticPyFilter.close)
+        staticPyFilter.open()
+        assert function_calls == [("onOpen", None)]
+        assert staticPyFilter.state() == FilterState.OPENED
+        function_calls.clear()
+
+        expect_exception(staticPyFilter.init)
+        expect_exception(staticPyFilter.open)
+        expect_exception(staticPyFilter.stop)
+        expect_exception(staticPyFilter.deinit)
         staticPyFilter.start()
         assert function_calls == [("onStart", None)]
         assert staticPyFilter.state() == FilterState.ACTIVE
@@ -65,10 +78,22 @@ def test_static_filter():
 
         assert len(function_calls) == 0
         expect_exception(staticPyFilter.init)
+        expect_exception(staticPyFilter.open)
         expect_exception(staticPyFilter.start)
+        expect_exception(staticPyFilter.close)
         expect_exception(staticPyFilter.deinit)
         staticPyFilter.stop()
         assert function_calls == [("onStop", None)]
+        assert staticPyFilter.state() == FilterState.OPENED
+        function_calls.clear()
+
+        assert len(function_calls) == 0
+        expect_exception(staticPyFilter.init)
+        expect_exception(staticPyFilter.open)
+        expect_exception(staticPyFilter.stop)
+        expect_exception(staticPyFilter.deinit)
+        staticPyFilter.close()
+        assert function_calls == [("onClose", None)]
         assert staticPyFilter.state() == FilterState.INITIALIZED
         function_calls.clear()
 
@@ -89,7 +114,7 @@ def test_static_filter():
     with FilterEnvironment("pyfile://" + os.path.dirname(__file__) + "/../interface/SimpleStaticFilter.py", "SimpleStaticFilter",
                            PropertyCollectionImpl("root", None) ) as staticPyFilter:
         f = staticPyFilter.getPlugin()
-        origCallbacks = dict(onInit=f.onInit, onStart=f.onStart, onStop=f.onStop,
+        origCallbacks = dict(onInit=f.onInit, onOpen=f.onOpen, onStart=f.onStart, onStop=f.onStop, onClose=f.onClose,
                              onDeinit=f.onDeinit, onPortDataChanged=f.onPortDataChanged)
         for callback in origCallbacks:
             setattr(f, callback,
@@ -100,7 +125,7 @@ def test_static_filter():
     with FilterEnvironment("pyfile://" + os.path.dirname(__file__) + "/../interface/SimpleStaticFilter.py", "SimpleStaticFilter",
                            PropertyCollectionImpl("root", None) ) as staticPyFilter:
         f = staticPyFilter.getPlugin()
-        origCallbacks = dict(onInit=f.onInit, onStart=f.onStart, onStop=f.onStop,
+        origCallbacks = dict(onInit=f.onInit, onOpen=f.onOpen, onStart=f.onStart, onStop=f.onStop, onClose=f.onClose,
                              onDeinit=f.onDeinit, onPortDataChanged=f.onPortDataChanged)
         for callback in origCallbacks:
             setattr(f, callback,
@@ -113,15 +138,17 @@ def test_static_filter():
     with FilterEnvironment("pyfile://" + os.path.dirname(__file__) + "/../interface/SimpleStaticFilter.py", "SimpleStaticFilter",
                            PropertyCollectionImpl("root", None) ) as staticPyFilter:
         f = staticPyFilter.getPlugin()
-        origCallbacks = dict(onInit=f.onInit, onStart=f.onStart, onStop=f.onStop,
+        origCallbacks = dict(onInit=f.onInit, onStart=f.onStart, onOpen=f.onOpen, onStop=f.onStop, onClose=f.onClose,
                              onDeinit=f.onDeinit, onPortDataChanged=f.onPortDataChanged)
         for callback in origCallbacks:
             setattr(f, callback,
                     lambda *args, callback=callback: function_calls.append((callback, origCallbacks[callback](*args))))
         staticPyFilter.init()
+        staticPyFilter.open()
         staticPyFilter.start()
 
-    assert function_calls == [("onInit", None), ("onStart", None), ("onStop", None), ("onDeinit", None)]
+    assert function_calls == [("onInit", None), ("onOpen", None), ("onStart", None),
+                              ("onStop", None), ("onClose", None), ("onDeinit", None)]
     function_calls.clear()
 
     expect_exception(FilterEnvironment, "weird.plugin.extension", "factory", PropertyCollectionImpl("root", None) )
@@ -154,7 +181,7 @@ def test_dynamic_in_filter():
         dip2 = InputPort(True, "dynInPort2", dynInPyFilter)
         expect_exception(dynInPyFilter.addPort, dip2)
 
-        dynInPyFilter.start()
+        dynInPyFilter.open()
         expect_exception(dynInPyFilter.addPort, dip2)
 
 def test_dynamic_out_filter():
@@ -187,7 +214,7 @@ def test_dynamic_out_filter():
         dop2 = OutputPort(True, "dynOutPort2", dynOutPyFilter)
         expect_exception(dynOutPyFilter.addPort, dop2)
 
-        dynOutPyFilter.start()
+        dynOutPyFilter.open()
         expect_exception(dynOutPyFilter.addPort, dop2)
 
 if __name__ == "__main__":

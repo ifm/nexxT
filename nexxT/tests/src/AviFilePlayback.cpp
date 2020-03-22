@@ -169,7 +169,6 @@ VideoPlaybackDevice::VideoPlaybackDevice(BaseFilterEnvironment *env) :
     playbackRate = 1.0;
     video_out = SharedOutputPortPtr(new OutputPortInterface(false, "video_out", env));
     addStaticPort(video_out);
-    propertyCollection()->defineProperty("filename", "", "video file name");
 }
 
 VideoPlaybackDevice::~VideoPlaybackDevice()
@@ -296,7 +295,7 @@ void VideoPlaybackDevice::setTimeFactor(double factor)
     if(player) player->setPlaybackRate(factor);
 }
 
-void VideoPlaybackDevice::onStart()
+void VideoPlaybackDevice::onOpen()
 {
     QStringList filters;
     filters << "*.avi" << "*.mp4" << "*.wmv";
@@ -306,13 +305,20 @@ void VideoPlaybackDevice::onStart()
                               Qt::DirectConnection,
                               Q_ARG(QObject*, this),
                               Q_ARG(const QStringList &, filters));
-    filename = propertyCollection()->getProperty("filename").toString();
+}
+
+void VideoPlaybackDevice::onStart()
+{
     openVideo();
 }
 
 void VideoPlaybackDevice::onStop()
 {
     closeVideo();
+}
+
+void VideoPlaybackDevice::onClose()
+{
     SharedQObjectPtr ctrlSrv = Services::getService("PlaybackControl");
     QMetaObject::invokeMethod(ctrlSrv.data(),
                               "removeConnections",

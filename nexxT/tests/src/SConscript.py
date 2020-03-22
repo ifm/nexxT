@@ -10,16 +10,19 @@ Import("env")
 
 env = env.Clone()
 env.EnableQt5Modules(['QtCore', "QtMultimedia", "QtGui"])
+srcDir = Dir(".").srcnode()
 
 env.Append(CPPPATH=["../../src", "."],
            LIBPATH=["../../src"],
            LIBS=["nexxT"])
 
-env['QT5_DEBUG'] = 1
-
-plugin = env.RegisterTargets(env.SharedLibrary("test_plugins", env.RegisterSources(Split("""
+plugin = env.SharedLibrary("test_plugins", env.RegisterSources(Split("""
     SimpleSource.cpp
     AviFilePlayback.cpp
     TestExceptionFilter.cpp
     Plugins.cpp
-"""))))
+""")))
+env.RegisterTargets(plugin)
+
+installed = env.Install(srcDir.Dir("..").Dir("binary").Dir(env.subst("$target_platform")).Dir(env.subst("$variant")).abspath, plugin)
+env.RegisterTargets(installed)

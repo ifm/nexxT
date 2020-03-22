@@ -93,6 +93,7 @@ def simple_setup(sourceFreq, activeTime_s):
             if init:
                 init = False
                 aa.stop()
+                aa.close()
                 aa.deinit()
             else:
                 app.exit(0)
@@ -103,6 +104,7 @@ def simple_setup(sourceFreq, activeTime_s):
             if init:
                 init = False
                 aa.stop()
+                aa.close()
                 aa.deinit()
             else:
                 app.exit(1)
@@ -134,6 +136,7 @@ def simple_setup(sourceFreq, activeTime_s):
         f2.afterTransmit = lambda: logger(object="SimpleStaticFilter", function="afterTransmit", datasample=None)
 
         aa.init()
+        aa.open()
         aa.start()
 
         app.exec_()
@@ -251,6 +254,7 @@ def test_doubleNames():
             if init:
                 init = False
                 aa.stop()
+                aa.close()
                 aa.deinit()
             else:
                 app.exit(0)
@@ -261,6 +265,7 @@ def test_doubleNames():
             if init:
                 init = False
                 aa.stop()
+                aa.close()
                 aa.deinit()
             else:
                 app.exit(1)
@@ -292,6 +297,7 @@ def test_doubleNames():
         f2.afterTransmit = lambda: logger(object="SimpleStaticFilter", function="afterTransmit", datasample=None)
 
         aa.init()
+        aa.open()
         aa.start()
 
         app.exec_()

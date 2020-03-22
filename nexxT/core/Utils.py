@@ -13,6 +13,7 @@ import re
 import sys
 import logging
 import datetime
+import platform
 import os.path
 import sqlite3
 from PySide2.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
@@ -182,6 +183,13 @@ class FileSystemModelSortProxy(QSortFilterProxyModel):
                 return not asc
             if left_fi.isDir() and not right_fi.isDir():
                 return asc
+            left_fp = left_fi.filePath()
+            right_fp = right_fi.filePath()
+            if (platform.system() == "Windows" and
+                    left_fi.isAbsolute() and len(left_fp) == 3 and left_fp[1:] == ":/" and
+                    right_fi.isAbsolute() and len(right_fp) == 3 and right_fp[1:] == ":/"):
+                res = (asc and left_fp < right_fp) or ((not asc) and right_fp < left_fp)
+                return res
         return QSortFilterProxyModel.lessThan(self, left, right)
 
 class QByteArrayBuffer(io.IOBase):

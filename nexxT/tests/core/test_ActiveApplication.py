@@ -63,6 +63,7 @@ def simple_setup(multithread, sourceFreq, sinkTime, activeTime_s, dynamicFilter)
             if init:
                 init = False
                 aa.stop()
+                aa.close()
                 aa.deinit()
             else:
                 app.exit(0)
@@ -73,6 +74,7 @@ def simple_setup(multithread, sourceFreq, sinkTime, activeTime_s, dynamicFilter)
             if init:
                 init = False
                 aa.stop()
+                aa.close()
                 aa.deinit()
             else:
                 app.exit(1)
@@ -104,6 +106,7 @@ def simple_setup(multithread, sourceFreq, sinkTime, activeTime_s, dynamicFilter)
         f2.afterTransmit = lambda: logger(object="SimpleStaticFilter", function="afterTransmit", datasample=None)
 
         aa.init()
+        aa.open()
         aa.start()
 
         app.exec_()

@@ -34,7 +34,7 @@
       "nodes": [
         {
           "name": "source",
-          "library": "binary://$NEXT_CPLUGIN_PATH/test_plugins",
+          "library": "binary://../binary/${NEXXT_PLATFORM}/${NEXXT_VARIANT}/test_plugins",
           "factoryFunction": "SimpleSource",
           "thread": "thread-source",
           "staticOutputPorts": [

@@ -11,6 +11,7 @@ This module defines the PropertyCollection interface class of the nexxT framewor
 from collections import OrderedDict
 from pathlib import Path
 import logging
+import platform
 import string
 import os
 import shiboken2
@@ -362,7 +363,14 @@ class PropertyCollectionImpl(PropertyCollection):
         while root_prop.parent() is not None:
             root_prop = root_prop.parent()
         # substitute ${VAR} with environment variables
-        path = string.Template(path).safe_substitute(os.environ)
+        default_environ = dict(
+            NEXXT_VARIANT="release"
+        )
+        if platform.system() == "Windows":
+            default_environ["NEXXT_PLATFORM"] = "msvc_x86%s" % ("_64" if platform.architecture()[0] == "64bit" else "")
+        else:
+            default_environ["NEXXT_PLATFORM"] = "linux_x86%s" % ("_64" if platform.architecture()[0] == "64bit" else "")
+        path = string.Template(path).safe_substitute({**default_environ, **os.environ})
         if Path(path).is_absolute():
             return path
         try:

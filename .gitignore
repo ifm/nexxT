@@ -17,9 +17,8 @@ workspace/build
 
 # files generated during tests
 nexxT/tests/core/test1.saved.json
-nexxT/tests/core/test1.saved.json.guistate
 nexxT/tests/core/test_except_constr_tmp.json
-nexxT/tests/core/test_except_constr_tmp.json.guistate
+*.guistate
 
 
 # Distribution / packaging

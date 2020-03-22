@@ -18,12 +18,15 @@ class FilterState:
     CONSTRUCTED = 1
     INITIALIZING = 2
     INITIALIZED = 3
-    STARTING = 4
-    ACTIVE = 5
-    STOPPING = 6
-    DEINITIALIZING = 7
-    DESTRUCTING = 8
-    DESTRUCTED = 9
+    OPENING = 4
+    OPENED = 5
+    STARTING = 6
+    ACTIVE = 7
+    STOPPING = 8
+    CLOSING = 9
+    DEINITIALIZING = 10
+    DESTRUCTING = 11
+    DESTRUCTED = 12
 
     @staticmethod
     def state2str(state):
@@ -130,10 +133,16 @@ class Filter(QObject):
         :return: None
         """
 
-    def onStart(self):
+    def onOpen(self):
         """
         This function can be overwritten for general initialization tasks (e.g. acquire resources needed to
-        run the filter, open files, etc.).
+        run the filter, open files, connecting to services etc.).
+        :return:
+        """
+
+    def onStart(self):
+        """
+        This function can be overwritten to reset internal filter state. It is called before loading a new sequence.
         :return: None
         """
 
@@ -147,8 +156,14 @@ class Filter(QObject):
 
     def onStop(self):
         """
+        Opposite of onStart.
+        :return: None
+        """
+
+    def onClose(self):
+        """
         This function can be overwritten for general de-initialization tasks (e.g. release resources needed to
-        run the filter, close files, etc.). It is the opoosite to onStart(...).
+        run the filter, close files, etc.). It is the opoosite to onOpen(...).
         :return: None
         """
 

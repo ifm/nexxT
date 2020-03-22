@@ -9,6 +9,7 @@ This module contains implementations for abstract classes InputPort and OutputPo
 """
 
 import logging
+import sys
 from PySide2.QtCore import QThread, QSemaphore, Signal, QObject, Qt
 from nexxT.interface.Ports import InputPortInterface, OutputPortInterface
 from nexxT.interface.DataSamples import DataSample
@@ -145,26 +146,32 @@ class InputPortImpl(InputPortInterface):
 
     def receiveAsync(self, dataSample, semaphore):
         """
-        Called from framework only and implements the asynchronous receive mechanism using a semaphore. TODO implement
+        Called from framework only and implements the asynchronous receive mechanism using a semaphore.
         :param dataSample: the transmitted DataSample instance
         :param semaphore: a QSemaphore instance
         :return: None
         """
-        if not QThread.currentThread() is self.thread():
-            raise NexTInternalError("InputPort.receiveAsync has been called from an unexpected thread.")
-        semaphore.release(1)
-        self._addToQueue(dataSample)
+        try:
+            if not QThread.currentThread() is self.thread():
+                raise NexTInternalError("InputPort.receiveAsync has been called from an unexpected thread.")
+            semaphore.release(1)
+            self._addToQueue(dataSample)
+        except Exception:
+            sys.excepthook(*sys.exc_info())
 
     def receiveSync(self, dataSample):
         """
-        Called from framework only and implements the synchronous receive mechanism. TODO implement
+        Called from framework only and implements the synchronous receive mechanism.
         :param dataSample: the transmitted DataSample instance
         :return: None
         """
-        if not QThread.currentThread() is self.thread():
-            raise NexTInternalError("InputPort.receiveSync has been called from an unexpected thread.")
-        self._addToQueue(dataSample)
-
+        try:
+            if not QThread.currentThread() is self.thread():
+                raise NexTInternalError("InputPort.receiveSync has been called from an unexpected thread.")
+            self._addToQueue(dataSample)
+        except Exception:
+            sys.excepthook(*sys.exc_info())
+            
     def clone(self, newEnvironment):
         """
         Return a copy of this port attached to a new environment.

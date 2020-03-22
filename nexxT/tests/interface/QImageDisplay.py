@@ -22,13 +22,13 @@ class QImageDisplay(Filter):
         self.propertyCollection().defineProperty("SubplotID", "ImageDisplay", "The parent subplot.")
         self.lastSize = None
 
-    def onStart(self):
+    def onOpen(self):
         srv = Services.getService("MainWindow")
         self.display = QLabel()
         self.subplotID = self.propertyCollection().getProperty("SubplotID")
         srv.subplot(self.subplotID, self, self.display)
 
-    def onStop(self):
+    def onClose(self):
         srv = Services.getService("MainWindow")
         srv.releaseSubplot(self.subplotID)
 

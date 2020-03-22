@@ -44,6 +44,7 @@ def simple_setup(activeTime_s):
             if init:
                 init = False
                 aa.stop()
+                aa.close()
                 aa.deinit()
             else:
                 app.exit(0)    #logging.INTERNAL = INTERNAL
@@ -55,6 +56,7 @@ def simple_setup(activeTime_s):
             if init:
                 init = False
                 aa.stop()
+                aa.close()
                 aa.deinit()
             else:
                 app.exit(1)
@@ -69,6 +71,7 @@ def simple_setup(activeTime_s):
         aa.stateChanged.connect(state_changed)
 
         aa.init()
+        aa.open()
         aa.start()
 
         app.exec_()

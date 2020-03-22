@@ -44,7 +44,7 @@ def exception_setup(python, thread, where, activeTime_s):
             with test_json.open("r", encoding='utf-8') as fp:
                 cfg = json.load(fp)
             if nexxT.useCImpl and not python:
-                cfg["composite_filters"][0]["nodes"][2]["library"] = "binary://$NEXT_CPLUGIN_PATH/test_plugins"
+                cfg["composite_filters"][0]["nodes"][2]["library"] = "binary://../binary/${NEXXT_PLATFORM}/${NEXXT_VARIANT}/test_plugins"
             cfg["composite_filters"][0]["nodes"][2]["thread"] = thread
             cfg["composite_filters"][0]["nodes"][2]["properties"]["whereToThrow"] = where
             mod_json = Path(__file__).parent / "test_except_constr_tmp.json"
@@ -64,6 +64,7 @@ def exception_setup(python, thread, where, activeTime_s):
                 if init:
                     init = False
                     aa.stop()
+                    aa.close()
                     aa.deinit()
                 else:
                     app.exit(0)
@@ -74,6 +75,7 @@ def exception_setup(python, thread, where, activeTime_s):
                 if init:
                     init = False
                     aa.stop()
+                    aa.close()
                     aa.deinit()
                 else:
                     print("application exit!")
@@ -89,6 +91,7 @@ def exception_setup(python, thread, where, activeTime_s):
             aa.stateChanged.connect(state_changed)
 
             aa.init()
+            aa.open()
             aa.start()
 
             app.exec_()
@@ -373,3 +376,5 @@ def test_exception_c_compute_constr():
         exception = True
     assert exception
 
+if __name__ == "__main__":
+    test_exception_c_source_init()

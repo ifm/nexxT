@@ -10,7 +10,7 @@ class TestExceptionFilter(Filter):
     def __init__(self, env):
         super().__init__(False, False, env)
         self.propertyCollection().defineProperty("whereToThrow", "nowhere",
-                                                 "one of nowhere,constructor,init,start,port,stop,deinit")
+                                                 "one of nowhere,constructor,init,open,start,port,stop,close,deinit")
         if self.propertyCollection().getProperty("whereToThrow") == "constructor":
             raise RuntimeError("exception in constructor")
         self.port = InputPort(False, "port", env)
@@ -20,6 +20,10 @@ class TestExceptionFilter(Filter):
         if self.propertyCollection().getProperty("whereToThrow") == "init":
             raise RuntimeError("exception in init")
 
+    def onOpen(self):
+        if self.propertyCollection().getProperty("whereToThrow") == "open":
+            raise RuntimeError("exception in open")
+
     def onStart(self):
         if self.propertyCollection().getProperty("whereToThrow") == "start":
             raise RuntimeError("exception in start")
@@ -27,6 +31,10 @@ class TestExceptionFilter(Filter):
     def onStop(self):
         if self.propertyCollection().getProperty("whereToThrow") == "stop":
             raise RuntimeError("exception in stop")
+
+    def onClose(self):
+        if self.propertyCollection().getProperty("whereToThrow") == "close":
+            raise RuntimeError("exception in close")
 
     def onDeinit(self):
         if self.propertyCollection().getProperty("whereToThrow") == "deinit":

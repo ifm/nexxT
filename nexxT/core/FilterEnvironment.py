@@ -116,7 +116,7 @@ else:
             """
             self._assertMyThread()
             if self._state != FilterState.ACTIVE:
-                if self._state != FilterState.INITIALIZED:
+                if self._state != FilterState.OPENED:
                     raise UnexpectedFilterState(self._state, "portDataChanged")
                 logger.info("DataSample discarded because application has been stopped already.")
                 return
@@ -159,7 +159,7 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
         """
         return self._mockup
 
-    def close(self):
+    def destroy(self):
         """
         Deinitialize filter if necessary.
         :return: None
@@ -167,6 +167,8 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
         if not (self.getPlugin() is None or (useCImpl and self.getPlugin().data() is None)):
             if self._state == FilterState.ACTIVE:
                 self.stop()
+            if self._state == FilterState.OPENED:
+                self.close()
             if self._state == FilterState.INITIALIZED:
                 self.deinit()
             if not self._state in [FilterState.CONSTRUCTED, FilterState.DESTRUCTING]:
@@ -178,7 +180,7 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
         return self
 
     def __exit__(self, *args): #exctype, value, traceback
-        self.close()
+        self.destroy()
 
     def guiState(self):
         """
@@ -339,14 +341,17 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
         :param operation: The FilterState operation.
         :return: None
         """
+        logger.internal("Performing pre-state transition: %s", FilterState.state2str(operation))
         self._assertMyThread()
         if self.getPlugin() is None or (useCImpl and self.getPlugin().data() is None):
             raise NexTInternalError("Cannot perform state transitions on uninitialized plugin")
         operations = {
             FilterState.CONSTRUCTING: (None, FilterState.CONSTRUCTED, None),
             FilterState.INITIALIZING: (FilterState.CONSTRUCTED, FilterState.INITIALIZED, self.getPlugin().onInit),
-            FilterState.STARTING: (FilterState.INITIALIZED, FilterState.ACTIVE, self.getPlugin().onStart),
-            FilterState.STOPPING: (FilterState.ACTIVE, FilterState.INITIALIZED, self.getPlugin().onStop),
+            FilterState.OPENING: (FilterState.INITIALIZED, FilterState.OPENED, self.getPlugin().onOpen),
+            FilterState.STARTING: (FilterState.OPENED, FilterState.ACTIVE, self.getPlugin().onStart),
+            FilterState.STOPPING: (FilterState.ACTIVE, FilterState.OPENED, self.getPlugin().onStop),
+            FilterState.CLOSING: (FilterState.OPENED, FilterState.INITIALIZED, self.getPlugin().onClose),
             FilterState.DEINITIALIZING: (FilterState.INITIALIZED, FilterState.CONSTRUCTED, self.getPlugin().onDeinit),
             FilterState.DESTRUCTING: (FilterState.CONSTRUCTED, None, None),
         }
@@ -361,14 +366,17 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
         :param operation: The FilterState operation.
         :return: None
         """
+        logger.internal("Performing state transition: %s", FilterState.state2str(operation))
         self._assertMyThread()
         if self.getPlugin() is None or (useCImpl and self.getPlugin().data() is None):
             raise NexTInternalError("Cannot perform state transitions on uninitialized plugin")
         operations = {
             FilterState.CONSTRUCTING: (None, FilterState.CONSTRUCTED, None),
             FilterState.INITIALIZING: (FilterState.CONSTRUCTED, FilterState.INITIALIZED, self.getPlugin().onInit),
-            FilterState.STARTING: (FilterState.INITIALIZED, FilterState.ACTIVE, self.getPlugin().onStart),
-            FilterState.STOPPING: (FilterState.ACTIVE, FilterState.INITIALIZED, self.getPlugin().onStop),
+            FilterState.OPENING: (FilterState.INITIALIZED, FilterState.OPENED, self.getPlugin().onOpen),
+            FilterState.STARTING: (FilterState.OPENED, FilterState.ACTIVE, self.getPlugin().onStart),
+            FilterState.STOPPING: (FilterState.ACTIVE, FilterState.OPENED, self.getPlugin().onStop),
+            FilterState.CLOSING: (FilterState.OPENED, FilterState.INITIALIZED, self.getPlugin().onClose),
             FilterState.DEINITIALIZING: (FilterState.INITIALIZED, FilterState.CONSTRUCTED, self.getPlugin().onDeinit),
             FilterState.DESTRUCTING: (FilterState.CONSTRUCTED, None, None),
         }
@@ -404,9 +412,17 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
         self._assertMyThread()
         self._stateTransition(FilterState.INITIALIZING)
 
+    def open(self):
+        """
+        Perform filter opening (state transition INITIALIZED -> OPENING -> OPENED
+        :return:
+        """
+        self._assertMyThread()
+        self._stateTransition(FilterState.OPENING)
+
     def start(self):
         """
-        Perform filter start (state transition INITIALIZED -> STARTING -> ACTIVE)
+        Perform filter start (state transition OPENED -> STARTING -> ACTIVE)
         :return: None
         """
         self._assertMyThread()
@@ -414,11 +430,19 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
 
     def stop(self):
         """
-        Perform filter stop (state transition ACTIVE -> STOPPING -> INITIALIZED)
+        Perform filter stop (state transition ACTIVE -> STOPPING -> OPENED)
         :return: None
         """
         self._assertMyThread()
         self._stateTransition(FilterState.STOPPING)
+
+    def close(self):
+        """
+        Perform filter stop (state transition OPENED -> CLOSING -> INITIALIZED)
+        :return: None
+        """
+        self._assertMyThread()
+        self._stateTransition(FilterState.CLOSING)
 
     def deinit(self):
         """

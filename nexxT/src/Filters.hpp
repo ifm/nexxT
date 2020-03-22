@@ -25,12 +25,15 @@ START_NAMESPACE
         static const int CONSTRUCTED = 1;
         static const int INITIALIZING = 2;
         static const int INITIALIZED = 3;
-        static const int STARTING = 4;
-        static const int ACTIVE = 5;
-        static const int STOPPING = 6;
-        static const int DEINITIALIZING = 7;
-        static const int DESTRUCTING = 8;
-        static const int DESTRUCTED = 9;
+        static const int OPENING = 4;
+        static const int OPENED = 5;
+        static const int STARTING = 6;
+        static const int ACTIVE = 7;
+        static const int STOPPING = 8;
+        static const int CLOSING = 9;
+        static const int DEINITIALIZING = 10;
+        static const int DESTRUCTING = 11;
+        static const int DESTRUCTED = 12;
 
         static QString state2str(int state);
     };
@@ -61,9 +64,11 @@ START_NAMESPACE
     public:
         virtual ~Filter();
         virtual void onInit();
+        virtual void onOpen();
         virtual void onStart();
         virtual void onPortDataChanged(const InputPortInterface &inputPort);
         virtual void onStop();
+        virtual void onClose();
         virtual void onDeinit();
 
         BaseFilterEnvironment *environment() const;

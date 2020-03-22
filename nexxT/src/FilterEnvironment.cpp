@@ -89,7 +89,7 @@ void BaseFilterEnvironment::portDataChanged(const InputPortInterface &port)
     assertMyThread();
     if( state() != FilterState::ACTIVE )
     {
-        if( state() != FilterState::INITIALIZED )
+        if( state() != FilterState::OPENED )
         {
             throw std::runtime_error(QString("Unexpected filter state %1, expected ACTIVE or INITIALIZED.").arg(FilterState::state2str(state())).toStdString());
         }

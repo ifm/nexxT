@@ -17,9 +17,12 @@ const int FilterState::CONSTRUCTING;
 const int FilterState::CONSTRUCTED;
 const int FilterState::INITIALIZING;
 const int FilterState::INITIALIZED;
+const int FilterState::OPENING;
+const int FilterState::OPENED;
 const int FilterState::STARTING;
 const int FilterState::ACTIVE;
 const int FilterState::STOPPING;
+const int FilterState::CLOSING;
 const int FilterState::DEINITIALIZING;
 const int FilterState::DESTRUCTING;
 const int FilterState::DESTRUCTED;
@@ -32,9 +35,12 @@ QString FilterState::state2str(int state)
     case FilterState::CONSTRUCTED: return "CONSTRUCTED";
     case FilterState::INITIALIZING: return "INITIALIZING";
     case FilterState::INITIALIZED: return "INITIALIZED";
+    case FilterState::OPENING: return "OPENING";
+    case FilterState::OPENED: return "OPENED";
     case FilterState::STARTING: return "STARTING";
     case FilterState::ACTIVE: return "ACTIVE";
     case FilterState::STOPPING: return "STOPPING";
+    case FilterState::CLOSING: return "CLOSING";
     case FilterState::DEINITIALIZING: return "DEINITIALIZING";
     case FilterState::DESTRUCTING: return "DESTRUCTING";
     case FilterState::DESTRUCTED: return "DESTRUCTED";
@@ -106,6 +112,11 @@ void Filter::onInit()
     /* intentionally empty */
 }
 
+void Filter::onOpen()
+{
+    /* intentionally empty */
+}
+
 void Filter::onStart()
 {
     /* intentionally empty */
@@ -117,6 +128,11 @@ void Filter::onPortDataChanged(const InputPortInterface &)
 }
 
 void Filter::onStop()
+{
+    /* intentionally empty */
+}
+
+void Filter::onClose()
 {
     /* intentionally empty */
 }

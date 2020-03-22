@@ -23,8 +23,10 @@ class NexTThread(QObject):
 
     _operations = dict(
         init=FilterState.INITIALIZING,
+        open=FilterState.OPENING,
         start=FilterState.STARTING,
         stop=FilterState.STOPPING,
+        close=FilterState.CLOSING,
         deinit=FilterState.DEINITIALIZING,
     )
 
@@ -70,7 +72,7 @@ class NexTThread(QObject):
             self._qthread = None
         logger.internal("cleanup filters")
         for name in self._filters:
-            self._filters[name].close()
+            self._filters[name].destroy()
         self._filters.clear()
         self._filter2name.clear()
         logger.internal("cleanup mockups")
@@ -120,7 +122,7 @@ class NexTThread(QObject):
     def performOperation(self, operation, barrier):
         """
         Perform the given operation on all filters.
-        :param operation: one of "create", "destruct", "init", "start", "stop", "deinit"
+        :param operation: one of "create", "destruct", "init", "open", "start", "stop", "close", "deinit"
         :param barrier: a barrier object to synchronize threads
         :return: None
         """
@@ -143,7 +145,7 @@ class NexTThread(QObject):
                     self._filter2name[res] = name
                     logger.internal("Created filter %s in thread %s", name, self._name)
                 elif operation == "destruct":
-                    self._filters[name].close()
+                    self._filters[name].destroy()
                     logging.getLogger(__name__).internal("deleting filter...")
                     del self._filters[name]
                     logging.getLogger(__name__).internal("filter deleted")

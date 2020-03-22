@@ -37,6 +37,14 @@ void TestExceptionFilter::onInit()
     }
 }
 
+void TestExceptionFilter::onOpen()
+{
+    if( propertyCollection()->getProperty("whereToThrow") == "open" )
+    {
+        throw std::runtime_error("exception in open");
+    }
+}
+
 void TestExceptionFilter::onStart()
 {
     if( propertyCollection()->getProperty("whereToThrow") == "start" )
@@ -58,6 +66,14 @@ void TestExceptionFilter::onStop()
     if( propertyCollection()->getProperty("whereToThrow") == "stop" )
     {
         throw std::runtime_error("exception in stop");
+    }
+}
+
+void TestExceptionFilter::onClose()
+{
+    if( propertyCollection()->getProperty("whereToThrow") == "close" )
+    {
+        throw std::runtime_error("exception in close");
     }
 }
 

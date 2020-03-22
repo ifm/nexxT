@@ -261,9 +261,13 @@ class ActiveApplication(QObject):
                 self._state = FilterState.CONSTRUCTED
             elif self._state == FilterState.INITIALIZING:
                 self._state = FilterState.INITIALIZED
+            elif self._state == FilterState.OPENING:
+                self._state = FilterState.OPENED
             elif self._state == FilterState.STARTING:
                 self._state = FilterState.ACTIVE
             elif self._state == FilterState.STOPPING:
+                self._state = FilterState.OPENED
+            elif self._state == FilterState.CLOSING:
                 self._state = FilterState.INITIALIZED
             elif self._state == FilterState.DEINITIALIZING:
                 self._state = FilterState.CONSTRUCTED
@@ -310,6 +314,26 @@ class ActiveApplication(QObject):
         logger.internal("leaving operation done, new state %s", FilterState.state2str(self._state))
 
     @Slot()
+    def open(self):
+        """
+        Perform open operation
+        :return: None
+        """
+        logger.internal("entering setup operation, old state %s", FilterState.state2str(self._state))
+        assertMainThread()
+        while self._operationInProgress and self._state != FilterState.INITIALIZED:
+            QCoreApplication.processEvents()
+        if self._state != FilterState.INITIALIZED:
+            raise FilterStateMachineError(self._state, FilterState.OPENING)
+        self._operationInProgress = True
+        self._state = FilterState.OPENING
+        self.performOperation.emit("open", Barrier(len(self._threads)))
+        while self._state == FilterState.OPENING:
+            QCoreApplication.processEvents()
+        self._operationInProgress = False
+        logger.internal("leaving operation done, new state %s", FilterState.state2str(self._state))
+
+    @Slot()
     def start(self):
         """
         Setup connections if necessary and perform start operation
@@ -317,9 +341,9 @@ class ActiveApplication(QObject):
         """
         logger.internal("entering start operation, old state %s", FilterState.state2str(self._state))
         assertMainThread()
-        while self._operationInProgress and self._state != FilterState.INITIALIZED:
+        while self._operationInProgress and self._state != FilterState.OPENED:
             QCoreApplication.processEvents()
-        if self._state != FilterState.INITIALIZED:
+        if self._state != FilterState.OPENED:
             raise FilterStateMachineError(self._state, FilterState.STARTING)
         self._operationInProgress = True
         self._state = FilterState.STARTING
@@ -351,6 +375,25 @@ class ActiveApplication(QObject):
         self._operationInProgress = False
         logger.internal("leaving stop operation, new state %s", FilterState.state2str(self._state))
 
+    @Slot()
+    def close(self):
+        """
+        Perform close operation
+        :return: None
+        """
+        logger.internal("entering close operation, old state %s", FilterState.state2str(self._state))
+        assertMainThread()
+        while self._operationInProgress and self._state != FilterState.OPENED:
+            QCoreApplication.processEvents()
+        if self._state != FilterState.OPENED:
+            raise FilterStateMachineError(self._state, FilterState.CLOSING)
+        self._operationInProgress = True
+        self._state = FilterState.CLOSING
+        self.performOperation.emit("close", Barrier(len(self._threads)))
+        while self._state == FilterState.CLOSING:
+            QCoreApplication.processEvents()
+        self._operationInProgress = False
+        logger.internal("leaving operation done, new state %s", FilterState.state2str(self._state))
 
     @Slot()
     def deinit(self):

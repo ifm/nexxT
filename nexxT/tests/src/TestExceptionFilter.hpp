@@ -24,9 +24,11 @@ public:
     NEXT_PLUGIN_DECLARE_FILTER(TestExceptionFilter)
 
     void onInit();
+    void onOpen();
     void onStart();
     void onPortDataChanged(const InputPortInterface &inputPort);
     void onStop();
+    void onClose();
     void onDeinit();
 };
 

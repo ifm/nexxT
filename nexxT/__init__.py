@@ -30,15 +30,16 @@ def setup():
     logger.setLevel(logging.INFO)
 
     global useCImpl
-    useCImpl = not bool(int(os.environ.get("NEXT_DISABLE_CIMPL", "0")))
+    useCImpl = not bool(int(os.environ.get("NEXXT_DISABLE_CIMPL", "0")))
     if useCImpl:
         # make sure to import PySide2 before loading the cnexxT extension module because
         # there is a link-time dependency which would be impossible to resolve otherwise
         import PySide2.QtCore
-        p = os.environ.get("NEXT_CEXT_PATH", None)
+        p = os.environ.get("NEXXT_CEXT_PATH", None)
         if p is None:
-            p = [p for p in [Path(__file__).parent / "binary" / "msvc_x86_64" / "release",
-                             Path(__file__).parent / "binary" / "linux_x86_64" / "release"] if p.exists()]
+            variant = os.environ.get("NEXXT_VARIANT", "release")
+            p = [p for p in [Path(__file__).parent / "binary" / "msvc_x86_64" / variant,
+                             Path(__file__).parent / "binary" / "linux_x86_64" / variant] if p.exists()]
             if len(p) > 0:
                 p = p[0].absolute()
             else:

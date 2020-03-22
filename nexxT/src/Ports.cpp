@@ -208,21 +208,33 @@ void InputPortInterface::addToQueue(const SharedDataSamplePtr &sample)
 
 void InputPortInterface::receiveAsync(const QSharedPointer<const DataSample> &sample, QSemaphore *semaphore)
 {
-    if( QThread::currentThread() != thread() )
+    try
     {
-        throw std::runtime_error("InputPort.getData has been called from an unexpected thread.");
+        if( QThread::currentThread() != thread() )
+        {
+            throw std::runtime_error("InputPort.getData has been called from an unexpected thread.");
+        }
+        semaphore->release(1);
+        addToQueue(sample);
+    } catch(std::exception &e)
+    {
+        NEXT_LOG_ERROR(QString("Unhandled exception in port data changed: %1").arg(e.what()));
     }
-    semaphore->release(1);
-    addToQueue(sample);
 }
 
 void InputPortInterface::receiveSync (const QSharedPointer<const DataSample> &sample)
 {
-    if( QThread::currentThread() != thread() )
+    try
     {
-        throw std::runtime_error("InputPort.getData has been called from an unexpected thread.");
+        if( QThread::currentThread() != thread() )
+        {
+            throw std::runtime_error("InputPort.getData has been called from an unexpected thread.");
+        }
+        addToQueue(sample);
+    } catch(std::exception &e)
+    {
+        NEXT_LOG_ERROR(QString("Unhandled exception in port data changed: %1").arg(e.what()));
     }
-    addToQueue(sample);
 }
 
 InterThreadConnection::InterThreadConnection(QThread *from_thread)

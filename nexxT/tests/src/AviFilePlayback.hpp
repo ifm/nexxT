@@ -67,8 +67,10 @@ public slots:
     void setSequence(const QString &_filename);
     void setTimeFactor(double factor);
 protected:
+    void onOpen();
     void onStart();
     void onStop();
+    void onClose();
 
 };
 
