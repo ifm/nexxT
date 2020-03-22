@@ -58,13 +58,14 @@ class Configuration(QObject):
         self._guiState = PropertyCollectionImpl("_guiState", self._propertyCollection)
 
     @Slot()
-    def close(self):
+    def close(self, avoidSave=False):
         """
         Closing the configuration instance and free allocated resources.
         :return:
         """
         logger.internal("entering Configuration.close")
-        ConfigFileLoader.saveGuiState(self)
+        if not avoidSave:
+            ConfigFileLoader.saveGuiState(self)
         Application.unactivate()
         for sc in self._compositeFilters + self._applications:
             sc.cleanup()
@@ -122,7 +123,7 @@ class Configuration(QObject):
             self.configNameChanged.emit(cfg["CFGFILE"])
             self.configLoaded.emit()
         except RuntimeError as e:
-            self.close()
+            self.close(avoidSave=True)
             raise e
 
     def save(self):
