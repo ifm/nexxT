@@ -59,13 +59,15 @@ def startNexT(cfgfile, active, withGui):
     config = Configuration()
     if withGui:
         app = QApplication()
+        app.setOrganizationName("nexxT")
+        app.setApplicationName("nexxT")
         setupGuiServices(config)
     else:
         app = QCoreApplication()
+        app.setOrganizationName("nexxT")
+        app.setApplicationName("nexxT")
         setupConsoleServices(config)
 
-    app.setOrganizationName("nexxT")
-    app.setApplicationName("nexxT")
     ConfigFileLoader.load(config, cfgfile)
     if withGui:
         mainWindow = Services.getService("MainWindow")

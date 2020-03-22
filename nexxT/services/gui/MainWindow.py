@@ -144,6 +144,7 @@ class MainWindow(QMainWindow):
     subplot functionality to create grid-layouted views.
     """
     mdiSubWindowCreated = Signal(QMdiSubWindow) # TODO: remove, is not necessary anymore with subplot feature
+    aboutToClose = Signal()
 
     def __init__(self, config):
         super().__init__()
@@ -168,6 +169,7 @@ class MainWindow(QMainWindow):
         """
         self.saveState()
         self.saveMdiState()
+        self.aboutToClose.emit()
         return super().closeEvent(closeEvent)
 
     def restoreState(self):

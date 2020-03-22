@@ -9,7 +9,8 @@ This module provides the Configuration GUI service of the nexxT framework.
 """
 
 import logging
-from PySide2.QtCore import QObject, Signal, Slot, Qt, QAbstractItemModel, QModelIndex
+from PySide2.QtCore import (QObject, Signal, Slot, Qt, QAbstractItemModel, QModelIndex, QSettings, QByteArray,
+                            QDataStream, QIODevice)
 from PySide2.QtGui import QFont, QPainter
 from PySide2.QtWidgets import (QTreeView, QAction, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
                                QHeaderView, QMenu, QDockWidget, QGraphicsView)
@@ -565,7 +566,8 @@ class MVCConfigurationGUI(QObject):
         srv = Services.getService("MainWindow")
         confMenu = srv.menuBar().addMenu("&Configuration")
         toolBar = srv.getToolBar()
-
+        self._configuration = configuration
+        
         self.actLoad = QAction(QApplication.style().standardIcon(QStyle.SP_DialogOpenButton), "Open", self)
         self.actLoad.triggered.connect(lambda *args: self._execLoad(configuration, *args))
         self.actSave = QAction(QApplication.style().standardIcon(QStyle.SP_DialogSaveButton), "Save", self)
@@ -592,6 +594,14 @@ class MVCConfigurationGUI(QObject):
         toolBar.addAction(self.actActivate)
         toolBar.addAction(self.actDeactivate)
 
+        self.recentConfigs = [QAction() for i in range(10)]
+        confMenu.addSeparator()
+        recentMenu = confMenu.addMenu("Recent")
+        for a in self.recentConfigs:
+            a.setVisible(False)
+            a.triggered.connect(self._openRecent)
+            recentMenu.addAction(a)
+
         self.mainWidget = srv.newDockWidget("Configuration", None, Qt.LeftDockWidgetArea)
         self.model = ConfigurationModel(configuration, self.mainWidget)
         self.treeView = QTreeView(self.mainWidget)
@@ -614,6 +624,8 @@ class MVCConfigurationGUI(QObject):
 
         configuration.appActivated.connect(self.appActivated)
         self.activeAppChanged.connect(configuration.activate)
+        self.restoreState()
+        srv.aboutToClose.connect(self.saveState)
 
     def _execLoad(self, configuration):
         assertMainThread()
@@ -625,6 +637,19 @@ class MVCConfigurationGUI(QObject):
             except Exception as e: # pylint: disable=broad-except
                 logger.exception("Error while loading configuration %s: %s", fn, str(e))
                 QMessageBox.warning(self.mainWidget, "Error while loading configuration", str(e))
+
+    def _openRecent(self):
+        """
+        Called when the user clicks on a recent sequence.
+        :return:
+        """
+        action = self.sender()
+        fn = action.data()
+        try:
+            ConfigFileLoader.load(self._configuration, fn)
+        except Exception as e:
+            logger.exception("Error while loading configuration %s: %s", fn, str(e))
+            QMessageBox.warning(self.mainWidget, "Error while loading configuration", str(e))
 
     @staticmethod
     def _execSave(configuration):
@@ -668,6 +693,19 @@ class MVCConfigurationGUI(QObject):
             srv.setWindowTitle("nexxT")
         else:
             srv.setWindowTitle("nexxT: " + cfgfile)
+        foundIdx = None
+        for i, a in enumerate(self.recentConfigs):
+            if a.data() == cfgfile:
+                foundIdx = i
+        if foundIdx is None:
+            foundIdx = len(self.recentConfigs)-1
+        for i in range(foundIdx, 0, -1):
+            self.recentConfigs[i].setText(self.recentConfigs[i-1].text())
+            self.recentConfigs[i].setData(self.recentConfigs[i-1].data())
+            self.recentConfigs[i].setVisible(self.recentConfigs[i-1].data() is not None)
+        self.recentConfigs[0].setText(cfgfile)
+        self.recentConfigs[0].setData(cfgfile)
+        self.recentConfigs[0].setVisible(True)
 
     def _onItemDoubleClicked(self, index):
         assertMainThread()
@@ -705,3 +743,31 @@ class MVCConfigurationGUI(QObject):
             self.actDeactivate.setEnabled(True)
         else:
             self.actDeactivate.setEnabled(False)
+
+    def restoreState(self):
+        logger.debug("restoring config state ...")
+        settings = QSettings()
+        v = settings.value("ConfigurationRecentFiles")
+        if v is not None and isinstance(v, QByteArray):
+            ds = QDataStream(v)
+            recentFiles = ds.readQStringList()
+            idx = 0
+            for f in recentFiles:
+                if f != "" and f is not None:
+                    self.recentConfigs[idx].setData(f)
+                    self.recentConfigs[idx].setText(f)
+                    self.recentConfigs[idx].setVisible(True)
+                    idx += 1
+                    if idx >= len(self.recentConfigs):
+                        break
+        logger.debug("restoring config state done")
+
+    def saveState(self):
+        logger.debug("saving config state ...")
+        settings = QSettings()
+        b = QByteArray()
+        ds = QDataStream(b, QIODevice.WriteOnly)
+        l = [rc.data() for rc in self.recentConfigs if rc.isVisible() and rc.data() is not None and rc.data() != ""]
+        ds.writeQStringList(l)
+        settings.setValue("ConfigurationRecentFiles", b)
+        logger.debug("saving config state done (%s)", l)
