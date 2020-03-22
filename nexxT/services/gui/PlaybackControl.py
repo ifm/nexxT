@@ -14,7 +14,7 @@ import logging
 import os
 from PySide2.QtCore import QObject, Signal, Slot, QDateTime, Qt, QDir, QTimer, QMutex, QMutexLocker
 from PySide2.QtWidgets import (QWidget, QGridLayout, QLabel, QBoxLayout, QSlider, QToolBar, QAction, QApplication,
-                               QStyle, QLineEdit, QFileSystemModel, QTreeView, QHeaderView)
+                               QStyle, QLineEdit, QFileSystemModel, QTreeView, QHeaderView, QActionGroup)
 from nexxT.interface import Services
 from nexxT.interface import FilterState
 from nexxT.core.Exceptions import NexTRuntimeError, PropertyCollectionPropertyNotFound
@@ -30,8 +30,8 @@ class MVCPlaybackControlBase(QObject):
     """
     startPlayback = Signal()
     pausePlayback = Signal()
-    stepForward = Signal()
-    stepBackward = Signal()
+    stepForward = Signal(str)
+    stepBackward = Signal(str)
     seekBeginning = Signal()
     seekEnd = Signal()
     seekTime = Signal(QDateTime)
@@ -255,8 +255,8 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
         # let's stay on the safe side and do not use emit as a slot...
         self.actStart.triggered.connect(lambda: self.startPlayback.emit())
         self.actPause.triggered.connect(lambda: self.pausePlayback.emit())
-        self.actStepFwd.triggered.connect(lambda: self.stepForward.emit())
-        self.actStepBwd.triggered.connect(lambda: self.stepBackward.emit())
+        self.actStepFwd.triggered.connect(lambda: self.stepForward.emit(self.selectedStream()))
+        self.actStepBwd.triggered.connect(lambda: self.stepBackward.emit(self.selectedStream()))
         self.actSeekEnd.triggered.connect(lambda: self.seekEnd.emit())
         self.actSeekBegin.triggered.connect(lambda: self.seekBeginning.emit())
         # pylint: enable=unnecessary-lambda
@@ -358,6 +358,12 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
         playbackMenu.addSeparator()
         playbackMenu.addAction(self.actShowAllFiles)
         playbackMenu.addAction(self.actRefreshBrowser)
+
+        self.actGroupStream = QActionGroup(self)
+        self.actGroupStream.setExclusionPolicy(QActionGroup.ExclusionPolicy.ExclusiveOptional)
+        playbackMenu.addSeparator()
+        self.actGroupStreamMenu = playbackMenu.addMenu("Step Stream")
+        self._selectedStream = None
 
         self.recentSeqs = [QAction() for i in range(10)]
         playbackMenu.addSeparator()
@@ -462,6 +468,15 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
             idx = self.proxyFileSystemModel.mapFromSource(idx)
         self.browser.setCurrentIndex(idx)
         self.browser.scrollTo(idx)
+        self._selectedStream = None
+        for a in self.actGroupStream.actions():
+            self.actGroupStream.removeAction(a)
+        for stream in streams:
+            act = QAction(stream, self.actGroupStream)
+            act.triggered.connect(lambda: self.setSelectedStream(stream))
+            act.setCheckable(True)
+            act.setChecked(False)
+            self.actGroupStreamMenu.addAction(act)
         QTimer.singleShot(250, self.scrollToCurrent)
 
     def currentTimestampChanged(self, currentTime):
@@ -584,6 +599,12 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
                 self.timeRatioLabel.setText(("x 1/%d"%(1/r)) if r < 1 else ("x %d"%r))
                 return
         self.timeRatioLabel.setText("%.2f" % newRatio)
+
+    def selectedStream(self):
+        return self._selectedStream
+
+    def setSelectedStream(self, stream):
+        self._selectedStream = stream
 
     def saveState(self):
         """

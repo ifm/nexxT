@@ -122,7 +122,7 @@ void VideoPlaybackDevice::openVideo()
         throw std::runtime_error("unexpected thread.");
     }
     NEXT_LOG_DEBUG("entering openVideo");
-    pauseOnNextImage = false;
+    pauseOnStream = QString();
     player = new QMediaPlayer(this, QMediaPlayer::VideoSurface);
     player->setMuted(true);
     videoSurface = new DummyVideoSurface(this);
@@ -170,7 +170,7 @@ VideoPlaybackDevice::VideoPlaybackDevice(BaseFilterEnvironment *env) :
     player(nullptr),
     videoSurface(nullptr)
 {
-    pauseOnNextImage = false;
+    pauseOnStream = QString();
     playbackRate = 1.0;
     video_out = SharedOutputPortPtr(new OutputPortInterface(false, "video_out", env));
     addStaticPort(video_out);
@@ -183,9 +183,9 @@ VideoPlaybackDevice::~VideoPlaybackDevice()
 
 void VideoPlaybackDevice::newImage(const QImage &img)
 {
-    if(pauseOnNextImage)
+    if(!pauseOnStream.isNull())
     {
-        pauseOnNextImage = false;
+        pauseOnStream = QString();
         QMetaObject::invokeMethod(this, "pausePlayback", Qt::QueuedConnection);
     }
     QByteArray a;
@@ -257,10 +257,10 @@ void VideoPlaybackDevice::pausePlayback()
     if(player) player->pause();
 }
 
-void VideoPlaybackDevice::stepForward()
+void VideoPlaybackDevice::stepForward(const QString &stream)
 {
-    NEXT_LOG_DEBUG("stepForward called");
-    pauseOnNextImage = true;
+    NEXT_LOG_DEBUG(QString("stepForward(%1) called").arg(stream));
+    pauseOnStream = "video";
     if( player && player->state() != QMediaPlayer::PlayingState )
     {
         NEXT_LOG_DEBUG("calling play");

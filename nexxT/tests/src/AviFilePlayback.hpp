@@ -26,7 +26,7 @@ class VideoPlaybackDevice : public Filter
     SharedOutputPortPtr video_out;
     QString filename;
     double playbackRate;
-    bool pauseOnNextImage;
+    QString pauseOnStream;
     QMediaPlayer *player;
     DummyVideoSurface *videoSurface;
 
@@ -60,7 +60,7 @@ public slots:
     void currentMediaChanged(const QMediaContent &);
     void startPlayback();
     void pausePlayback();
-    void stepForward();
+    void stepForward(const QString &stream);
     void seekBeginning();
     void seekEnd();
     void seekTime(const QDateTime &pos);
