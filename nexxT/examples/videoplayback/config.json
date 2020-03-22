@@ -1,0 +1,51 @@
+{
+  "composite_filters": [
+  ],
+  "applications": [
+    {
+      "name": "videoplayback",
+      "_guiState": {
+        "filters__display": {
+          "mdi_mdi_MainWindow_MDI_ImageDisplay_geom": "AdnQywABAAAAAAAAAAAAVQAAAAAAAAAPAAAAAAAABRoAAAAAAAAC/gAAAAAAAABVAAAAAAAAAA8AAAAAAAAFGgAAAAAAAAL+AAAAAAAAAAA=",
+          "mdi_mdi_MainWindow_MDI_ImageDisplay_visible": 1
+        }
+      },
+      "nodes": [
+        {
+          "name": "source",
+          "library": "binary://../../tests/binary/${NEXXT_PLATFORM}/${NEXXT_VARIANT}/test_plugins",
+          "factoryFunction": "VideoPlaybackDevice",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "video_out"
+          ],
+          "thread": "thread-source",
+          "properties": {
+            "filename": "/tmp/testLLLLLLLLLLLLLLLLLLLLOOOOOOOOOOOOOOOOOOOOOOOOOOOONNNNNNNNNNNNNNNNNNNGGGGGGGGGGGGGG.avi"
+          }
+        },
+        {
+          "name": "display",
+          "library": "pyfile://./QImageDisplay.py",
+          "factoryFunction": "QImageDisplay",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "inPort"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "SubplotID": "ImageDisplay"
+          }
+        }
+      ],
+      "connections": [
+        "source.video_out -> display.inPort"
+      ]
+    }
+  ],
+  "_guiState": {}
+}
