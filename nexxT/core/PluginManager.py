@@ -229,5 +229,7 @@ class PluginManager(QObject):
             raise UnknownPluginType("binary plugins can only be loaded with c extension enabled.")
         if prop is not None:
             library = prop.evalpath(library)
-        logging.getLogger(__name__).debug("loading binary plugin from file '%s'", library)
+        else:
+            logger.warning("no property collection instance, string interpolation skipped.")
+        logger.debug("loading binary plugin from file '%s'", library)
         return BinaryLibrary(library)

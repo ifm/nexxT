@@ -10,7 +10,7 @@ This module provides the Configuration GUI service of the nexxT framework.
 
 import logging
 from PySide2.QtCore import (QObject, Signal, Slot, Qt, QAbstractItemModel, QModelIndex, QSettings, QByteArray,
-                            QDataStream, QIODevice)
+                            QDataStream, QIODevice, QMimeData)
 from PySide2.QtGui import QFont, QPainter
 from PySide2.QtWidgets import (QTreeView, QAction, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
                                QHeaderView, QMenu, QDockWidget, QGraphicsView)
@@ -19,6 +19,7 @@ from nexxT.core.Exceptions import NexTRuntimeError
 from nexxT.core.ConfigFiles import ConfigFileLoader
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
+from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.Utils import assertMainThread
 from nexxT.services.gui.PropertyDelegate import PropertyDelegate
 from nexxT.services.gui.GraphEditor import GraphScene
@@ -87,6 +88,15 @@ class ConfigurationModel(QAbstractItemModel):
         configuration.subConfigAdded.connect(self.subConfigAdded)
         configuration.subConfigRemoved.connect(self.subConfigRemoved)
         configuration.appActivated.connect(self.appActivated)
+
+    def isSubConfigParent(self, index):
+        item = self.data(index, ITEM_ROLE)
+        if index.isValid() and not index.parent().isValid():
+            if item == "composite":
+                return Configuration.CONFIG_TYPE_COMPOSITE
+            if item == "apps":
+                return Configuration.CONFIG_TYPE_APPLICATION
+        return None
 
     @staticmethod
     def isApplication(index):
@@ -459,6 +469,10 @@ class ConfigurationModel(QAbstractItemModel):
                     if item.subConfig.getName() == self.activeApp:
                         font.setBold(True)
                         return font
+        if role == Qt.ToolTipRole:
+            if isinstance(item, self.PropertyContent):
+                p = item.property.getPropertyDetails(item.name)
+                return p.helpstr
         if role == ITEM_ROLE:
             return item
         return None
@@ -475,6 +489,8 @@ class ConfigurationModel(QAbstractItemModel):
         if isinstance(item, str):
             return Qt.ItemIsEnabled
         if isinstance(item, self.SubConfigContent):
+            if isinstance(item.subConfig, CompositeFilter):
+                return Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsDragEnabled
             return Qt.ItemIsEnabled | Qt.ItemIsEditable
         if isinstance(item, self.NodeContent):
             return Qt.ItemIsEnabled | Qt.ItemIsEditable
@@ -553,6 +569,21 @@ class ConfigurationModel(QAbstractItemModel):
             return "Value"
         return None
 
+    def mimeTypes(self):
+        logger.debug("mimeTypes")
+        return ["application/x-nexxT-compositefilter"]
+
+    def mimeData(self, indices):
+        logger.debug("mimeData")
+        if len(indices) == 1 and indices[0].isValid():
+            index = indices[0]
+            item = index.internalPointer().content
+            if isinstance(item, self.SubConfigContent) and isinstance(item.subConfig, CompositeFilter):
+                res = QMimeData()
+                res.setData(self.mimeTypes()[0], item.subConfig.getName().encode("utf8"))
+                return res
+        return None
+
 class MVCConfigurationGUI(QObject):
     """
     GUI implementation of MVCConfigurationBase
@@ -568,11 +599,11 @@ class MVCConfigurationGUI(QObject):
         toolBar = srv.getToolBar()
         self._configuration = configuration
         
-        self.actLoad = QAction(QApplication.style().standardIcon(QStyle.SP_DialogOpenButton), "Open", self)
+        self.actLoad = QAction(QApplication.style().standardIcon(QStyle.SP_DialogOpenButton), "Open config", self)
         self.actLoad.triggered.connect(lambda *args: self._execLoad(configuration, *args))
-        self.actSave = QAction(QApplication.style().standardIcon(QStyle.SP_DialogSaveButton), "Save", self)
+        self.actSave = QAction(QApplication.style().standardIcon(QStyle.SP_DialogSaveButton), "Save config", self)
         self.actSave.triggered.connect(lambda *args: self._execSave(configuration, *args))
-        self.actNew = QAction(QApplication.style().standardIcon(QStyle.SP_FileIcon), "New", self)
+        self.actNew = QAction(QApplication.style().standardIcon(QStyle.SP_FileIcon), "New config", self)
         self.actNew.triggered.connect(lambda *args: self._execNew(configuration, *args))
 
         self.cfgfile = None
@@ -610,6 +641,9 @@ class MVCConfigurationGUI(QObject):
         self.treeView.setEditTriggers(self.treeView.EditKeyPressed|self.treeView.AnyKeyPressed)
         self.treeView.setAllColumnsShowFocus(True)
         self.treeView.setExpandsOnDoubleClick(False)
+        self.treeView.setDragEnabled(True)
+        self.treeView.setDropIndicatorShown(True)
+        self.treeView.setDragDropMode(QAbstractItemView.DragOnly)
         self.mainWidget.setWidget(self.treeView)
         self.treeView.setModel(self.model)
         self.treeView.header().setStretchLastSection(True)
@@ -684,6 +718,24 @@ class MVCConfigurationGUI(QObject):
                 graphView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
                 graphView.setScene(GraphScene(item.subConfig.getGraph(), graphDw))
                 graphDw.setWidget(graphView)
+            return
+        if self.model.isSubConfigParent(index) == Configuration.CONFIG_TYPE_APPLICATION:
+            m = QMenu()
+            a = QAction("Add application ...")
+            m.addAction(a)
+            a = m.exec_(self.treeView.mapToGlobal(point))
+            if a is not None:
+                self._configuration.addNewApplication()
+            return
+        if self.model.isSubConfigParent(index) == Configuration.CONFIG_TYPE_COMPOSITE:
+            m = QMenu()
+            a = QAction("Add composite filter ...")
+            m.addAction(a)
+            a = m.exec_(self.treeView.mapToGlobal(point))
+            if a is not None:
+                self._configuration.addNewCompositeFilter()
+            return
+
 
     def _configNameChanged(self, cfgfile):
         assertMainThread()

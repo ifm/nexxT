@@ -377,6 +377,6 @@ class MainWindow(QMainWindow):
     def _appActivated(self, name, app):
         if app is not None:
             self.activeApp = name
-            app.aboutToStop.connect(self.saveMdiState, Qt.UniqueConnection)
+            app.aboutToClose.connect(self.saveMdiState, Qt.UniqueConnection)
         else:
             self.activeApp = None

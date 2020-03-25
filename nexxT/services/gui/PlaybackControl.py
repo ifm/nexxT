@@ -470,12 +470,14 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
         self.browser.scrollTo(idx)
         self._selectedStream = None
         for a in self.actGroupStream.actions():
+            logger.debug("Remove stream group action: %s", a.data())
             self.actGroupStream.removeAction(a)
         for stream in streams:
             act = QAction(stream, self.actGroupStream)
             act.triggered.connect(lambda: self.setSelectedStream(stream))
             act.setCheckable(True)
             act.setChecked(False)
+            logger.debug("Add stream group action: %s", act.data())
             self.actGroupStreamMenu.addAction(act)
         QTimer.singleShot(250, self.scrollToCurrent)
 

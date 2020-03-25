@@ -26,7 +26,7 @@ class ActiveApplication(QObject):
 
     performOperation = Signal(str, object) # Signal is connected to all the threads (operation, barrier)
     stateChanged = Signal(int)             # Signal is emitted after the state of the graph has been changed
-    aboutToStop = Signal()                 # Signal is emitted before stop operation takes place
+    aboutToClose = Signal()                 # Signal is emitted before stop operation takes place
 
     def __init__(self, graph):
         super().__init__()
@@ -363,7 +363,6 @@ class ActiveApplication(QObject):
         :return: None
         """
         logger.internal("entering stop operation, old state %s", FilterState.state2str(self._state))
-        self.aboutToStop.emit()
         assertMainThread()
         while self._operationInProgress and self._state != FilterState.ACTIVE:
             QCoreApplication.processEvents()
@@ -385,6 +384,7 @@ class ActiveApplication(QObject):
         """
         logger.internal("entering close operation, old state %s", FilterState.state2str(self._state))
         assertMainThread()
+        self.aboutToClose.emit()
         while self._operationInProgress and self._state != FilterState.OPENED:
             QCoreApplication.processEvents()
         if self._state != FilterState.OPENED:

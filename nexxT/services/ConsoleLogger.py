@@ -13,6 +13,7 @@ import logging
 import os.path
 import sys
 from PySide2.QtCore import QObject, Slot, qInstallMessageHandler, QtMsgType
+from nexxT.core.Utils import excepthook
 
 logger = logging.getLogger(__name__)
 
@@ -66,19 +67,5 @@ class ConsoleLogger(QObject):
         logger.log(typeMap[qtMsgType], msg, extra=(qMessageLogContext.file if qMessageLogContext.file is not None
                                                    else "<qt>", qMessageLogContext.line))
 
-# https://stackoverflow.com/questions/6234405/logging-uncaught-exceptions-in-python
-def handleException(*args):
-    """
-    Generic exception handler for logging uncaught exceptions in plugin code.
-    :param args:
-    :return:
-    """
-    exc_type = args[0]
-    if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(*args)
-        return
-    logger.error("Uncaught exception", exc_info=args)
-
-
 qInstallMessageHandler(ConsoleLogger.qtMessageHandler)
-sys.excepthook = handleException
+sys.excepthook = excepthook

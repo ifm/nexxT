@@ -23,6 +23,8 @@ from nexxT.core.Exceptions import (PropertyCollectionChildNotFound, PropertyColl
 from nexxT.core.Utils import assertMainThread, checkIdentifier
 from nexxT.interface import PropertyCollection
 
+logger = logging.getLogger(__name__)
+
 class Property:
     """
     This class represents a specific property.
@@ -195,7 +197,7 @@ class PropertyCollectionImpl(PropertyCollection):
                         try:
                             p.value = stringConverter(str(l))
                         except PropertyParsingError:
-                            logging.getLogger(__name__).warning("Property %s: can't convert value '%s'.", name, str(l))
+                            logger.warning("Property %s: can't convert value '%s'.", name, str(l))
                 self.propertyAdded.emit(self, name)
             else:
                 # the arguments to getProperty shall be consistent among calls
@@ -317,7 +319,7 @@ class PropertyCollectionImpl(PropertyCollection):
             pass
         propColl.setObjectName(name)
         propColl.setParent(self)
-        logging.getLogger(__name__).internal("Propcoll %s: add child %s", self.objectName(), name)
+        logger.internal("Propcoll %s: add child %s", self.objectName(), name)
 
     def renameChild(self, oldName, newName):
         """
@@ -370,7 +372,9 @@ class PropertyCollectionImpl(PropertyCollection):
             default_environ["NEXXT_PLATFORM"] = "msvc_x86%s" % ("_64" if platform.architecture()[0] == "64bit" else "")
         else:
             default_environ["NEXXT_PLATFORM"] = "linux_x86%s" % ("_64" if platform.architecture()[0] == "64bit" else "")
+        origpath = path
         path = string.Template(path).safe_substitute({**default_environ, **os.environ})
+        logger.debug("interpolated path %s -> %s", origpath, path)
         if Path(path).is_absolute():
             return path
         try:

@@ -68,7 +68,8 @@ def startNexT(cfgfile, active, withGui):
         app.setApplicationName("nexxT")
         setupConsoleServices(config)
 
-    ConfigFileLoader.load(config, cfgfile)
+    if cfgfile is not None:
+        ConfigFileLoader.load(config, cfgfile)
     if withGui:
         mainWindow = Services.getService("MainWindow")
         mainWindow.restoreState()
@@ -76,7 +77,8 @@ def startNexT(cfgfile, active, withGui):
     if active is not None:
         config.activate(active)
         # need the reference of this
-        i2 = MethodInvoker(Application.initialize, MethodInvoker.IDLE_TASK) # pylint: disable=unused-variable
+        i2 = MethodInvoker(dict(object=Application, method="initialize", thread=app.thread()),
+                           MethodInvoker.IDLE_TASK) # pylint: disable=unused-variable
 
     def cleanup():
         logger.debug("cleaning up loaded services")
@@ -103,7 +105,7 @@ def main(withGui):
     :return: None
     """
     parser = ArgumentParser(description="nexxT console application")
-    parser.add_argument("cfg", nargs=1, help=".json configuration file of the project to be loaded.")
+    parser.add_argument("cfg", nargs='?', help=".json configuration file of the project to be loaded.")
     parser.add_argument("-a", "--active", default=None, type=str,
                         help="active application; default: first application in config file")
     parser.add_argument("-l", "--logfile", default=None, type=str,
@@ -113,6 +115,8 @@ def main(withGui):
                         help="sets the log verbosity")
     parser.add_argument("-q", "--quiet", action="store_true", default=False, help="disble logging to stderr")
     args = parser.parse_args()
+    if args.cfg is None and  args.active is not None:
+        parser.error("Active application set, but no config given.")
 
     nexT_logger = logging.getLogger()
     nexT_logger.setLevel(args.verbosity)
@@ -128,7 +132,7 @@ def main(withGui):
             handler = logging.FileHandler(args.logfile)
             handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
             nexT_logger.addHandler(handler)
-    startNexT(args.cfg[0], args.active, withGui=withGui)
+    startNexT(args.cfg, args.active, withGui=withGui)
 
 def mainConsole():
     """

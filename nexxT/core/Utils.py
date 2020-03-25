@@ -20,6 +20,8 @@ from PySide2.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCore
                             QMutexLocker, QRecursiveMutex, QTimer, QSortFilterProxyModel, Qt)
 from nexxT.core.Exceptions import NexTInternalError, InvalidIdentifierException
 
+logger = logging.getLogger(__name__)
+
 class MethodInvoker(QObject):
     """
     a workaround for broken QMetaObject.invokeMethod wrapper. See also
@@ -37,11 +39,12 @@ class MethodInvoker(QObject):
             obj = callback["object"]
             method = callback["method"]
             self.callback = getattr(obj, method)
-            self.moveToThread(obj.thread())
+            thread = callback["thread"] if "thread" in callback else obj.thread()
+            self.moveToThread(thread)
         else:
             self.callback = callback
             if connectiontype != Qt.DirectConnection:
-                logging.getLogger(__name__).warning("Using old style API, wrong thread might be used!")
+                logger.warning("Using old style API, wrong thread might be used!")
         if connectiontype is self.IDLE_TASK:
             QTimer.singleShot(0, self.callbackWrapper)
         else:
@@ -237,12 +240,25 @@ class QByteArrayBuffer(io.IOBase):
         elif self.p > self.ba.size():
             self.p = self.ba.size()
 
+# https://stackoverflow.com/questions/6234405/logging-uncaught-exceptions-in-python
+def excepthook(*args):
+    """
+    Generic exception handler for logging uncaught exceptions in plugin code.
+    :param args:
+    :return:
+    """
+    exc_type = args[0]
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(*args)
+        return
+    logger.error("Uncaught exception", exc_info=args)
+
 def handle_exception(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception:
-            sys.excepthook(*sys.exc_info())
+            excepthook(*sys.exc_info())
     return wrapper
 
 if __name__ == "__main__": # pragma: no cover

@@ -72,7 +72,8 @@ class FilterMockup(FilterEnvironment):
             self._createFilterAndUpdate()
             self._createFilterAndUpdatePending = None
         elif self._createFilterAndUpdatePending is None:
-            self._createFilterAndUpdatePending = MethodInvoker(self._createFilterAndUpdate, Qt.QueuedConnection)
+            self._createFilterAndUpdatePending = MethodInvoker(dict(object=self,method="_createFilterAndUpdate"),
+                                                               Qt.QueuedConnection)
 
     def _createFilterAndUpdate(self):
         self._createFilterAndUpdatePending = None

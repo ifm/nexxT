@@ -241,6 +241,22 @@ class Configuration(QObject):
         self._applications.append(app)
         self.subConfigAdded.emit(app)
 
+    def addNewApplication(self):
+        name = "application"
+        idx = 1
+        while len([a for a in self._applications if a.getName() == name]) > 0:
+            idx += 1
+            name = "application_%d" % idx
+        Application(name, self)
+
+    def addNewCompositeFilter(self):
+        name = "composite"
+        idx = 1
+        while len([c for c in self._compositeFilters if c.getName() == name]) > 0:
+            idx += 1
+            name = "composite_%d" % idx
+        CompositeFilter(name, self)
+
     def getApplicationNames(self):
         """
         Return list of application names
