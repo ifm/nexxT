@@ -13,6 +13,7 @@ def setup():
     from pathlib import Path
     import os
     import sys
+    import platform
 
     logger = logging.getLogger()
     INTERNAL = 5 # setup log level for internal messages
@@ -38,8 +39,9 @@ def setup():
         p = os.environ.get("NEXXT_CEXT_PATH", None)
         if p is None:
             variant = os.environ.get("NEXXT_VARIANT", "release")
-            p = [p for p in [Path(__file__).parent / "binary" / "msvc_x86_64" / variant,
-                             Path(__file__).parent / "binary" / "linux_x86_64" / variant] if p.exists()]
+            cplatform = "linux_x86_64" if platform.system() == "Linux" else "msvc_x86_64"
+            p = [p for p in [Path(__file__).parent / "binary" / cplatform / variant,
+                             Path(__file__).parent / "binary" / cplatform / variant] if p.exists()]
             if len(p) > 0:
                 p = p[0].absolute()
             else:

@@ -78,8 +78,9 @@ targets += [spath.Dir("cnexxT").File("qsharedpointer_qobject_wrapper.cpp")]
 env = env.Clone()
 env.Append(LIBS=["nexxT"])
 if "linux" in env["target_platform"]:
-    env.Append(SHLINKFLAGS=["-l:libpyside2.abi3.so.$QT5VERSION",
-                            "-l:libshiboken2.abi3.so.$QT5VERSION"])
+    # the : notation is for the linker and enables to use lib names which are not
+    # ending with .so
+    env.Append(LIBS=[":libpyside2.abi3.so.$QT5VERSION",":libshiboken2.abi3.so.$QT5VERSION"])
 else:
     env.Append(LIBS=["shiboken2.abi3", "pyside2.abi3"])
 dummy = env.Command(targets, env.RegisterSources(Split("cnexxT.h cnexxT.xml")),
