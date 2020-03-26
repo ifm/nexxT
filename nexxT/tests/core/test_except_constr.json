@@ -1,0 +1,60 @@
+{
+  "composite_filters": [
+    {
+      "name": "subGraph",
+      "nodes": [
+        {
+          "name":"CompositeInput",
+          "library":"composite://port",
+          "factoryFunction": "CompositeInput",
+          "dynamicOutputPorts": ["graph_in"]
+        },
+        {
+          "name":"CompositeOutput",
+          "library":"composite://port",
+          "factoryFunction": "CompositeOutput",
+          "dynamicInputPorts": []
+        },
+        {
+          "name": "filter",
+          "library": "pyfile://../interface/TestExceptionFilter.py",
+          "factoryFunction": "TestExceptionFilter",
+          "thread": "main",
+          "properties": {
+            "whereToThrow":  "nowhere"
+          }
+        }
+      ],
+      "connections": [
+        "CompositeInput.graph_in -> filter.port"
+      ]
+    }
+  ],
+  "applications": [
+    {
+      "name": "testApp",
+      "nodes": [
+        {
+          "name": "source",
+          "library": "pyfile://../interface/SimpleStaticFilter.py",
+          "factoryFunction": "SimpleSource",
+          "thread": "thread-source",
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "properties": {
+            "frequency": 2
+          }
+        },
+        {
+          "name": "filter",
+          "library": "composite://ref",
+          "factoryFunction": "subGraph"
+        }
+      ],
+      "connections": [
+        "source.outPort -> filter.graph_in"
+      ]
+    }
+  ]
+}

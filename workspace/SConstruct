@@ -1,0 +1,48 @@
+import platform
+import PySide2
+
+qtversion = ".".join(PySide2.__version__.split(".")[:2])
+
+if platform.system() == "Linux":
+    env = Environment(target_platform="linux_x86_64",
+                      QT5VERSION=qtversion,
+                      toolpath=["#/sconstools3"],
+                      variant="unknown")
+    
+    env.Tool("qt5")
+
+    env['ENV']['PKG_CONFIG_PATH'] = env.subst("$QT5DIR") + '/lib/pkgconfig'
+    env.PrependENVPath('LD_LIBRARY_PATH', env.subst("$QT5DIR") + "/lib")
+    
+else:
+    # windows environment
+    env = Environment(MSVC_VERSION="14.0", 
+                      QT5VERSION=qtversion,
+                      tools=["default", "qt5"], 
+                      toolpath=["#/sconstools3"],
+                      target_platform="msvc_x86_64",
+                      variant="unknown")                     
+
+env.EnableQt5Modules(['QtCore'])
+env.AddMethod(lambda env, args: args, "RegisterSources")
+env.AddMethod(lambda env, args: None, "RegisterTargets")
+env.Append(CPPDEFINES=["Py_LIMITED_API"])
+
+if platform.system() == "Linux":
+    dbg_env = env.Clone(CCFLAGS=Split("-g -std=c++14 -O0"), #-fvisibility=hidden 
+                        LINKFLAGS=Split("-g"),
+                        variant="nonopt")
+    rel_env = env.Clone(CCFLAGS=Split("-std=c++14 -O3"), #-fvisibility=hidden 
+                        variant="release")    
+else:    
+    dbg_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Od /Ob2 /Z7 /MD /std:c++14"),
+                        LINKFLAGS=Split("/nologo /DEBUG"),
+                        variant="nonopt") # not exactly sure why we need this in debug mode and not in release mode...
+    rel_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Ox /Z7 /MD /std:c++14"),
+                        LINKFLAGS=Split("/nologo /DEBUG"),
+                        variant="release")
+
+SConscript('../nexxT/src/SConscript.py', variant_dir=dbg_env.subst("build/${target_platform}_${variant}/nexxT/src"), exports=dict(env=dbg_env), duplicate=0)
+SConscript('../nexxT/src/SConscript.py', variant_dir=rel_env.subst("build/${target_platform}_${variant}/nexxT/src"), exports=dict(env=rel_env), duplicate=0)
+SConscript('../nexxT/tests/src/SConscript.py', variant_dir=dbg_env.subst("build/${target_platform}_${variant}/nexxT/tests/src"), exports=dict(env=dbg_env), duplicate=0)
+SConscript('../nexxT/tests/src/SConscript.py', variant_dir=rel_env.subst("build/${target_platform}_${variant}/nexxT/tests/src"), exports=dict(env=rel_env), duplicate=0)

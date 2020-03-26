@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "definitions": {
+    "identifier": {
+      "description": "Used for matching identifier names. Usual c identifiers including minus sign",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+    },
+    "propertySection": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/definitions/identifier" },
+      "patternProperties": {
+        "^.*$": {"type":  ["string", "number", "boolean"]}
+      }
+    },
+    "sub_graph": {
+      "description": "sub-graph definition as used by applications and composite filters.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/identifier"
+        },
+        "_guiState": {
+          "propertyNames": { "$ref": "#/definitions/identifier" },
+          "properties" : {
+            "$ref": "#/definitions/propertySection"
+          },
+          "default": {}
+        }
+      }
+    }
+  },
+  "type": "object",
+  "required": ["applications"],
+  "properties": {
+    "composite_filters": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/definitions/sub_graph"
+      }
+    },
+    "applications": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/sub_graph"
+      }
+    },
+    "_guiState": {
+      "$ref": "#/definitions/propertySection",
+      "default": {}
+    }
+  }
+}

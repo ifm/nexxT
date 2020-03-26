@@ -1,0 +1,34 @@
+It's best to set up a new virtual environment for nexxT builds and development:
+
+    python3 -m venv venv
+
+It is assumed that this environment is activated for the following commands.
+    
+Build dependencies:
+- QT5: set QTDIR for identifying the QT version
+- shiboken2_generator: this is referenced in requirements.txt, but you have to 
+  build or download this manually. The easiest option is to download it from 
+  downloaded from 
+  https://download.qt.io/official_releases/QtForPython/shiboken2-generator/
+  This is working for windows and debian builds and probably also for more,
+  even though the PySide2 project doesn't recommend to use the binary 
+  distribution
+
+You can use pip to install the required dependencies like that
+  
+    pip install -r requirements.txt --find-links /path/of/shiboken2_generator
+
+Afterwards you should be able to use "scons -j 8 .." to build and install nexxT
+binaries and c extensions.
+
+Note that the project uses pylint for coding style checks. Use 
+    
+    pylint_nexxT[.bat|.sh] 
+    
+for generating a report.
+
+For running tests, use
+
+    pytest_nexxT[.bat|.sh]
+    
+scripts.

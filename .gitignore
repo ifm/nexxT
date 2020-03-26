@@ -5,6 +5,21 @@ __pycache__/
 
 # C extensions
 *.so
+*.dll
+binary/
+
+# installed include files
+include/
+
+# scons
+.sconsign.dblite
+workspace/build
+
+# files generated during tests
+nexxT/tests/core/test1.saved.json
+nexxT/tests/core/test_except_constr_tmp.json
+*.guistate
+
 
 # Distribution / packaging
 .Python
