@@ -5,6 +5,7 @@
 #
 
 import sysconfig
+import platform
 
 Import("env")
 
@@ -93,7 +94,8 @@ dummy = env.Command(targets, env.RegisterSources(Split("cnexxT.h cnexxT.xml")),
 
 pyext = env.SharedLibrary("cnexxT", dummy,
                           SHLIBPREFIX=sysconfig.get_config_var("EXT_PREFIX"),
-                          SHLIBSUFFIX=sysconfig.get_config_var("EXT_SUFFIX"), no_import_lib=True)
+                          SHLIBSUFFIX=sysconfig.get_config_var("EXT_SUFFIX") if platform.system() == "Windows" else ".abi3.so",
+                          no_import_lib=True)
 env.RegisterTargets(pyext)
 Depends(dummy, apilib)
 
