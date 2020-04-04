@@ -13,6 +13,7 @@ import pathlib
 import platform
 import sysconfig
 import setuptools
+from setuptools.command.install import install
 import subprocess
 import shutil
 import multiprocessing
@@ -34,14 +35,18 @@ try:
     
     class bdist_wheel(_bdist_wheel):
         def finalize_options(self):
-            super().finalize_options()
+            _bdist_wheel.finalize_options(self)
             self.root_is_pure = False
+            self.root_is_purelib = False
+            #if platform.system() == "Linux":
+            #    self.py_limited_api = "abi3"
             
         def get_tag(self):
             python, abi, plat = _bdist_wheel.get_tag(self)
             # uncomment for non-python extensions
             if platform.system() == "Linux":
                 abi = "abi3"
+                plat = "manylinux2014_x86_64"
             else:
                 abi = "none"
             python = "cp37.cp38.cp39"
@@ -51,6 +56,29 @@ try:
 except ImportError:
     bdist_wheel = None
 
+class InstallPlatlib(install):
+    def finalize_options(self):
+        install.finalize_options(self)
+        # force platlib
+        self.install_lib = self.install_platlib    
+    
+class BinaryDistribution(setuptools.Distribution):
+    """Distribution which always forces a binary package with platform name"""
+    def has_ext_modules(*args):
+        print("HAS_EXT_MODULES WAS CALLED!")
+        return True
+   
+    def is_pure(*args):
+        print("IS_PURE WAS CALLED!")
+        return False
+        
+    def get_option_dict(self, k):
+        res = super().get_option_dict(k)
+        if k == "install":
+            res["install_lib"] = "platlib"
+        print("GET_OPTION_DICT CALLED:", k, res)
+        return res
+    
 if platform.system() == "Linux":
     p = "linux_x86_64"
     presuf = [("lib", ".so")]
@@ -119,10 +147,12 @@ setup(name='nexxT',
       packages=['nexxT', 'nexxT.interface', 'nexxT.tests', 'nexxT.services', 'nexxT.services.gui', 'nexxT.tests.interface', 'nexxT.core', 'nexxT.tests.core'],
       cmdclass={
         'bdist_wheel': bdist_wheel,
+        'install': InstallPlatlib,
       },
       entry_points = {
         'console_scripts' : ['nexxT-gui=nexxT.core.AppConsole:mainGui',
                              'nexxT-console=nexxT.core.AppConsole:mainConsole',
                             ]
       },
+      distclass=BinaryDistribution,
      )

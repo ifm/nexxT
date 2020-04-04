@@ -1,12 +1,18 @@
 import platform
+import os
 import PySide2
 
 qtversion = ".".join(PySide2.__version__.split(".")[:2])
 
 if platform.system() == "Linux":
-    env = Environment(target_platform="linux_x86_64",
+    if os.path.isfile("/etc/centos-release") and "CentOS Linux release 7" in open("/etc/centos-release", "r").read():
+        target_platform = "manylinux2014_x86_64"
+    else:
+        target_platform = "linux_x86_64"
+    env = Environment(target_platform=target_platform,
                       QT5VERSION=qtversion,
                       toolpath=["#/sconstools3"],
+                      ENV = os.environ,
                       variant="unknown")
     
     env.Tool("qt5")
