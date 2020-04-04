@@ -65,18 +65,18 @@ class InstallPlatlib(install):
 class BinaryDistribution(setuptools.Distribution):
     """Distribution which always forces a binary package with platform name"""
     def has_ext_modules(*args):
-        print("HAS_EXT_MODULES WAS CALLED!")
+        #print("HAS_EXT_MODULES WAS CALLED!")
         return True
    
     def is_pure(*args):
-        print("IS_PURE WAS CALLED!")
+        #print("IS_PURE WAS CALLED!")
         return False
         
     def get_option_dict(self, k):
         res = super().get_option_dict(k)
         if k == "install":
             res["install_lib"] = "platlib"
-        print("GET_OPTION_DICT CALLED:", k, res)
+        #print("GET_OPTION_DICT CALLED:", k, res)
         return res
     
 if platform.system() == "Linux":

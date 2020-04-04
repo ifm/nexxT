@@ -10,6 +10,7 @@ if platform.system() == "Linux":
     else:
         target_platform = "linux_x86_64"
     env = Environment(target_platform=target_platform,
+                      deploy_platform="linux_x86_64",
                       QT5VERSION=qtversion,
                       toolpath=["#/sconstools3"],
                       ENV = os.environ,

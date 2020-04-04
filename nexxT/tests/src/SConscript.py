@@ -24,5 +24,5 @@ plugin = env.SharedLibrary("test_plugins", env.RegisterSources(Split("""
 """)))
 env.RegisterTargets(plugin)
 
-installed = env.Install(srcDir.Dir("..").Dir("binary").Dir(env.subst("$target_platform")).Dir(env.subst("$variant")).abspath, plugin)
+installed = env.Install(srcDir.Dir("..").Dir("binary").Dir(env.subst("$deploy_platform")).Dir(env.subst("$variant")).abspath, plugin)
 env.RegisterTargets(installed)
