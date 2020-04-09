@@ -28,6 +28,7 @@ else:
                       tools=["default", "qt5"], 
                       toolpath=["#/sconstools3"],
                       target_platform="msvc_x86_64",
+                      deploy_platform="msvc_x86_64",
                       variant="unknown")                     
 
 env.EnableQt5Modules(['QtCore'])
