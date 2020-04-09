@@ -120,8 +120,7 @@ with open("MANIFEST.in", "w") as manifest:
         if "sdist" in sys.argv:
             raise RuntimeError("cannot build sdist and bdist_wheel with one call.")
         build_required = True
-        for fn in glob.glob('nexxT/include/*.hpp'):
-            manifest.write("include " + fn + "\n")
+        manifest.write("include *.hpp\n")
         for bf in build_files:
             manifest.write("include " + bf + "\n")
 
