@@ -72,7 +72,7 @@ class FilterMockup(FilterEnvironment):
             self._createFilterAndUpdate()
             self._createFilterAndUpdatePending = None
         elif self._createFilterAndUpdatePending is None:
-            self._createFilterAndUpdatePending = MethodInvoker(dict(object=self,method="_createFilterAndUpdate"),
+            self._createFilterAndUpdatePending = MethodInvoker(dict(object=self, method="_createFilterAndUpdate"),
                                                                Qt.QueuedConnection)
 
     def _createFilterAndUpdate(self):
@@ -88,6 +88,9 @@ class FilterMockup(FilterEnvironment):
             self.updatePortInformation(tempEnv)
             self._pluginClass = tempEnv.getPlugin().__class__
             if nexxT.useCImpl:
+                # pylint: disable=import-outside-toplevel
+                # don't want to pollute global namespace with this; need to update the
+                # the class if it is a wrapped shared pointer.
                 import cnexxT
                 if self._pluginClass is cnexxT.__dict__["QSharedPointer<nexxT::Filter >"]:
                     self._pluginClass = tempEnv.getPlugin().data().__class__

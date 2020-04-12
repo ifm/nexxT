@@ -17,7 +17,6 @@ from PySide2.QtWidgets import QApplication
 from nexxT.core.Utils import SQLiteHandler, MethodInvoker
 from nexxT.core.ConfigFiles import ConfigFileLoader
 from nexxT.core.Configuration import Configuration
-from nexxT.core.PluginManager import PluginManager
 from nexxT.core.Application import Application
 from nexxT.interface import Services
 
@@ -76,7 +75,8 @@ def startNexT(cfgfile, active, withGui):
         mainWindow.show()
     if active is not None:
         config.activate(active)
-        # need the reference of this
+        # pylint: disable=unused-variable
+        # need to hold the reference of this until the method is called
         i2 = MethodInvoker(dict(object=Application, method="initialize", thread=app.thread()),
                            MethodInvoker.IDLE_TASK) # pylint: disable=unused-variable
 

@@ -121,6 +121,8 @@ class ActiveApplication(QObject):
         assertMainThread()
         if self._state == FilterState.ACTIVE:
             self.stop()
+        # while this is similar to code in FilterEnvironment, the lines here refer to applications
+        # and the lines in FilterEnvironment refer to filters.
         if self._state == FilterState.OPENED:
             self.close()
         if self._state == FilterState.INITIALIZED:

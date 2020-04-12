@@ -150,9 +150,9 @@ class SubConfiguration(QObject):
         try:
             gs = self._propertyCollection.getChildCollection("_guiState")
             cfg["_guiState"] = {}
-            for object in gs.children():
-                if isinstance(object, PropertyCollectionImpl):
-                    cfg["_guiState"][object.objectName()] = object.saveDict()
+            for obj in gs.children():
+                if isinstance(obj, PropertyCollectionImpl):
+                    cfg["_guiState"][obj.objectName()] = obj.saveDict()
         except PropertyCollectionChildNotFound:
             pass
         cfg["nodes"] = []

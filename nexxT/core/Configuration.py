@@ -242,20 +242,30 @@ class Configuration(QObject):
         self.subConfigAdded.emit(app)
 
     def addNewApplication(self):
+        """
+        Add a new application to this configuration. The name will be chosen automatically to be unique.
+        :return: the chosen name
+        """
         name = "application"
         idx = 1
         while len([a for a in self._applications if a.getName() == name]) > 0:
             idx += 1
             name = "application_%d" % idx
         Application(name, self)
+        return name
 
     def addNewCompositeFilter(self):
+        """
+        Add a new composite filter to this configuration. The name will be chosen automaitcally to be unique.
+        :return: the chosen name
+        """
         name = "composite"
         idx = 1
         while len([c for c in self._compositeFilters if c.getName() == name]) > 0:
             idx += 1
             name = "composite_%d" % idx
         CompositeFilter(name, self)
+        return name
 
     def getApplicationNames(self):
         """

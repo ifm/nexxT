@@ -15,7 +15,7 @@ from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.SubConfiguration import SubConfiguration
 from nexxT.core.ActiveApplication import ActiveApplication
 from nexxT.core.Exceptions import NexTRuntimeError, PropertyCollectionChildNotFound
-from nexxT.core.Utils import MethodInvoker, assertMainThread, handle_exception
+from nexxT.core.Utils import MethodInvoker, assertMainThread, handleException
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class Application(SubConfiguration):
 
 
     @staticmethod
-    @handle_exception
+    @handleException
     def unactivate():
         """
         if an active application exists, close it.
@@ -62,7 +62,7 @@ class Application(SubConfiguration):
             Application.activeApplication = None
         logger.internal("leaving unactivate")
 
-    @handle_exception
+    @handleException
     def activate(self):
         """
         puts this application to active
@@ -75,7 +75,7 @@ class Application(SubConfiguration):
         logger.internal("leaving activate")
 
     @staticmethod
-    @handle_exception
+    @handleException
     def initialize():
         """
         Initialize the active application such that the filters are active.
@@ -89,7 +89,7 @@ class Application(SubConfiguration):
         MethodInvoker(Application.activeApplication.start, Qt.DirectConnection)
 
     @staticmethod
-    @handle_exception
+    @handleException
     def deInitialize():
         """
         Deinitialize the active application such that the filters are in CONSTRUCTED state

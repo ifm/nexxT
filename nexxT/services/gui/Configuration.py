@@ -90,6 +90,13 @@ class ConfigurationModel(QAbstractItemModel):
         configuration.appActivated.connect(self.appActivated)
 
     def isSubConfigParent(self, index):
+        """
+        Returns CONFIG_TYPE_COMPOSITE if the index refers to the group
+        composite, CONFIG_TYPE_APPLICATION if the index refers to the group
+        applications, None otherwise.
+        :param index: a QModelIndex instance
+        :return:
+        """
         item = self.data(index, ITEM_ROLE)
         if index.isValid() and not index.parent().isValid():
             if item == "composite":
@@ -457,7 +464,6 @@ class ConfigurationModel(QAbstractItemModel):
             if isinstance(item, self.NodeContent):
                 return QApplication.style().standardIcon(QStyle.SP_FileIcon)
             if isinstance(item, self.PropertyContent):
-                # TODO
                 return None
             logger.warning("Unknown item %s", repr(item))
         if role == Qt.FontRole:
@@ -546,7 +552,6 @@ class ConfigurationModel(QAbstractItemModel):
             self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
             return True
         if isinstance(item, self.PropertyContent):
-            # TODO
             try:
                 item.property.setProperty(item.name, value)
             except NexTRuntimeError:
@@ -598,7 +603,7 @@ class MVCConfigurationGUI(QObject):
         confMenu = srv.menuBar().addMenu("&Configuration")
         toolBar = srv.getToolBar()
         self._configuration = configuration
-        
+
         self.actLoad = QAction(QApplication.style().standardIcon(QStyle.SP_DialogOpenButton), "Open config", self)
         self.actLoad.triggered.connect(lambda *args: self._execLoad(configuration, *args))
         self.actSave = QAction(QApplication.style().standardIcon(QStyle.SP_DialogSaveButton), "Save config", self)
@@ -681,7 +686,8 @@ class MVCConfigurationGUI(QObject):
         fn = action.data()
         try:
             ConfigFileLoader.load(self._configuration, fn)
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-except
+            # catching general exception is wanted here.
             logger.exception("Error while loading configuration %s: %s", fn, str(e))
             QMessageBox.warning(self.mainWidget, "Error while loading configuration", str(e))
 
@@ -797,6 +803,12 @@ class MVCConfigurationGUI(QObject):
             self.actDeactivate.setEnabled(False)
 
     def restoreState(self):
+        """
+        Restore the state of the configuration gui service (namely the recently
+        open config files). This is saved in QSettings because it is used
+        across config files.
+        :return:
+        """
         logger.debug("restoring config state ...")
         settings = QSettings()
         v = settings.value("ConfigurationRecentFiles")
@@ -815,6 +827,12 @@ class MVCConfigurationGUI(QObject):
         logger.debug("restoring config state done")
 
     def saveState(self):
+        """
+        Save the state of the configuration gui service (namely the recently
+        open config files). This is saved in QSettings because it is used
+        across config files.
+        :return:
+        """
         logger.debug("saving config state ...")
         settings = QSettings()
         b = QByteArray()

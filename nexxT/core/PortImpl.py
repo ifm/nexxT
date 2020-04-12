@@ -9,10 +9,10 @@ This module contains implementations for abstract classes InputPort and OutputPo
 """
 
 import logging
-import sys
 from PySide2.QtCore import QThread, QSemaphore, Signal, QObject, Qt
 from nexxT.interface.Ports import InputPortInterface, OutputPortInterface
 from nexxT.interface.DataSamples import DataSample
+from nexxT.core.Utils import handleException
 from nexxT.core.Exceptions import NexTRuntimeError, NexTInternalError
 
 logger = logging.getLogger(__name__)
@@ -109,7 +109,11 @@ class InputPortImpl(InputPortInterface):
         super().__init__(dynamic, name, environment)
         self.queueSizeSamples = queueSizeSamples
         self.queueSizeSeconds = queueSizeSeconds
-        self.queue = [] # TODO use something better suited
+        # the queue is implemented here as a python list, which is implemented as a c array
+        # in cpython. Not the most performant choice, but it is usually not used because
+        # this is just a reference implementation for the more performant C++ implementation
+        # in cnexxT
+        self.queue = []
 
     def getData(self, delaySamples=0, delaySeconds=None):
         """
@@ -145,33 +149,35 @@ class InputPortImpl(InputPortInterface):
         self.environment().portDataChanged(self)
 
     def receiveAsync(self, dataSample, semaphore):
+        return self._receiveAsync(dataSample, semaphore)
+
+    @handleException
+    def _receiveAsync(self, dataSample, semaphore):
         """
         Called from framework only and implements the asynchronous receive mechanism using a semaphore.
         :param dataSample: the transmitted DataSample instance
         :param semaphore: a QSemaphore instance
         :return: None
         """
-        try:
-            if not QThread.currentThread() is self.thread():
-                raise NexTInternalError("InputPort.receiveAsync has been called from an unexpected thread.")
-            semaphore.release(1)
-            self._addToQueue(dataSample)
-        except Exception:
-            sys.excepthook(*sys.exc_info())
+        if not QThread.currentThread() is self.thread():
+            raise NexTInternalError("InputPort.receiveAsync has been called from an unexpected thread.")
+        semaphore.release(1)
+        self._addToQueue(dataSample)
 
     def receiveSync(self, dataSample):
+        return self._receiveSync(dataSample)
+
+    @handleException
+    def _receiveSync(self, dataSample):
         """
         Called from framework only and implements the synchronous receive mechanism.
         :param dataSample: the transmitted DataSample instance
         :return: None
         """
-        try:
-            if not QThread.currentThread() is self.thread():
-                raise NexTInternalError("InputPort.receiveSync has been called from an unexpected thread.")
-            self._addToQueue(dataSample)
-        except Exception:
-            sys.excepthook(*sys.exc_info())
-            
+        if not QThread.currentThread() is self.thread():
+            raise NexTInternalError("InputPort.receiveSync has been called from an unexpected thread.")
+        self._addToQueue(dataSample)
+
     def clone(self, newEnvironment):
         """
         Return a copy of this port attached to a new environment.

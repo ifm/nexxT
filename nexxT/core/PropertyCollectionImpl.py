@@ -16,7 +16,7 @@ import string
 import os
 import shiboken2
 from PySide2.QtGui import QValidator, QRegExpValidator, QIntValidator, QDoubleValidator
-from PySide2.QtCore import QRegExp, QLocale, Signal, Slot, QObject, QMutex, QMutexLocker
+from PySide2.QtCore import QRegExp, QLocale, Signal, Slot, QMutex, QMutexLocker
 from nexxT.core.Exceptions import (PropertyCollectionChildNotFound, PropertyCollectionChildExists,
                                    PropertyCollectionUnknownType, PropertyParsingError, NexTInternalError,
                                    PropertyInconsistentDefinition, PropertyCollectionPropertyNotFound)
