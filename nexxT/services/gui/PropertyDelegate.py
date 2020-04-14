@@ -74,11 +74,11 @@ class PropertyDelegate(QStyledItemDelegate):
                 return None
             if isinstance(p.defaultVal, int):
                 # editor is spin box
-                editor.setValue(p.converter(d.property.getProperty(d.name)))
+                editor.setValue(d.property.getProperty(d.name))
                 return None
             if isinstance(p.defaultVal, float):
                 # editor is line edit
-                editor.setText(str(p.converter(d.property.getProperty(d.name))))
+                editor.setText(p.converter(d.property.getProperty(d.name)))
                 return None
         return super().setEditorData(editor, index)
 

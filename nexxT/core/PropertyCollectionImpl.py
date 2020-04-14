@@ -123,13 +123,12 @@ class PropertyCollectionImpl(PropertyCollection):
     @staticmethod
     def _defaultIntConverter(theObject):
         if isinstance(theObject, str):
-            c = QLocale(QLocale.C)
-            ret, ok = c.toInt(theObject)
-            if not ok:
+            try:
+                ret = int(theObject)
+            except ValueError:
                 raise PropertyParsingError("Cannot convert '%s' to int." % theObject)
             return ret
-        c = QLocale(QLocale.C)
-        return c.toString(theObject)
+        return str(theObject)
 
     @staticmethod
     def _defaultFloatConverter(theObject):

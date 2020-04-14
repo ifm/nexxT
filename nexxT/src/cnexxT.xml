@@ -7,7 +7,7 @@
  THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
 -->
 
-<typesystem package="cnexxT" exception-handling="true">
+<typesystem package="cnexxT" exception-handling="true" allow-thread="true">
     <template name="fix_bool&amp;,bool&amp;">
         bool a, b;
         %BEGIN_ALLOW_THREADS

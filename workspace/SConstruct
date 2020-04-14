@@ -45,7 +45,7 @@ if platform.system() == "Linux":
 else:    
     dbg_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Od /Ob2 /Z7 /MD /std:c++14"),
                         LINKFLAGS=Split("/nologo /DEBUG"),
-                        variant="nonopt") # not exactly sure why we need this in debug mode and not in release mode...
+                        variant="nonopt")
     rel_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Ox /Z7 /MD /std:c++14"),
                         LINKFLAGS=Split("/nologo /DEBUG"),
                         variant="release")
