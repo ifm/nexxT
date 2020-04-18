@@ -8,6 +8,7 @@
 This module defines the FilterState and Filter classes of the nexxT interface.
 """
 
+from nexxT.interface import OutputPort, InputPort
 from PySide2.QtCore import QObject
 
 class FilterState:
@@ -100,6 +101,27 @@ class Filter(QObject):
         if port.dynamic():
             raise RuntimeError("The given port should be static but is dynamic.")
         self._environment.addPort(port)
+
+    def addStaticOutputPort(self, name):
+        """
+        Shortcut for generating a static output port and adding it to the filter
+        :param name: The name of the output port (see OutputPort)
+        :return: the new port instance
+        """
+        port = OutputPort(False, name, self._environment)
+        self.addStaticPort(port)
+        return port
+
+    def addStaticInputPort(self, name, queueSizeSamples=1, queueSizeSeconds=None):
+        """
+        Shortcut for generating a static input port and adding it to the filter
+        :param name: The name of the input port (see InputPort)
+        :return: the new port instance
+        """
+        port = InputPort(False, name, self._environment,
+                         queueSizeSamples=queueSizeSamples, queueSizeSeconds=queueSizeSeconds)
+        self.addStaticPort(port)
+        return port
 
     def removeStaticPort(self, port):
         """

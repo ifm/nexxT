@@ -41,6 +41,7 @@ START_NAMESPACE
         static SharedDataSamplePtr copy(const SharedDataSamplePtr &src);
         static SharedDataSamplePtr make_shared(DataSample *sample);
         static void registerMetaType();
+        static int64_t currentTime();
     };
 
 STOP_NAMESPACE

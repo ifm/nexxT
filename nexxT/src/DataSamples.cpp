@@ -7,6 +7,7 @@
 
 #include "DataSamples.hpp"
 #include "Logger.hpp"
+#include <chrono>
 
 USE_NAMESPACE
 
@@ -60,4 +61,11 @@ SharedDataSamplePtr DataSample::make_shared(DataSample *sample)
 void DataSample::registerMetaType()
 {
     int id = qRegisterMetaType<QSharedPointer<const nexxT::DataSample> >();
+}
+
+int64_t DataSample::currentTime()
+{
+    using namespace std;
+    static_assert(DataSample::TIMESTAMP_RES == 1e-6, "Assuming timestamps to be in microseconds.");
+    return chrono::duration_cast<chrono::microseconds>(chrono::system_clock::now().time_since_epoch()).count();
 }

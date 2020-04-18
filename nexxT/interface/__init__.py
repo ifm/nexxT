@@ -19,6 +19,7 @@ if nexxT.useCImpl:
     DataSample = lambda *args, **kw: cnexxT.DataSample.make_shared(cnexxT.DataSample(*args, **kw))
     DataSample.TIMESTAMP_RES = cnexxT.DataSample.TIMESTAMP_RES
     DataSample.copy = cnexxT.DataSample.copy
+    DataSample.currentTime = cnexxT.DataSample.currentTime
     cnexxT.DataSample.registerMetaType()
     cnexxT.DataSample.registerMetaType()
     Port = cnexxT.Port

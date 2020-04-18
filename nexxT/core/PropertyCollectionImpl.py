@@ -203,10 +203,11 @@ class PropertyCollectionImpl(PropertyCollection):
                 p = self._properties[name]
                 if p.defaultVal != defaultVal or p.helpstr != helpstr:
                     raise PropertyInconsistentDefinition(name)
-                if stringConverter is not None and p.converter is not stringConverter:
-                    raise PropertyInconsistentDefinition(name)
-                if validator is not None and p.validator is not validator:
-                    raise PropertyInconsistentDefinition(name)
+                # TODO: we would need to provide a deep compare for these functions
+                #if stringConverter is not None and p.converter is not stringConverter:
+                #    raise PropertyInconsistentDefinition(name)
+                #if validator is not None and p.validator is not validator:
+                #    raise PropertyInconsistentDefinition(name)
 
             p.used = True
             return p.value
