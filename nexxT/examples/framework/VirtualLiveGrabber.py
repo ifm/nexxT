@@ -3,9 +3,10 @@ import sys
 import os
 from nexxT.interface import Filter, DataSample
 from PySide2.QtGui import QIntValidator, QDoubleValidator
+from PySide2.QtCore import QTimer
+
 sys.path.append(os.path.split(__file__)[0])
 from ImageData import Image_ui8
-from PySide2.QtCore import QTimer
 
 logger = logging.getLogger(__name__)
 
