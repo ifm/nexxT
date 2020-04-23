@@ -7,7 +7,7 @@
 """
 This module defines the nexxT interface class DataSample.
 """
-
+import time
 from PySide2.QtCore import QByteArray
 
 class DataSample:
@@ -57,3 +57,8 @@ class DataSample:
         :return: the cloned data sample
         """
         return DataSample(src.getContent(), src.getDatatype(), src.getTimestamp())
+
+    @staticmethod
+    def currentTime():
+        factor = round(DataSample.TIMESTAMP_RES / 1e-9)
+        return time.time_ns() // factor

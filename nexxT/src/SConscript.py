@@ -6,6 +6,7 @@
 
 import sysconfig
 import platform
+import os
 
 Import("env")
 
@@ -84,13 +85,22 @@ if "linux" in env["target_platform"]:
     env.Append(LIBS=[":libpyside2.abi3.so.$QT5VERSION",":libshiboken2.abi3.so.$QT5VERSION"])
 else:
     env.Append(LIBS=["shiboken2.abi3", "pyside2.abi3"])
-dummy = env.Command(targets, env.RegisterSources(Split("cnexxT.h cnexxT.xml")),
-                    [
-                        Delete("$SPATH"),
-                        sysconfig.get_paths()["scripts"] + "/shiboken2 --generator-set=shiboken --avoid-protected-hack --output-directory=${SPATH} "
-                        "--language-level=c++14 --include-paths=$SHIBOKEN_INCFLAGS --enable-pyside-extensions "
-                        "--typesystem-paths=%(purelib)s/PySide2/typesystems $SOURCES" % sysconfig.get_paths(),
-                    ], SPATH=spath)
+
+if "manylinux" in env["target_platform"]:
+    # we are on a manylinux* platform which doesn't have llvm in required versions
+    dummy = []
+    env.Append(CPPPATH=Dir("#/build/linux_x86_64_release/nexxT/src/cnexxT-shiboken/cnexxT"))
+    for t in targets:
+        source = Dir("#/build/linux_x86_64_release/nexxT/src/cnexxT-shiboken/cnexxT").File(os.path.basename(str(t)))
+        dummy.extend(env.InstallAs(t, source))
+else:
+    dummy = env.Command(targets, env.RegisterSources(Split("cnexxT.h cnexxT.xml")),
+                        [
+                            Delete("$SPATH"),
+                            sysconfig.get_paths()["scripts"] + "/shiboken2 --generator-set=shiboken --avoid-protected-hack --output-directory=${SPATH} "
+                            "--language-level=c++14 --include-paths=$SHIBOKEN_INCFLAGS --enable-pyside-extensions "
+                            "--typesystem-paths=%(purelib)s/PySide2/typesystems $SOURCES" % sysconfig.get_paths(),
+                        ], SPATH=spath)
 
 pyext = env.SharedLibrary("cnexxT", dummy,
                           SHLIBPREFIX=sysconfig.get_config_var("EXT_PREFIX"),
@@ -100,6 +110,6 @@ env.RegisterTargets(pyext)
 Depends(dummy, apilib)
 
 # install python extension and library files into project directory
-env.RegisterTargets(env.Install(srcDir.Dir("..").Dir("binary").Dir(env.subst("$target_platform")).Dir(env.subst("$variant")).abspath, pyext+apilib))
+env.RegisterTargets(env.Install(srcDir.Dir("..").Dir("binary").Dir(env.subst("$deploy_platform")).Dir(env.subst("$variant")).abspath, pyext+apilib))
 if env["variant"] == "release":
     env.RegisterTargets(env.Install(srcDir.Dir("..").Dir("include").abspath, Glob(srcDir.abspath + "/*.hpp")))

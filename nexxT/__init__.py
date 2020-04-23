@@ -18,6 +18,7 @@ def setup():
     logger = logging.getLogger()
     INTERNAL = 5 # setup log level for internal messages
     logging.addLevelName(INTERNAL, "INTERNAL")
+    logging.INTERNAL = INTERNAL
     def internal(self, message, *args, **kws):
         if self.isEnabledFor(INTERNAL):
             # Yes, logger takes its '*args' as 'args'.

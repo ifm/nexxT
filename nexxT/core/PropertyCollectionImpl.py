@@ -16,7 +16,7 @@ import string
 import os
 import shiboken2
 from PySide2.QtGui import QValidator, QRegExpValidator, QIntValidator, QDoubleValidator
-from PySide2.QtCore import QRegExp, QLocale, Signal, Slot, QObject, QMutex, QMutexLocker
+from PySide2.QtCore import QRegExp, QLocale, Signal, Slot, QMutex, QMutexLocker
 from nexxT.core.Exceptions import (PropertyCollectionChildNotFound, PropertyCollectionChildExists,
                                    PropertyCollectionUnknownType, PropertyParsingError, NexTInternalError,
                                    PropertyInconsistentDefinition, PropertyCollectionPropertyNotFound)
@@ -123,13 +123,12 @@ class PropertyCollectionImpl(PropertyCollection):
     @staticmethod
     def _defaultIntConverter(theObject):
         if isinstance(theObject, str):
-            c = QLocale(QLocale.C)
-            ret, ok = c.toInt(theObject)
-            if not ok:
+            try:
+                ret = int(theObject)
+            except ValueError:
                 raise PropertyParsingError("Cannot convert '%s' to int." % theObject)
             return ret
-        c = QLocale(QLocale.C)
-        return c.toString(theObject)
+        return str(theObject)
 
     @staticmethod
     def _defaultFloatConverter(theObject):
@@ -204,10 +203,11 @@ class PropertyCollectionImpl(PropertyCollection):
                 p = self._properties[name]
                 if p.defaultVal != defaultVal or p.helpstr != helpstr:
                     raise PropertyInconsistentDefinition(name)
-                if stringConverter is not None and p.converter is not stringConverter:
-                    raise PropertyInconsistentDefinition(name)
-                if validator is not None and p.validator is not validator:
-                    raise PropertyInconsistentDefinition(name)
+                # TODO: we would need to provide a deep compare for these functions
+                #if stringConverter is not None and p.converter is not stringConverter:
+                #    raise PropertyInconsistentDefinition(name)
+                #if validator is not None and p.validator is not validator:
+                #    raise PropertyInconsistentDefinition(name)
 
             p.used = True
             return p.value

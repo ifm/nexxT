@@ -17,11 +17,11 @@ from PySide2.QtWidgets import QApplication
 from nexxT.core.Utils import SQLiteHandler, MethodInvoker
 from nexxT.core.ConfigFiles import ConfigFileLoader
 from nexxT.core.Configuration import Configuration
-from nexxT.core.PluginManager import PluginManager
 from nexxT.core.Application import Application
 from nexxT.interface import Services
 
 from nexxT.services.ConsoleLogger import ConsoleLogger
+from nexxT.services.gui.GuiLogger import GuiLogger
 from nexxT.services.gui.MainWindow import MainWindow
 from nexxT.services.gui.Configuration import MVCConfigurationGUI
 from nexxT.services.gui.PlaybackControl import MVCPlaybackControlGUI
@@ -42,9 +42,9 @@ def setupGuiServices(config):
     :param config: a nexxT.core.Configuration instance
     :return: None
     """
-    Services.addService("Logging", ConsoleLogger()) # TODO: provide gui logging service
     mainWindow = MainWindow(config)
     Services.addService("MainWindow", mainWindow)
+    Services.addService("Logging", GuiLogger())
     Services.addService("PlaybackControl", MVCPlaybackControlGUI(config))
     Services.addService("Configuration", MVCConfigurationGUI(config))
 
@@ -76,7 +76,8 @@ def startNexT(cfgfile, active, withGui):
         mainWindow.show()
     if active is not None:
         config.activate(active)
-        # need the reference of this
+        # pylint: disable=unused-variable
+        # need to hold the reference of this until the method is called
         i2 = MethodInvoker(dict(object=Application, method="initialize", thread=app.thread()),
                            MethodInvoker.IDLE_TASK) # pylint: disable=unused-variable
 

@@ -88,6 +88,20 @@ void Filter::addStaticPort(const SharedPortPtr &port)
     d->environment->addPort(port);
 }
 
+SharedPortPtr Filter::addStaticOutputPort(const QString &name)
+{
+    SharedPortPtr port = SharedPortPtr(new OutputPortInterface(false, name, environment()));
+    addStaticPort(port);
+    return port;
+}
+
+SharedPortPtr Filter::addStaticInputPort(const QString &name, int queueSizeSamples, double queueSizeSeconds)
+{
+    SharedPortPtr port = SharedPortPtr(new InputPortInterface(false, name, environment(), queueSizeSamples, queueSizeSeconds));
+    addStaticPort(port);
+    return port;
+}
+
 void Filter::removeStaticPort(const SharedPortPtr &port)
 {
     if( port->dynamic() )

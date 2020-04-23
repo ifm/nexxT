@@ -12,7 +12,6 @@ import sys
 import inspect
 import os.path
 import logging
-import gc
 from collections import OrderedDict
 import importlib.util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
@@ -198,13 +197,6 @@ class PluginManager(QObject):
         """
         for library in list(self._libraries.keys())[::-1]:
             self._unload(library)
-        if PluginInterface is not None:
-            gc.collect()
-            # TODO: decide what to do about unloading dll's
-            #       unloading the .dll's / shared objects might be causing a hard to debug seg-fault, if there are still
-            #       objects left in the python world which are deallocated later. Calling the destructor will then
-            #       result in a segmentation fault. So the safe option here would be not to unload any .dll's.
-            #PluginInterface.singleton().unloadAll()
         self._libraries.clear()
 
     def _unload(self, library):

@@ -19,7 +19,7 @@ from nexxT.interface import Services
 from nexxT.interface import FilterState
 from nexxT.core.Exceptions import NexTRuntimeError, PropertyCollectionPropertyNotFound
 from nexxT.core.Application import Application
-from nexxT.core.Utils import FileSystemModelSortProxy, assertMainThread, MethodInvoker, handle_exception
+from nexxT.core.Utils import FileSystemModelSortProxy, assertMainThread, MethodInvoker, handleException
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class MVCPlaybackControlBase(QObject):
         :param nameFilters: a QStringList providing information about suported fileextensions (e.g. ["*.avi", "*.mp4"])
         :return:
         """
-        with QMutexLocker(self._mutex) as locker:
+        with QMutexLocker(self._mutex):
             for devid in self._registeredDevices:
                 if self._registeredDevices[devid]["object"] is playbackDevice:
                     raise NexTRuntimeError("Trying to register a playbackDevice object twice.")
@@ -97,7 +97,7 @@ class MVCPlaybackControlBase(QObject):
                     featureset.add(feature)
                     connections.append((signal, slot))
 
-            @handle_exception
+            @handleException
             def setSequenceWrapper(filename):
                 assertMainThread()
                 if Application.activeApplication is None:
@@ -108,7 +108,7 @@ class MVCPlaybackControlBase(QObject):
                     logger.debug("setSequence %s", filename)
                     if Application.activeApplication.getState() == FilterState.ACTIVE:
                         Application.activeApplication.stop()
-                    setSequenceWrapper.invoke = MethodInvoker(dict(object=playbackDevice,method="setSequence"),
+                    setSequenceWrapper.invoke = MethodInvoker(dict(object=playbackDevice, method="setSequence"),
                                                               Qt.QueuedConnection, filename)
                     Application.activeApplication.start()
                     logger.debug("setSequence done")
@@ -474,7 +474,7 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
             self.actGroupStream.removeAction(a)
         for stream in streams:
             act = QAction(stream, self.actGroupStream)
-            act.triggered.connect(lambda: self.setSelectedStream(stream))
+            act.triggered.connect(lambda cstream=stream: self.setSelectedStream(cstream))
             act.setCheckable(True)
             act.setChecked(False)
             logger.debug("Add stream group action: %s", act.data())
@@ -603,9 +603,18 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
         self.timeRatioLabel.setText("%.2f" % newRatio)
 
     def selectedStream(self):
+        """
+        Returns the user-selected stream (for forward/backward stepping)
+        :return:
+        """
         return self._selectedStream
 
     def setSelectedStream(self, stream):
+        """
+        Sets the user-selected stream (for forward/backward stepping)
+        :param stream the stream name.
+        :return:
+        """
         self._selectedStream = stream
 
     def saveState(self):

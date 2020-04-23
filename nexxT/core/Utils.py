@@ -196,6 +196,10 @@ class FileSystemModelSortProxy(QSortFilterProxyModel):
                 return asc
             left_fp = left_fi.filePath()
             right_fp = right_fi.filePath()
+            # pylint: disable=too-many-boolean-expressions
+            # check if we are actually comparing two drive letters like (C:/)
+            # in this case the default sorting is broken and we want to provide
+            # a better sorting using the drive letter instead of the volume name
             if (platform.system() == "Windows" and
                     left_fi.isAbsolute() and len(left_fp) == 3 and left_fp[1:] == ":/" and
                     right_fi.isAbsolute() and len(right_fp) == 3 and right_fp[1:] == ":/"):
@@ -206,39 +210,59 @@ class FileSystemModelSortProxy(QSortFilterProxyModel):
 class QByteArrayBuffer(io.IOBase):
     """
     Efficient IOBase wrapper around QByteArray for pythonic access, for memoryview doesn't seem
-    supported.
+    supported; note this seems to have changed in PySide2 5.14.2.
     """
     def __init__(self, qByteArray):
         super().__init__()
-        self.ba = qByteArray
-        self.p = 0
-        
+        self._ba = qByteArray
+        self._ptr = 0
+
     def readable(self):
+        """
+        overwritten from base class, always true
+        :return:
+        """
         return True
-        
-    def read(self, size=-1):
-        if size < 0:
-            size = self.ba.size() - self.p
-        oldP = self.p
-        self.p += size
-        if self.p > self.ba.size():
-            self.p = self.ba.size()
-        return self.ba[oldP:self.p].data()
-        
+
     def seekable(self):
+        """
+        overwritten from base class, always true
+        :return:
+        """
         return True
-        
+
+    def read(self, size=-1):
+        """
+        Read from the given bytes from the byte array (if size is negative,
+        the whole buffer will be read).
+        :param size: the number of bytes to be read.
+        :return:
+        """
+        if size < 0:
+            size = self._ba.size() - self._ptr
+        oldP = self._ptr
+        self._ptr += size
+        if self._ptr > self._ba.size():
+            self._ptr = self._ba.size()
+        return self._ba[oldP:self._ptr].data()
+
     def seek(self, offset, whence):
+        """
+        Implementation of IOBase's seek method.
+        :param offset: the offset in bytes (see whence for the explanation)
+        :param whence: one of io.SEEK_SET, io.SEEK_CUR, io.SEEK_END
+        :return:
+        """
         if whence == io.SEEK_SET:
-            self.p = offset
+            self._ptr = offset
         elif whence == io.SEEK_CUR:
-            self.p += offset
+            self._ptr += offset
         elif whence == io.SEEK_END:
-            self.p = self.ba.size()
-        if self.p < 0: 
-            self.p = 0
-        elif self.p > self.ba.size():
-            self.p = self.ba.size()
+            self._ptr = self._ba.size()
+        if self._ptr < 0:
+            self._ptr = 0
+        elif self._ptr > self._ba.size():
+            self._ptr = self._ba.size()
 
 # https://stackoverflow.com/questions/6234405/logging-uncaught-exceptions-in-python
 def excepthook(*args):
@@ -253,11 +277,20 @@ def excepthook(*args):
         return
     logger.error("Uncaught exception", exc_info=args)
 
-def handle_exception(func):
+def handleException(func):
+    """
+    Can be used as decorator to enable generic exception catching. Important: Do not use
+    this for PySide2 slots because it confuses the PySide2 slot/thread detection logic.
+    Instead, make a non-slot method with exception handling and call that method from
+    the slot.
+    :param func: The function to be wrapped
+    :return: the wrapped function
+    """
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except Exception:
+        except Exception: # pylint: disable=broad-except
+            # catching a general exception is exactly wanted here
             excepthook(*sys.exc_info())
     return wrapper
 

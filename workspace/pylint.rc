@@ -223,11 +223,11 @@ class-naming-style=PascalCase
 #class-rgx=
 
 # Naming style matching correct constant names.
-const-naming-style=UPPER_CASE
+#const-naming-style=UPPER_CASE
 
 # Regular expression matching correct constant names. Overrides const-naming-
 # style.
-#const-rgx=
+const-rgx=(logger)|([A-Z][A-Z_0-9]*)
 
 # Minimum line length for functions/classes that require docstrings, shorter
 # ones are exempt.
@@ -270,7 +270,7 @@ module-naming-style=PascalCase
 
 # Regular expression matching correct module names. Overrides module-naming-
 # style.
-module-rgx=([A-Z_][a-zA-Z0-9]+)|(core)|(interface)$
+module-rgx=([A-Z_][a-zA-Z0-9]+)|(core)|(interface)|(gui)|(services)$
 
 # Colon-delimited sets of names that determine each other's naming style when
 # the name regexes allow several styles.
@@ -428,7 +428,7 @@ ignored-classes=optparse.Values,thread._local,_thread._local
 # (useful for modules/projects where namespaces are manipulated during runtime
 # and thus existing member attributes cannot be deduced by static analysis). It
 # supports qualified module names, as well as Unix pattern matching.
-ignored-modules=
+ignored-modules=cnexxT
 
 # Show a hint with possible names when a member name was not found. The aspect
 # of finding the hint is based on edit distance.

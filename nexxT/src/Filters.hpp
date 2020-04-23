@@ -57,6 +57,8 @@ START_NAMESPACE
         PropertyCollection *guiState();
 
         void addStaticPort(const SharedPortPtr &port);
+        SharedPortPtr addStaticOutputPort(const QString &name);
+        SharedPortPtr addStaticInputPort(const QString &name, int queueSizeSamples, double queueSizeSeconds);
         void removeStaticPort(const SharedPortPtr &port);
         PortList getDynamicInputPorts();
         PortList getDynamicOutputPorts();

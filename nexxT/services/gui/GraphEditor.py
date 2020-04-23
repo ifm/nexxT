@@ -182,6 +182,9 @@ class BaseGraphScene(QGraphicsScene):
             self.sync()
 
         def nodeHeight(self):
+            """
+            :return: the node height in pixels including spacing.
+            """
             style = BaseGraphScene.getData if self.scene() is None else self.scene().getData
             size = style(self, BaseGraphScene.STYLE_ROLE_SIZE)
             vspacing = style(self, BaseGraphScene.STYLE_ROLE_VSPACING)
@@ -191,6 +194,9 @@ class BaseGraphScene(QGraphicsScene):
             return nodeHeight+2*vspacing
 
         def nodeWidth(self):
+            """
+            :return: the node width in pixels including spacing.
+            """
             style = BaseGraphScene.getData if self.scene() is None else self.scene().getData
             size = style(self, BaseGraphScene.STYLE_ROLE_SIZE)
             hspacing = style(self, BaseGraphScene.STYLE_ROLE_HSPACING)
@@ -782,18 +788,22 @@ class BaseGraphScene(QGraphicsScene):
         return super().mouseReleaseEvent(event)
 
     def autoLayout(self):
+        """
+        Automatic layout of nodes using a heuristic layering algorithm.
+        :return:
+        """
         gl = GraphLayering.GraphRep(self)
         layers, _ = gl.sortLayers()
         layeredNodes = gl.layersToNodeNames(layers)
         x = 0
-        for col,l in enumerate(layeredNodes):
+        for _, l in enumerate(layeredNodes):
             y = 0
             maxdx = 0
-            for row,n in enumerate(l):
+            for _, n in enumerate(l):
                 self.nodes[n].setPos(x, y)
                 y += self.nodes[n].nodeHeight()
                 maxdx = max(maxdx, self.nodes[n].nodeWidth())
-            x += maxdx
+            x += maxdx + self.STYLE_ROLE_HSPACING
 
 
 class GraphScene(BaseGraphScene):
