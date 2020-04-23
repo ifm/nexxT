@@ -29,6 +29,7 @@ START_NAMESPACE
     {
         DataSampleD *d;
       public:
+        static constexpr double TIMESTAMP_RES_VALUE = 1e-6;
         static const double TIMESTAMP_RES;
         
         DataSample(const QByteArray &content, const QString &datatype, int64_t timestamp);

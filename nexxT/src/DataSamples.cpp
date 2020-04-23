@@ -11,7 +11,7 @@
 
 USE_NAMESPACE
 
-const double DataSample::TIMESTAMP_RES = 1e-6;
+const double DataSample::TIMESTAMP_RES = DataSample::TIMESTAMP_RES_VALUE;
 START_NAMESPACE
     struct DataSampleD
     {
@@ -66,6 +66,6 @@ void DataSample::registerMetaType()
 int64_t DataSample::currentTime()
 {
     using namespace std;
-    static_assert(DataSample::TIMESTAMP_RES == 1e-6, "Assuming timestamps to be in microseconds.");
+    static_assert(DataSample::TIMESTAMP_RES_VALUE == 1e-6, "Assuming timestamps to be in microseconds.");
     return chrono::duration_cast<chrono::microseconds>(chrono::system_clock::now().time_since_epoch()).count();
 }
