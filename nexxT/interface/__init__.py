@@ -32,13 +32,9 @@ if nexxT.useCImpl:
                  Port.make_shared(InputPortInterface(dynamic, name, environment, queueSizeSamples, queueSizeSeconds)))
 else:
     # pylint: enable=invalid-name
-    from nexxT.interface.Filters import Filter, FilterState
-    from nexxT.interface.DataSamples import DataSample
     from nexxT.interface.Ports import Port
     from nexxT.interface.Ports import OutputPortInterface
     from nexxT.interface.Ports import InputPortInterface
-    from nexxT.interface.PropertyCollections import PropertyCollection
-    from nexxT.interface.Services import Services
     # make sure that PortImpl is actually imported to correctly set up the factory functions
     from nexxT.core import PortImpl
     OutputPort = PortImpl.OutputPortImpl
@@ -46,4 +42,9 @@ else:
     OutputPortInterface.setupDirectConnection = OutputPort.setupDirectConnection
     OutputPortInterface.setupInterThreadConnection = OutputPort.setupInterThreadConnection
     del PortImpl
+    from nexxT.interface.Filters import Filter, FilterState
+    from nexxT.interface.DataSamples import DataSample
+    from nexxT.interface.PropertyCollections import PropertyCollection
+    from nexxT.interface.Services import Services
+
 del nexxT
