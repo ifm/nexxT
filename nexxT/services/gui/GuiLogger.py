@@ -9,8 +9,7 @@ This module provides the gui logging service for nexxT.
 """
 import datetime
 from queue import Queue
-import time
-from collections import deque
+import traceback
 import logging
 from PySide2.QtCore import Qt, QTimer, QAbstractItemModel, QModelIndex
 from PySide2.QtWidgets import QTableView, QHeaderView, QAction, QActionGroup
@@ -19,15 +18,22 @@ from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.interface import Services
 from nexxT.core.Utils import assertMainThread, handleException
 
+logger = logging.getLogger(__name__)
+
 class LogHandler(logging.Handler):
     def __init__(self, logView):
         super().__init__()
         self.logView = logView
 
     def emit(self, record):
+        msg = record.getMessage()
+        if record.exc_info is not None:
+            msg += "\n" + "".join(traceback.format_exception(*record.exc_info))
+        if msg[-1] == "\n":
+            msg = msg[:-1]
         items = (str(datetime.datetime.fromtimestamp(record.created)),
                  record.levelno,
-                 record.getMessage(),
+                 msg,
                  record.name, record.filename, str(record.lineno))
         self.logView.addLogRecord(items)
 
@@ -130,6 +136,7 @@ class LogView(QTableView):
         self.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
         self.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
         self.horizontalHeader().setStretchLastSection(False)
+        self.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.timer = QTimer()
         self.timer.setSingleShot(False)
         self.timer.start(100)
@@ -143,7 +150,7 @@ class LogView(QTableView):
         if not self.queue.empty():
             self.model.update(self.queue)
             if self.follow:
-                self.scrollTo(self.model.index(self.model.rowCount(QModelIndex())-1, 0, QModelIndex()))
+                self.scrollToBottom()
 
     def setFollow(self, follow):
         self.follow = follow
