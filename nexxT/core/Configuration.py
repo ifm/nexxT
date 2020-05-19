@@ -183,6 +183,19 @@ class Configuration(QObject):
             raise NodeNotFoundError(name)
         raise NexTInternalError("non unique name %s" % name)
 
+    def subConfigByNameAndTye(self, name, typeid):
+        """
+        Return the subconfiguration with the given name and type
+        :param name: a string
+        :param typeid: either CONFIG_TYPE_APPLICATION or CONFIG_TYPE_COMPOSITE
+        :return: a SubConfiguration instance
+        """
+        if typeid == self.CONFIG_TYPE_APPLICATION:
+            return self.applicationByName(name)
+        elif typeid == self.CONFIG_TYPE_COMPOSITE:
+            return self.compositeFilterByName(name)
+        raise NexTInternalError("unknown typeid %s" % typeid)
+
     @Slot(str)
     def activate(self, appname):
         """

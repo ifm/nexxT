@@ -665,6 +665,10 @@ class MVCConfigurationGUI(QObject):
         self.activeAppChanged.connect(configuration.activate)
         self.restoreState()
         srv.aboutToClose.connect(self.saveState)
+        # a list of dock widgets displaying subgraphs
+        self._graphViews = []
+        # make sure that the graph views are closed when the config is closed
+        self._configuration.subConfigRemoved.connect(self._subConfigRemoved)
 
     def _execLoad(self, configuration):
         assertMainThread()
@@ -705,6 +709,42 @@ class MVCConfigurationGUI(QObject):
             configuration.close()
             ConfigFileLoader.save(configuration, fn)
 
+    def _addGraphView(self, subConfig):
+        g = subConfig.getGraph()
+        for gv in self._graphViews:
+            if gv.widget().scene().graph == g:
+                logger.info("Graph view already exists.")
+                return
+        srv = Services.getService("MainWindow")
+        graphDw = srv.newDockWidget("Graph (%s)" % (subConfig.getName()), parent=None,
+                                    defaultArea=Qt.RightDockWidgetArea,
+                                    allowedArea=Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
+        graphDw.setAttribute(Qt.WA_DeleteOnClose, True)
+        assert isinstance(graphDw, QDockWidget)
+        graphView = QGraphicsView(graphDw)
+        graphView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+        graphView.setScene(GraphScene(subConfig.getGraph(), graphDw))
+        graphDw.setWidget(graphView)
+        self._graphViews.append(graphDw)
+        graphDw.visibleChanged.connect(self._removeGraphViewFromList)
+
+    def _subConfigRemoved(self, subConfigName, configType):
+        g = self._configuration.subConfigByNameAndTye(subConfigName, configType).getGraph()
+        for gv in self._graphViews:
+            if gv.widget().scene().graph == g:
+                logger.debug("deleting graph view for subconfig %s", subConfigName)
+                gv.deleteLater()
+
+    def _removeGraphViewFromList(self, visible):
+        if visible:
+            return
+        gv = self.sender()
+        try:
+            self._graphViews.remove(gv)
+            logger.debug("removed graphview from list")
+        except ValueError:
+            logger.debug("graphview not in list, ignored")
+
     def _execTreeViewContextMenu(self, point):
         index = self.treeView.indexAt(point)
         item = self.model.data(index, ITEM_ROLE)
@@ -714,16 +754,7 @@ class MVCConfigurationGUI(QObject):
             m.addAction(a)
             a = m.exec_(self.treeView.mapToGlobal(point))
             if a is not None:
-                srv = Services.getService("MainWindow")
-                graphDw = srv.newDockWidget("Graph (%s)" % (item.subConfig.getName()), parent=None,
-                                            defaultArea=Qt.RightDockWidgetArea,
-                                            allowedArea=Qt.RightDockWidgetArea|Qt.BottomDockWidgetArea)
-                graphDw.setAttribute(Qt.WA_DeleteOnClose, True)
-                assert isinstance(graphDw, QDockWidget)
-                graphView = QGraphicsView(graphDw)
-                graphView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
-                graphView.setScene(GraphScene(item.subConfig.getGraph(), graphDw))
-                graphDw.setWidget(graphView)
+                self._addGraphView(item.subConfig)
             return
         if self.model.isSubConfigParent(index) == Configuration.CONFIG_TYPE_APPLICATION:
             m = QMenu()
