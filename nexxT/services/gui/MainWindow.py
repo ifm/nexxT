@@ -30,8 +30,9 @@ class NexxTMdiSubWindow(QMdiSubWindow):
         :param closeEvent: a QCloseEvent instance
         :return:
         """
+        logger.internal("closeEvent widget=%s", self.widget())
         self.visibleChanged.emit(False)
-        super().closeEvent(closeEvent)
+        return super().closeEvent(closeEvent)
 
     def showEvent(self, showEvent):
         """
@@ -39,8 +40,13 @@ class NexxTMdiSubWindow(QMdiSubWindow):
         :param closeEvent: a QShowEvent instance
         :return:
         """
+        logger.internal("showEvent widget=%s", self.widget())
         self.visibleChanged.emit(True)
-        super().showEvent(showEvent)
+        res = super().showEvent(showEvent)
+        # no idea why this is necessary, but otherwise the child window is not shown
+        if self.widget() is not None:
+            self.widget().show()
+        return res
 
     def saveGeometry(self):
         """
@@ -127,7 +133,7 @@ class NexxTDockWidget(QDockWidget):
         :return:
         """
         self.visibleChanged.emit(False)
-        super().closeEvent(closeEvent)
+        return super().closeEvent(closeEvent)
 
     def showEvent(self, showEvent):
         """
@@ -136,7 +142,7 @@ class NexxTDockWidget(QDockWidget):
         :return:
         """
         self.visibleChanged.emit(True)
-        super().showEvent(showEvent)
+        return super().showEvent(showEvent)
 
 class MainWindow(QMainWindow):
     """
@@ -276,6 +282,7 @@ class MainWindow(QMainWindow):
                          Use releaseSubplot to remove the window
         :return: None
         """
+        logger.internal("subplot '%s'", windowId)
         title, row, col = self.parseWindowId(windowId)
         if not title in self.managedSubplots:
             subWindow = self._newMdiSubWindow(theFilter, title)
@@ -296,6 +303,7 @@ class MainWindow(QMainWindow):
         :param windowId: see subplot(...) for details.
         :return:
         """
+        logger.internal("releaseSubplot '%s'", windowId)
         title, row, col = self.parseWindowId(windowId)
         if title not in self.managedSubplots or (row, col) not in self.managedSubplots[title]["plots"]:
             logger.warning("releasSubplot: cannot find %s", windowId)
@@ -364,6 +372,7 @@ class MainWindow(QMainWindow):
         window.destroyed.connect(self._windowDestroyed)
 
     def _windowDestroyed(self, obj):
+        logger.internal("_windowDestroyed")
         ptr = shiboken2.getCppPointer(obj) # pylint: disable=no-member
         try:
             ptr = ptr[0]
