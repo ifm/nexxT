@@ -345,7 +345,7 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
         self.browser.header().resizeSection(0, 500)
         contentsLayout.addWidget(self.browser, 3, 0, 1, 3)
         contentsLayout.setRowStretch(3, 100)
-        #self.browser.doubleClicked.connect(self.browserCurrentChanged)
+        self.browser.doubleClicked.connect(self.browserCurrentChanged)
         self.browser.selectionModel().currentChanged.connect(self.browserCurrentChanged)
 
         self.actShowAllFiles = QAction("Show all files")
