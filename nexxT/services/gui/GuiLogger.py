@@ -16,16 +16,22 @@ from PySide2.QtWidgets import QTableView, QHeaderView, QAction, QActionGroup
 from PySide2.QtGui import QColor
 from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.interface import Services
-from nexxT.core.Utils import assertMainThread, handleException
-
-logger = logging.getLogger(__name__)
+from nexxT.core.Utils import assertMainThread
 
 class LogHandler(logging.Handler):
+    """
+    Python logging handler which passes python log records to the gui.
+    """
     def __init__(self, logView):
         super().__init__()
         self.logView = logView
 
     def emit(self, record):
+        """
+        called when a new log record is created
+        :param record: a log record instance (see python docs)
+        :return:
+        """
         msg = record.getMessage()
         if record.exc_info is not None:
             msg += "\n" + "".join(traceback.format_exception(*record.exc_info))
@@ -38,21 +44,42 @@ class LogHandler(logging.Handler):
         self.logView.addLogRecord(items)
 
 class LogView(QTableView):
+    """
+    Class implementing the GUI log display.
+    """
 
     class LogModel(QAbstractItemModel):
+        """
+        Model/view model for log entries. The entries are held in a python list.
+        """
         def __init__(self):
             super().__init__()
             self.entries = []
 
         def rowCount(self, parent):
+            """
+            Overwritten from QAbstractItemModel
+            :param parent: a QModelIndex instance
+            :return: number of log entries
+            """
             if not parent.isValid():
                 return len(self.entries)
             return 0
 
         def columnCount(self, parent):
+            """
+            Overwritten from QAbstractItemModel
+            :param parent: a QModelIndex instance
+            :return: the number of columns (constant)
+            """
             return 6
 
         def update(self, queue):
+            """
+            add queued items to model
+            :param queue: a python Queue instance
+            :return: None
+            """
             toInsert = []
             while not queue.empty():
                 items = queue.get()
@@ -63,12 +90,23 @@ class LogView(QTableView):
                 self.endInsertRows()
 
         def clear(self):
+            """
+            removes all entries from the list
+            :return: None
+            """
             if len(self.entries) > 0:
                 self.beginRemoveRows(QModelIndex(), 0, len(self.entries)-1)
                 self.entries = []
                 self.endRemoveRows()
 
         def index(self, row, column, parent):
+            """
+            Overwritten from QAbstractItemModel
+            :param row: integer
+            :param column: integer
+            :param parent: a QModelIndex instance
+            :return: a QModelIndex for the specified item
+            """
             if not self.hasIndex(row, column, parent):
                 #print("index invalid", row, column, parent.isValid())
                 return QModelIndex()
@@ -79,14 +117,32 @@ class LogView(QTableView):
             return QModelIndex()
 
         def parent(self, index):
+            """
+            Overwritten from QAbstractItemModel
+            :param index:
+            :return: invalid model index (because we have a 2D table)
+            """
             return QModelIndex()
 
         def headerData(self, section, orientation, role):
+            """
+            Overwritten from QAbstractItemModel
+            :param section: the section index
+            :param orientation: the orientation
+            :param role: the item role
+            :return: the section label
+            """
             if role in [Qt.DisplayRole, Qt.EditRole] and orientation == Qt.Horizontal:
                 return ["Time", "Level", "Message", "Module", "Filename", "Line"][section]
             return super().headerData(section, orientation, role)
 
         def data(self, modelIndex, role):
+            """
+            Overwritten from QAbstractItemModel
+            :param modelIndex: a QModelIndex instance
+            :param role: the role
+            :return: the requested data
+            """
             if not modelIndex.isValid():
                 return None
             e = self.entries[modelIndex.row()]
@@ -96,13 +152,13 @@ class LogView(QTableView):
                     levelno = e[1]
                     if levelno <= logging.INTERNAL:
                         return "INTERNAL"
-                    elif logging.INTERNAL < levelno <= logging.DEBUG:
+                    if logging.INTERNAL < levelno <= logging.DEBUG:
                         return "DEBUG"
-                    elif logging.DEBUG < levelno <= logging.INFO:
+                    if logging.DEBUG < levelno <= logging.INFO:
                         return "INFO"
-                    elif logging.INFO < levelno <= logging.WARNING:
+                    if logging.INFO < levelno <= logging.WARNING:
                         return "WARNING"
-                    elif logging.WARNING < levelno <= logging.ERROR:
+                    if logging.WARNING < levelno <= logging.ERROR:
                         return "ERROR"
                     return "CRITICAL"
                 return e[modelIndex.column()]
@@ -110,13 +166,13 @@ class LogView(QTableView):
                 levelno = e[1]
                 if levelno <= logging.INTERNAL:
                     return QColor(255, 255, 255)  # white
-                elif logging.INTERNAL < levelno <= logging.DEBUG:
+                if logging.INTERNAL < levelno <= logging.DEBUG:
                     return QColor(155, 155, 255)  # blue
-                elif logging.DEBUG < levelno <= logging.INFO:
+                if logging.DEBUG < levelno <= logging.INFO:
                     return QColor(155, 255, 155)  # green
-                elif logging.INFO < levelno <= logging.WARNING:
+                if logging.INFO < levelno <= logging.WARNING:
                     return QColor(255, 255, 155)  # yellow
-                elif logging.WARNING < levelno <= logging.ERROR:
+                if logging.WARNING < levelno <= logging.ERROR:
                     return QColor(255, 205, 155)  # orange
                 return QColor(255, 155, 155)  # red
             return None
@@ -143,9 +199,18 @@ class LogView(QTableView):
         self.timer.timeout.connect(self.update, Qt.QueuedConnection)
 
     def addLogRecord(self, items):
-        self.queue.put( items )
+        """
+        Add a log record to the synchronized queue
+        :param items: a tuple of (timestamp[str], level[int], message[str], modulename[str], filename[str], lineno[int])
+        :return:None
+        """
+        self.queue.put(items)
 
     def update(self):
+        """
+        Called periodically to synchronize model with added log records
+        :return:None
+        """
         assertMainThread()
         if not self.queue.empty():
             self.model.update(self.queue)
@@ -153,12 +218,24 @@ class LogView(QTableView):
                 self.scrollToBottom()
 
     def setFollow(self, follow):
+        """
+        set follow mode
+        :param follow: a boolean
+        :return: None
+        """
         self.follow = follow
 
     def clear(self):
+        """
+        Clears the view
+        :return: None
+        """
         self.model.clear()
 
 class GuiLogger(ConsoleLogger):
+    """
+    Logging service in GUI mode.
+    """
 
     def __init__(self):
         super().__init__()
@@ -169,10 +246,10 @@ class GuiLogger(ConsoleLogger):
         self.logWidget = LogView()
         self.dockWidget.setWidget(self.logWidget)
         logMenu = srv.menuBar().addMenu("&Log")
-        logger = logging.getLogger()
+        mainLogger = logging.getLogger()
         self.handler = LogHandler(self.logWidget)
-        logger.addHandler(self.handler)
-        self.logWidget.destroyed.connect(lambda: logger.removeHandler(self.handler))
+        mainLogger.addHandler(self.handler)
+        self.logWidget.destroyed.connect(lambda: mainLogger.removeHandler(self.handler))
 
         self.actFollow = QAction("Follow")
         self.actFollow.setCheckable(True)
@@ -192,14 +269,14 @@ class GuiLogger(ConsoleLogger):
         self.actWarning = QAction("Warning")
         self.actError = QAction("Error")
 
-        self.actInternal.triggered.connect(lambda: logger.setLevel(logging.INTERNAL))
-        self.actDebug.triggered.connect(lambda: logger.setLevel(logging.DEBUG))
-        self.actInfo.triggered.connect(lambda: logger.setLevel(logging.INFO))
-        self.actWarning.triggered.connect(lambda: logger.setLevel(logging.WARNING))
-        self.actError.triggered.connect(lambda: logger.setLevel(logging.ERROR))
+        self.actInternal.triggered.connect(lambda: mainLogger.setLevel(logging.INTERNAL))
+        self.actDebug.triggered.connect(lambda: mainLogger.setLevel(logging.DEBUG))
+        self.actInfo.triggered.connect(lambda: mainLogger.setLevel(logging.INFO))
+        self.actWarning.triggered.connect(lambda: mainLogger.setLevel(logging.WARNING))
+        self.actError.triggered.connect(lambda: mainLogger.setLevel(logging.ERROR))
         self.actGroup = QActionGroup(self)
         self.actGroup.setExclusive(True)
-        levelno = logging.getLogger().level
+        levelno = mainLogger.level
 
         self.loglevelMap = {}
         for lv in ["INTERNAL", "DEBUG", "INFO", "WARNING", "ERROR"]:
@@ -221,5 +298,9 @@ class GuiLogger(ConsoleLogger):
         logMenu.addAction(self.actSingleLine)
 
     def setLogLevel(self):
+        """
+        Sets the current log level from the calling action.
+        :return: None
+        """
         lv = self.loglevelMap[self.sender()]
         logging.getLogger().setLevel(lv)

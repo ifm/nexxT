@@ -192,7 +192,7 @@ class Configuration(QObject):
         """
         if typeid == self.CONFIG_TYPE_APPLICATION:
             return self.applicationByName(name)
-        elif typeid == self.CONFIG_TYPE_COMPOSITE:
+        if typeid == self.CONFIG_TYPE_COMPOSITE:
             return self.compositeFilterByName(name)
         raise NexTInternalError("unknown typeid %s" % typeid)
 

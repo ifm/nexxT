@@ -60,5 +60,11 @@ class DataSample:
 
     @staticmethod
     def currentTime():
+        """
+        Return the current system time suitable for data sample timestamps
+        Note: The python implementation uses time.time_ns, which unfortunately has
+        limited accuracy under windows (16 ms).
+        :return:
+        """
         factor = round(DataSample.TIMESTAMP_RES / 1e-9)
         return time.time_ns() // factor
