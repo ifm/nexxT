@@ -40,20 +40,7 @@ class PropertyDelegate(QStyledItemDelegate):
         d = self.model.data(index, self.role)
         if isinstance(d, self.PropertyContent):
             p = d.property.getPropertyDetails(d.name)
-            res = None
-            if isinstance(p.defaultVal, str):
-                res = QLineEdit(parent)
-                res.setFrame(False)
-                res.setValidator(p.validator)
-            elif isinstance(p.defaultVal, int):
-                res = QSpinBox(parent)
-                res.setFrame(False)
-                res.setMinimum(p.validator.bottom())
-                res.setMaximum(p.validator.top())
-            elif isinstance(p.defaultVal, float):
-                res = QLineEdit(parent)
-                res.setFrame(False)
-                res.setValidator(p.validator)
+            res = p.handler.createEditor(parent)
             if res is not None:
                 return res
         return super().createEditor(parent, option, index)
@@ -68,18 +55,9 @@ class PropertyDelegate(QStyledItemDelegate):
         d = self.model.data(index, self.role)
         if isinstance(d, self.PropertyContent):
             p = d.property.getPropertyDetails(d.name)
-            if isinstance(p.defaultVal, str):
-                # editor is line edit
-                editor.setText(p.converter(d.property.getProperty(d.name)))
-                return None
-            if isinstance(p.defaultVal, int):
-                # editor is spin box
-                editor.setValue(d.property.getProperty(d.name))
-                return None
-            if isinstance(p.defaultVal, float):
-                # editor is line edit
-                editor.setText(p.converter(d.property.getProperty(d.name)))
-                return None
+            v = d.property.getProperty(d.name)
+            p.handler.setEditorData(editor, v)
+            return None
         return super().setEditorData(editor, index)
 
     def setModelData(self, editor, model, index):
@@ -94,16 +72,7 @@ class PropertyDelegate(QStyledItemDelegate):
         d = self.model.data(index, self.role)
         if isinstance(d, self.PropertyContent):
             p = d.property.getPropertyDetails(d.name)
-            value = None
-            if isinstance(p.defaultVal, str):
-                # editor is line edit
-                value = editor.text()
-            elif isinstance(p.defaultVal, int):
-                # editor is spin box
-                value = editor.value()
-            elif isinstance(p.defaultVal, float):
-                # editor is line edit
-                value = p.converter(editor.text())
+            value = p.handler.getEditorData(editor)
             if value is not None:
                 model.setData(index, value, Qt.EditRole)
         return super().setModelData(editor, model, index)

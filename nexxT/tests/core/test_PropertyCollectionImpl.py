@@ -5,11 +5,23 @@
 #
 
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
-from nexxT.interface import PropertyCollection
+from nexxT.core.PropertyHandlers import defaultHandler
+from nexxT.interface import PropertyHandler
 from nexxT.core.Exceptions import *
-from PySide2.QtGui import QDoubleValidator, QRegExpValidator
 from PySide2.QtCore import QRegExp, QCoreApplication
-import gc
+
+class MySimplePropertyHandler(PropertyHandler):
+    def __init__(self, options):
+        self.options = options
+
+    def validate(self, value):
+        return value
+
+    def fromConfig(self, value):
+        return value
+
+    def toConfig(self, value):
+        return value
 
 def expect_exception(f, etype, *args, **kw):
     ok = False
@@ -77,8 +89,10 @@ def test_smoke():
 
     expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop1", 2.0, "a sample float prop")
     expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop1", 1.0, "aa sample float prop")
-    #expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop1", 1.0, "a sample float prop", str)
-    #expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop1", 1.0, "a sample float prop", None, QDoubleValidator())
+    expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop1", 1.0, "a sample float prop",
+                     options=dict(min=0))
+    expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop1", 1.0, "a sample float prop",
+                     propertyHandler=MySimplePropertyHandler({}))
     expect_exception(p_child1.setProperty, PropertyParsingError, "prop1", "a")
 
     assert p_child1.defineProperty("prop2", 4, "a sample int prop") == 4
@@ -95,8 +109,10 @@ def test_smoke():
 
     expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop2", 5, "a sample int prop")
     expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop2", 4, "aa sample int prop")
-    #expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop2", 4, "a sample int prop", str)
-    #expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop2", 4, "a sample int prop", None, QDoubleValidator())
+    expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop2", 4, "a sample int prop",
+                     options=dict(min=1))
+    expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop2", 4, "a sample int prop",
+                     propertyHandler=MySimplePropertyHandler({}))
     expect_exception(p_child1.setProperty, PropertyParsingError, "prop2", "a")
 
     assert p_child1.defineProperty("prop3", "a", "a sample str prop") == "a"
@@ -109,22 +125,17 @@ def test_smoke():
 
     expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop3", "b", "a sample str prop")
     expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop3", "a", "aa sample str prop")
-    #expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop3", "a", "a sample str prop", int)
-    #expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop3", "a", "a sample str prop", None, QDoubleValidator())
+    expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop3", "a", "a sample str prop",
+                     options=dict(enum=["a"]))
+    expect_exception(p_child1.defineProperty, PropertyInconsistentDefinition, "prop3", "a", "a sample str prop",
+                     propertyHandler=MySimplePropertyHandler({}))
 
-    p_child2.defineProperty("nonsense", 1, "", None, QDoubleValidator())
-    assert signals_received == [("propertyAdded", p_child2, "nonsense")]
-    signals_received.clear()
-    expect_exception(p_child2.setProperty, PropertyParsingError, "nonsense", "1.4")
-
-    p_child2.defineProperty("nonsense2", 1.0, "", None, QRegExpValidator(QRegExp(".*")))
-    assert signals_received == [("propertyAdded", p_child2, "nonsense2")]
-    signals_received.clear()
-    expect_exception(p_child2.setProperty, PropertyParsingError, "nonsense2", "abv")
+    expect_exception(p_child2.defineProperty, PropertyInconsistentDefinition, "nonsense2", 1.0, "",
+                     propertyHandler=defaultHandler("")({}))
 
     expect_exception(p_child2.defineProperty, PropertyCollectionUnknownType, "nonsense3", [], "")
-    #expect_exception(p_child2.defineProperty, PropertyCollectionUnknownType, "nonsense3", [], "", str)
-    #expect_exception(p_child2.defineProperty, PropertyCollectionUnknownType, "nonsense3", [], "", None, QDoubleValidator())
+    expect_exception(p_child2.defineProperty, PropertyCollectionUnknownType, "nonsense3", [], "",
+                     options=dict(min=1))
 
     p_child1.markAllUnused()
     assert p_child1.defineProperty("prop3", "a", "a sample str prop") == "b"

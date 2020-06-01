@@ -10,6 +10,79 @@ This module defines the PropertyCollection interface class of the nexxT framewor
 
 from PySide2.QtCore import QObject, Signal, Slot
 
+class PropertyHandler:
+    """
+    This class represents a property definition for a specific type. The type handles loading/saving from and to
+    .json configs as well as providing editor widgets for modifying the property in a model/view framework.
+    """
+
+    def options(self):
+        """
+        Returns the options set for this handler as a QVariantMap
+        :return: a QVariantMap instance
+        """
+        raise NotImplementedError()
+
+    def fromConfig(self, value):
+        """
+        Converts the value read from the json file into the native python format
+        :param value: a QVariant instance
+        :return: the native value (also a QVariant)
+        """
+        raise NotImplementedError()
+
+    def toConfig(self, value):
+        """
+        Converts the native python format into a value suitable for json files.
+        :param value: a QVariant instance (the native value)
+        :return: the json value (also a QVariant)
+        """
+        raise NotImplementedError()
+
+    def toViewValue(self, value):
+        """
+        Converts the native python format into a value suitable for display in the
+        Qt model/view framework.
+        :param value: a QVariant instance (the native value)
+        :return: a QVariant value (suitable value for display)
+        """
+        raise NotImplementedError()
+
+    def validate(self, value):
+        """
+        Returns a validated version of value.
+        :param value: the value to be set
+        :return: a validated version of value
+        """
+        raise NotImplementedError()
+
+    def createEditor(self, parent):
+        """
+        This is called in QStyledItemDelegate::createEditor; creates an editor widget instance.
+        :param parent: a QWidget instance
+        :return: a QWidget instance
+        """
+        raise NotImplementedError()
+
+    def setEditorData(self, editor, value):
+        """
+        This is called in QStyledItemDelegate::setEditorData; populates the editor widget with
+        the actual data.
+        :param editor: the editor widget as rezurned by createEditor
+        :param value: the current property value, given as native python value
+        :return: None
+        """
+        raise NotImplementedError()
+
+    def getEditorData(self, editor):
+        """
+        This is called in QStyledItemDelegate::setModelData; converts the value from the editor
+        back to native python value.
+        :param editor: the editor widget
+        :return: a QVariant, the new native property value
+        """
+        raise NotImplementedError()
+
 class PropertyCollection(QObject):
     """
     This class represents a collection of properties. These collections are organized in a tree, such that there
@@ -19,7 +92,7 @@ class PropertyCollection(QObject):
 
     propertyChanged = Signal(object, str)
 
-    def defineProperty(self, name, defaultVal, helpstr, stringConverter=None, validator=None):
+    def defineProperty(self, name, defaultVal, helpstr, options=None, propertyHandler=None):
         """
         Return the value of the given property, creating a new property if it doesn't exist. If it does exist,
         the definition must be consistent, otherwise an error is raised.
@@ -27,10 +100,8 @@ class PropertyCollection(QObject):
         :param defaultVal: the default value of the property. Note that this value will be used to determine the
                            property's type. Currently supported types are string, int and float
         :param helpstr: a help string for the user
-        :param stringConverter: a conversion function which converts a string to the property type. If not given,
-                                a default conversion based on QLocale::C will be used.
-        :param validator: an optional QValidator instance. If not given, the validator will be chosen according to the
-                          defaultVal type.
+        :param options: a dict mapping string to qvariant (common options: min, max, enum)
+        :param propertyHandler: a PropertyHandler instance, or None for automatic choice according to defaultVal
         :return: the current value of this property
         """
         raise NotImplementedError()

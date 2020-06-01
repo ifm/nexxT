@@ -14,6 +14,20 @@
 #include "NexTConfig.hpp"
 
 START_NAMESPACE
+    class DLLEXPORT PropertyHandler
+    {        
+    public:
+        PropertyHandler();
+        virtual ~PropertyHandler();
+        virtual QVariantMap options();
+        virtual QVariant fromConfig(const QVariant &value);
+        virtual QVariant toConfig(const QVariant &value);
+        virtual QVariant toViewValue(const QVariant &value);
+        virtual QWidget *createEditor(QWidget *parent);
+        virtual void setEditorData(QWidget *editor, const QVariant &value);
+        virtual QVariant getEditorData(QWidget *editor);
+    };
+
     class DLLEXPORT PropertyCollection : public QObject
     {
         Q_OBJECT
@@ -23,6 +37,8 @@ START_NAMESPACE
         virtual ~PropertyCollection();
 
         virtual void defineProperty(const QString &name, const QVariant &defaultVal, const QString &helpstr);
+        virtual void defineProperty(const QString &name, const QVariant &defaultVal, const QString &helpstr, const QVariantMap &options);
+        virtual void defineProperty(const QString &name, const QVariant &defaultVal, const QString &helpstr, const PropertyHandler *handler);
         virtual QVariant getProperty(const QString &name) const;
 
     public slots:

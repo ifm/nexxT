@@ -11,6 +11,50 @@
 
 USE_NAMESPACE
 
+PropertyHandler::PropertyHandler()
+{
+}
+
+PropertyHandler::~PropertyHandler()
+{
+}
+
+QVariantMap PropertyHandler::options()
+{
+    throw std::runtime_error("not implemented.");
+}
+
+QVariant PropertyHandler::fromConfig(const QVariant &value)
+{
+    throw std::runtime_error("not implemented.");
+}
+
+QVariant PropertyHandler::toConfig(const QVariant &value)
+{
+    throw std::runtime_error("not implemented.");
+}
+
+QVariant PropertyHandler::toViewValue(const QVariant &value)
+{
+    throw std::runtime_error("not implemented.");
+}
+
+QWidget *PropertyHandler::createEditor(QWidget *parent)
+{
+    throw std::runtime_error("not implemented.");
+}
+
+void PropertyHandler::setEditorData(QWidget *editor, const QVariant &value)
+{
+    throw std::runtime_error("not implemented.");
+}
+
+QVariant PropertyHandler::getEditorData(QWidget *editor)
+{
+    throw std::runtime_error("not implemented.");
+}
+
+
 PropertyCollection::PropertyCollection()
 {
 }
@@ -20,6 +64,16 @@ PropertyCollection::~PropertyCollection()
 }
 
 void PropertyCollection::defineProperty(const QString &name, const QVariant &defaultVal, const QString &helpstr)
+{
+    throw std::runtime_error("not implemented.");
+}
+
+void PropertyCollection::defineProperty(const QString &name, const QVariant &defaultVal, const QString &helpstr, const QVariantMap &options)
+{
+    throw std::runtime_error("not implemented.");
+}
+
+void PropertyCollection::defineProperty(const QString &name, const QVariant &defaultVal, const QString &helpstr, const PropertyHandler *handler)
 {
     throw std::runtime_error("not implemented.");
 }

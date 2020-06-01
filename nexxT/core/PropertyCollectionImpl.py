@@ -21,7 +21,8 @@ from nexxT.core.Exceptions import (PropertyCollectionChildNotFound, PropertyColl
                                    PropertyCollectionUnknownType, PropertyParsingError, NexTInternalError,
                                    PropertyInconsistentDefinition, PropertyCollectionPropertyNotFound)
 from nexxT.core.Utils import assertMainThread, checkIdentifier
-from nexxT.interface import PropertyCollection
+from nexxT.core.PropertyHandlers import defaultHandler
+from nexxT.interface import PropertyCollection, PropertyHandler
 
 logger = logging.getLogger(__name__)
 
@@ -29,39 +30,12 @@ class Property:
     """
     This class represents a specific property.
     """
-    def __init__(self, defaultVal, helpstr, converter, validator):
+    def __init__(self, defaultVal, helpstr, handler):
         self.defaultVal = defaultVal
         self.value = defaultVal
         self.helpstr = helpstr
-        self.converter = converter
-        self.validator = validator
+        self.handler = handler
         self.used = True
-
-class ReadonlyValidator(QValidator):
-    """
-    A validator implementing readonly values.
-    """
-    def __init__(self, value):
-        super().__init__()
-        self._value = value
-
-    def fixup(self, inputstr): # pylint: disable=unused-argument
-        """
-        override from QValidator
-        :param inputstr: string
-        :return: fixed string
-        """
-        return str(self._value)
-
-    def validate(self, inputstr, pos):
-        """
-        override from QValidator
-        :param inputstr: string
-        :param pos: int
-        :return: state, newpos
-        """
-        state = QValidator.Acceptable if inputstr == str(self._value) else QValidator.Invalid
-        return state, inputstr, pos
 
 class PropertyCollectionImpl(PropertyCollection):
     """
@@ -120,95 +94,52 @@ class PropertyCollectionImpl(PropertyCollection):
             raise PropertyCollectionChildNotFound(name)
         return res[0]
 
-    @staticmethod
-    def _defaultIntConverter(theObject):
-        if isinstance(theObject, str):
-            try:
-                ret = int(theObject)
-            except ValueError:
-                raise PropertyParsingError("Cannot convert '%s' to int." % theObject)
-            return ret
-        return str(theObject)
-
-    @staticmethod
-    def _defaultFloatConverter(theObject):
-        if isinstance(theObject, str):
-            c = QLocale(QLocale.C)
-            ret, ok = c.toDouble(theObject)
-            if not ok:
-                raise PropertyParsingError("Cannot convert '%s' to double." % theObject)
-            return ret
-        c = QLocale(QLocale.C)
-        return c.toString(theObject)
-
-    @staticmethod
-    def _defaultValidator(defaultVal):
-        if isinstance(defaultVal, str):
-            validator = QRegExpValidator(QRegExp(".*"))
-        elif isinstance(defaultVal, int):
-            validator = QIntValidator()
-        elif isinstance(defaultVal, float):
-            validator = QDoubleValidator()
-        else:
-            raise PropertyCollectionUnknownType(defaultVal)
-        return validator
-
-    @staticmethod
-    def _defaultStringConverter(defaultVal):
-        if isinstance(defaultVal, str):
-            stringConverter = str
-        elif isinstance(defaultVal, int):
-            stringConverter = PropertyCollectionImpl._defaultIntConverter
-        elif isinstance(defaultVal, float):
-            stringConverter = PropertyCollectionImpl._defaultFloatConverter
-        else:
-            raise PropertyCollectionUnknownType(defaultVal)
-        return stringConverter
-
-    def defineProperty(self, name, defaultVal, helpstr, stringConverter=None, validator=None):
+    def defineProperty(self, name, defaultVal, helpstr, options=None, propertyHandler=None):
         """
         Return the value of the given property, creating a new property if it doesn't exist.
         :param name: the name of the property
         :param defaultVal: the default value of the property. Note that this value will be used to determine the
                            property's type. Currently supported types are string, int and float
         :param helpstr: a help string for the user
-        :param stringConverter: a conversion function which converts a string to the property type. If not given,
-                                a default conversion based on QLocale::C will be used.
-        :param validator: an optional QValidator instance. If not given, the validator will be chosen according to the
-                          defaultVal type.
+        :param options: a dict mapping string to qvariant (common options: min, max, enum)
+        :param propertyHandler: a PropertyHandler instance, or None for automatic choice according to defaultVal
         :return: the current value of this property
         """
         self._accessed = True
         checkIdentifier(name)
+        if options is not None and propertyHandler is None and isinstance(options, PropertyHandler):
+            propertyHandler = options
+            options = None
         with QMutexLocker(self._propertyMutex):
+            if options is not None and propertyHandler is not None:
+                raise PropertyInconsistentDefinition(
+                    "Pass either options or propertyHandler to defineProperty but not both.")
+            if options is None:
+                options = {}
+            if propertyHandler is None:
+                propertyHandler = defaultHandler(defaultVal)(options)
+            assert isinstance(propertyHandler, PropertyHandler)
+            assert isinstance(options, dict)
+            if propertyHandler.validate(defaultVal) != defaultVal:
+                raise PropertyInconsistentDefinition("The validation of the default value must be the identity!")
             if not name in self._properties:
-                if validator is None:
-                    validator = self._defaultValidator(defaultVal)
-                if stringConverter is None:
-                    stringConverter = self._defaultStringConverter(defaultVal)
-                self._properties[name] = Property(defaultVal, helpstr, stringConverter, validator)
+                self._properties[name] = Property(defaultVal, helpstr, propertyHandler)
                 p = self._properties[name]
                 if name in self._loadedFromConfig:
                     l = self._loadedFromConfig[name]
-                    if type(l) is type(defaultVal):
-                        p.value = l
-                    else:
-                        try:
-                            p.value = stringConverter(str(l))
-                        except PropertyParsingError:
-                            logger.warning("Property %s: can't convert value '%s'.", name, str(l))
+                    try:
+                        p.value = p.handler.validate(p.handler.fromConfig(l))
+                    except Exception as e:
+                        raise PropertyParsingError("Error parsing property %s from %s (original exception: %s)" %
+                                                   (name, repr(l), str(e)))
                 self.propertyAdded.emit(self, name)
             else:
                 # the arguments to getProperty shall be consistent among calls
                 p = self._properties[name]
                 if p.defaultVal != defaultVal or p.helpstr != helpstr:
                     raise PropertyInconsistentDefinition(name)
-                # TODO: we would need to provide a deep compare for these functions
-                #if stringConverter is not None and p.converter is not stringConverter:
-                #    raise PropertyInconsistentDefinition(name)
-                #if validator is not None and p.validator is not validator:
-                #    raise PropertyInconsistentDefinition(name)
-
+                if type(p.handler) != type(propertyHandler) or options != p.handler.options():
+                    raise PropertyInconsistentDefinition(name)
             p.used = True
             return p.value
 
@@ -254,12 +185,11 @@ class PropertyCollectionImpl(PropertyCollection):
             if name not in self._properties:
                 raise PropertyCollectionPropertyNotFound(name)
             p = self._properties[name]
-            if isinstance(value, str):
-                state, newValue, newCursorPos = p.validator.validate(value, len(value))
-                if state != QValidator.Acceptable:
-                    raise PropertyParsingError("Property %s: '%s' is not compatible to given validator."
-                                               % (name, value))
-                value = p.converter(newValue)
+            try:
+                value = p.handler.validate(value)
+            except Exception as e:
+                raise PropertyParsingError("Error parsing property %s from %s (original exception: %s)" %
+                                           (name, repr(value), str(e)))
             if value != p.value:
                 p.value = value
                 self.propertyChanged.emit(self, name)
@@ -300,7 +230,8 @@ class PropertyCollectionImpl(PropertyCollection):
             res = OrderedDict()
             with QMutexLocker(self._propertyMutex):
                 for n in sorted(self._properties):
-                    res[n] = self._properties[n].value
+                    p = self._properties[n]
+                    res[n] = p.handler.toConfig(p.value)
             return res
         return self._loadedFromConfig
 

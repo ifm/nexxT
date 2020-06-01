@@ -448,7 +448,7 @@ class ConfigurationModel(QAbstractItemModel):
                 if index.column() == 0:
                     return item.name
                 p = item.property.getPropertyDetails(item.name)
-                return p.converter(item.property.getProperty(item.name))
+                return p.handler.toViewValue(item.property.getProperty(item.name))
             logger.warning("Unknown item %s", repr(item))
         if role == Qt.DecorationRole:
             if index.column() != 0:

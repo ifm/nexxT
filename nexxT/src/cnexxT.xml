@@ -84,6 +84,9 @@
         <object-type name="FilterState">
         </object-type>
         
+        <object-type name="PropertyHandler">
+        </object-type>
+
         <object-type name="PropertyCollection">
         </object-type>
         

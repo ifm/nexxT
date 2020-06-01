@@ -26,6 +26,7 @@ if nexxT.useCImpl:
     OutputPortInterface = cnexxT.OutputPortInterface
     InputPortInterface = cnexxT.InputPortInterface
     PropertyCollection = cnexxT.PropertyCollection
+    PropertyHandler = cnexxT.PropertyHandler
     Services = cnexxT.Services
     OutputPort = lambda *args, **kw: Port.make_shared(OutputPortInterface(*args, **kw))
     InputPort = (lambda dynamic, name, environment, queueSizeSamples=1, queueSizeSeconds=-1:
@@ -44,7 +45,7 @@ else:
     del PortImpl
     from nexxT.interface.Filters import Filter, FilterState
     from nexxT.interface.DataSamples import DataSample
-    from nexxT.interface.PropertyCollections import PropertyCollection
+    from nexxT.interface.PropertyCollections import PropertyCollection, PropertyHandler
     from nexxT.interface.Services import Services
 
 del nexxT

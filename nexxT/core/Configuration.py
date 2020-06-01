@@ -15,7 +15,7 @@ from nexxT.core.Application import Application
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.Exceptions import (NexTRuntimeError, CompositeRecursion, NodeNotFoundError, NexTInternalError,
                                    PropertyCollectionPropertyNotFound)
-from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl, ReadonlyValidator
+from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.PluginManager import PluginManager
 from nexxT.core.ConfigFiles import ConfigFileLoader
 
@@ -93,7 +93,7 @@ class Configuration(QObject):
         try:
             self._propertyCollection.defineProperty("CFGFILE", cfg["CFGFILE"],
                                                     "The absolute path to the configuration file.",
-                                                    validator=ReadonlyValidator(cfg["CFGFILE"]))
+                                                    options=dict(enum=[cfg["CFGFILE"]]))
             shiboken2.delete(self._guiState)
             self._guiState = PropertyCollectionImpl("_guiState", self._propertyCollection, cfg["_guiState"])
             recursiveset = set()
