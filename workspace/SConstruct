@@ -16,6 +16,10 @@ if platform.system() == "Linux":
                       ENV = os.environ,
                       variant="unknown")
     
+    if "QTDIR" in ARGUMENTS: 
+        env["QT5DIR"] = ARGUMENTS["QTDIR"]
+        os.environ["QTDIR"] = ARGUMENTS["QTDIR"]
+        print("QTDIR=",ARGUMENTS["QTDIR"])
     env.Tool("qt5")
 
     env['ENV']['PKG_CONFIG_PATH'] = env.subst("$QT5DIR") + '/lib/pkgconfig'

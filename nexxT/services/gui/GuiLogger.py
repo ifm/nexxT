@@ -66,7 +66,7 @@ class LogView(QTableView):
                 return len(self.entries)
             return 0
 
-        def columnCount(self, parent):
+        def columnCount(self, parent): # pylint: disable=unused-argument
             """
             Overwritten from QAbstractItemModel
             :param parent: a QModelIndex instance
@@ -116,7 +116,7 @@ class LogView(QTableView):
             #print("index invalid", row, column, parent.isValid())
             return QModelIndex()
 
-        def parent(self, index):
+        def parent(self, index): # pylint: disable=unused-argument
             """
             Overwritten from QAbstractItemModel
             :param index:

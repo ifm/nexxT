@@ -9,7 +9,7 @@ This module provides a delegate for use in the Configuration GUI service to edit
 """
 
 from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QStyledItemDelegate, QLineEdit, QSpinBox
+from PySide2.QtWidgets import QStyledItemDelegate
 
 class PropertyDelegate(QStyledItemDelegate):
     """

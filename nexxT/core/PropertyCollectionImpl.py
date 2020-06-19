@@ -15,10 +15,9 @@ import platform
 import string
 import os
 import shiboken2
-from PySide2.QtGui import QValidator, QRegExpValidator, QIntValidator, QDoubleValidator
-from PySide2.QtCore import QRegExp, QLocale, Signal, Slot, QMutex, QMutexLocker
+from PySide2.QtCore import Signal, Slot, QMutex, QMutexLocker
 from nexxT.core.Exceptions import (PropertyCollectionChildNotFound, PropertyCollectionChildExists,
-                                   PropertyCollectionUnknownType, PropertyParsingError, NexTInternalError,
+                                   PropertyParsingError, NexTInternalError,
                                    PropertyInconsistentDefinition, PropertyCollectionPropertyNotFound)
 from nexxT.core.Utils import assertMainThread, checkIdentifier
 from nexxT.core.PropertyHandlers import defaultHandler
@@ -138,7 +137,7 @@ class PropertyCollectionImpl(PropertyCollection):
                 p = self._properties[name]
                 if p.defaultVal != defaultVal or p.helpstr != helpstr:
                     raise PropertyInconsistentDefinition(name)
-                if type(p.handler) != type(propertyHandler) or options != p.handler.options():
+                if not isinstance(p.handler, type(propertyHandler)) or options != p.handler.options():
                     raise PropertyInconsistentDefinition(name)
             p.used = True
             return p.value

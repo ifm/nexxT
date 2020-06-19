@@ -1,3 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2020 ifm electronic gmbh
+#
+# THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+#
+
+"""
+This module contains the specific nexxT property handlers for the supported types.
+"""
+
 import logging
 from PySide2.QtWidgets import QSpinBox, QLineEdit, QComboBox, QCheckBox
 from PySide2.QtGui import QDoubleValidator
@@ -7,6 +17,9 @@ from nexxT.core.Exceptions import PropertyParsingError, PropertyCollectionUnknow
 logger = logging.getLogger(__name__)
 
 class IntHandler(PropertyHandler):
+    """
+    The property handler for integer properties; Supported options: min and max.
+    """
 
     def __init__(self, options):
         for k in options:
@@ -18,21 +31,45 @@ class IntHandler(PropertyHandler):
         self._options = options
 
     def options(self):
+        """
+        return this handler's options
+        :return: a python dict with the actual options.
+        """
         return self._options
 
     def fromConfig(self, value):
+        """
+        import value from config file and return the adapted version.
+        :param value: an integer is expected
+        :return: the validated integer
+        """
         assert isinstance(value, int)
         return self.validate(value)
 
     def toConfig(self, value):
+        """
+        export value to config file and return the adapted version
+        :param value: an integer is expected
+        :return: the exported value
+        """
         assert isinstance(value, int)
         return value
 
     def toViewValue(self, value):
+        """
+        create a view of this option value.
+        :param value: the current option value
+        :return: a string
+        """
         assert isinstance(value, int)
         return str(value)
 
     def validate(self, value):
+        """
+        Validate an option value and return an adapted, valid value
+        :param value: the value to be tested (an integer)
+        :return: the adapted, valid value
+        """
         if "min" in self._options:
             if value < self._options["min"]:
                 logger.warning("Adapted option value %d to minimum value %d.", value, self._options["min"])
@@ -44,6 +81,11 @@ class IntHandler(PropertyHandler):
         return int(value)
 
     def createEditor(self, parent):
+        """
+        Creates a QSpinBox instance for GUI editing of integer values
+        :param parent: the parent of the widget
+        :return: a QSpinBox instance
+        """
         res = QSpinBox(parent)
         res.setFrame(False)
         if "min" in self._options:
@@ -53,13 +95,27 @@ class IntHandler(PropertyHandler):
         return res
 
     def setEditorData(self, editor, value):
+        """
+        set the value of the QSpinBox
+        :param editor: the instance returned by createEditor
+        :param value: the option value (an integer)
+        :return: None
+        """
         editor.setValue(value)
 
     def getEditorData(self, editor):
+        """
+        return the currently edited value
+        :param editor: the instance returned by createEditor
+        :return: the integer value
+        """
         return self.validate(editor.value())
 
 
 class StringHandler(PropertyHandler):
+    """
+    The property handler for string properties; Supported options: enum
+    """
 
     def __init__(self, options):
         for k in options:
@@ -76,21 +132,45 @@ class StringHandler(PropertyHandler):
         self._options = options
 
     def options(self):
+        """
+        return this handler's options
+        :return: a python dict with the actual options.
+        """
         return self._options
 
     def fromConfig(self, value):
+        """
+        import value from config file and return the adapted version.
+        :param value: a string is expected
+        :return: the validated string
+        """
         assert isinstance(value, str)
         return self.validate(value)
 
     def toConfig(self, value):
+        """
+        export value to config file and return the adapted version
+        :param value: an string is expected
+        :return: the exported value
+        """
         assert isinstance(value, str)
         return value
 
     def toViewValue(self, value):
+        """
+        create a view of this option value.
+        :param value: the current option value
+        :return: a string
+        """
         assert isinstance(value, str)
         return value
 
     def validate(self, value):
+        """
+        Validate an option value and return an adapted, valid value
+        :param value: the value to be tested (a string)
+        :return: the adapted, valid value
+        """
         if "enum" in self._options:
             if not value in self._options["enum"]:
                 logger.warning("Enum validation failed. Using first value in allowed list.")
@@ -98,6 +178,11 @@ class StringHandler(PropertyHandler):
         return str(value)
 
     def createEditor(self, parent):
+        """
+        Creates a QLineEdit or QComboBox instance for GUI editing of integer values
+        :param parent: the parent of the widget
+        :return: the editor instance
+        """
         if "enum" in self._options:
             res = QComboBox(parent)
             res.addItems(self._options["enum"])
@@ -107,18 +192,32 @@ class StringHandler(PropertyHandler):
         return res
 
     def setEditorData(self, editor, value):
+        """
+        set the value of the QLineEdit/QComboBox
+        :param editor: the instance returned by createEditor
+        :param value: the option value (a string)
+        :return: None
+        """
         if isinstance(editor, QComboBox):
             editor.setCurrentText(value)
         else:
             editor.setText(value)
 
     def getEditorData(self, editor):
+        """
+        return the currently edited value
+        :param editor: the instance returned by createEditor
+        :return: the string value
+        """
         if isinstance(editor, QComboBox):
             return editor.currentText()
         return self.validate(editor.text())
 
 
 class FloatHandler(PropertyHandler):
+    """
+    The property handler for float properties; Supported options: min and max.
+    """
 
     def __init__(self, options):
         for k in options:
@@ -130,21 +229,45 @@ class FloatHandler(PropertyHandler):
         self._options = options
 
     def options(self):
+        """
+        return this handler's options
+        :return: a python dict with the actual options.
+        """
         return self._options
 
     def fromConfig(self, value):
-        assert isinstance(value, float) or isinstance(value, int)
+        """
+        import value from config file and return the adapted version.
+        :param value: a float is expected
+        :return: the validated float
+        """
+        assert isinstance(value, (float, int))
         return float(self.validate(value))
 
     def toConfig(self, value):
+        """
+        export value to config file and return the adapted version
+        :param value: an float is expected
+        :return: the exported value
+        """
         assert isinstance(value, float)
         return value
 
     def toViewValue(self, value):
+        """
+        create a view of this option value.
+        :param value: the current option value
+        :return: a string
+        """
         assert isinstance(value, float)
         return str(value)
 
     def validate(self, value):
+        """
+        Validate an option value and return an adapted, valid value
+        :param value: the value to be tested (a float)
+        :return: the adapted, valid value
+        """
         if "min" in self._options:
             if value < self._options["min"]:
                 logger.warning("Adapted option value %f to minimum value %f.", value, self._options["min"])
@@ -156,6 +279,11 @@ class FloatHandler(PropertyHandler):
         return float(value)
 
     def createEditor(self, parent):
+        """
+        Creates a QLineEdit instance for GUI editing of integer values
+        :param parent: the parent of the widget
+        :return: a QLineEdit instance
+        """
         res = QLineEdit(parent)
         v = QDoubleValidator()
         if "min" in self._options:
@@ -167,13 +295,27 @@ class FloatHandler(PropertyHandler):
         return res
 
     def setEditorData(self, editor, value):
+        """
+        set the value of the QLineEdit
+        :param editor: the instance returned by createEditor
+        :param value: the option value (a float)
+        :return: None
+        """
         editor.setValue(str(value))
 
     def getEditorData(self, editor):
+        """
+        return the currently edited value
+        :param editor: the instance returned by createEditor
+        :return: the float value
+        """
         return self.validate(editor.value())
 
 
 class BoolHandler(PropertyHandler):
+    """
+    The property handler for boo. properties; Supported options: none
+    """
 
     def __init__(self, options):
         for k in options:
@@ -181,35 +323,80 @@ class BoolHandler(PropertyHandler):
         self._options = options
 
     def options(self):
+        """
+        return this handler's options
+        :return: a python dict with the actual options.
+        """
         return self._options
 
     def fromConfig(self, value):
+        """
+        import value from config file and return the adapted version.
+        :param value: a bool is expected
+        :return: the bool
+        """
         assert isinstance(value, bool)
         return self.validate(value)
 
     def toConfig(self, value):
+        """
+        export value to config file and return the adapted version
+        :param value: an bool is expected
+        :return: the exported value
+        """
         assert isinstance(value, bool)
         return value
 
     def toViewValue(self, value):
+        """
+        create a view of this option value.
+        :param value: the current option value
+        :return: a string
+        """
         assert isinstance(value, bool)
         return str(value)
 
     def validate(self, value):
+        """
+        Validate an option value and return an adapted, valid value
+        :param value: the value to be tested (a bool)
+        :return: the adapted, valid value
+        """
         return bool(value)
 
     def createEditor(self, parent):
+        """
+        Creates a QCheckBox instance for GUI editing of integer values
+        :param parent: the parent of the widget
+        :return: a QCheckBox instance
+        """
         res = QCheckBox(parent)
         res.setFrame(False)
         return res
 
     def setEditorData(self, editor, value):
+        """
+        set the value of the QCheckBox
+        :param editor: the instance returned by createEditor
+        :param value: the option value (a bool)
+        :return: None
+        """
         editor.setChecked(value)
 
     def getEditorData(self, editor):
+        """
+        return the currently edited value
+        :param editor: the instance returned by createEditor
+        :return: the bool value
+        """
         return editor.isChecked()
 
 def defaultHandler(propertyValue):
+    """
+    Return a suitable property handler given the value.
+    :param propertyValue: the property value
+    :return: a PropertyHandler instance
+    """
     if isinstance(propertyValue, int):
         return IntHandler
     if isinstance(propertyValue, str):
