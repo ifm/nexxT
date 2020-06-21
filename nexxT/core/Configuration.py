@@ -137,9 +137,9 @@ class Configuration(QObject):
         cfg = {}
         if file is not None:
             # TODO: we assume here that this is a new config; a "save to file" feature is not yet implemented.
-            self._propertyCollection.defineProperty("CFGFILE", file,
+            self._propertyCollection.defineProperty("CFGFILE", str(file),
                                                     "The absolute path to the configuration file.",
-                                                    options=dict(enum=[file]))
+                                                    options=dict(enum=[str(file)]))
         try:
             cfg["CFGFILE"] = self._propertyCollection.getProperty("CFGFILE")
         except PropertyCollectionPropertyNotFound:
