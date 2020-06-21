@@ -115,10 +115,14 @@ def main(withGui):
                         choices=["INTERNAL", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "CRITICAL"],
                         help="sets the log verbosity")
     parser.add_argument("-q", "--quiet", action="store_true", default=False, help="disble logging to stderr")
+    parser.add_argument("-e", "--execpython", action="append", default=[],
+                        help="execute arbitrary python code before actually starting the application.")
     args = parser.parse_args()
     if args.cfg is None and  args.active is not None:
         parser.error("Active application set, but no config given.")
 
+    for e in args.execpython:
+        exec(e)
     nexT_logger = logging.getLogger()
     nexT_logger.setLevel(args.verbosity)
     nexT_logger.debug("Setting verbosity: %s", args.verbosity)
