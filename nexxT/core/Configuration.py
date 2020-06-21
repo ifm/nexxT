@@ -14,7 +14,7 @@ from PySide2.QtCore import QObject, Slot, Signal
 from nexxT.core.Application import Application
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.Exceptions import (NexTRuntimeError, CompositeRecursion, NodeNotFoundError, NexTInternalError,
-                                   PropertyCollectionPropertyNotFound)
+                                   PropertyCollectionPropertyNotFound, PropertyCollectionChildNotFound)
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.PluginManager import PluginManager
 from nexxT.core.ConfigFiles import ConfigFileLoader
@@ -94,7 +94,10 @@ class Configuration(QObject):
             self._propertyCollection.defineProperty("CFGFILE", cfg["CFGFILE"],
                                                     "The absolute path to the configuration file.",
                                                     options=dict(enum=[cfg["CFGFILE"]]))
-            shiboken2.delete(self._guiState)
+            try:
+                self._propertyCollection.deleteChild("_guiState")
+            except PropertyCollectionChildNotFound:
+                pass
             self._guiState = PropertyCollectionImpl("_guiState", self._propertyCollection, cfg["_guiState"])
             recursiveset = set()
             def compositeLookup(name):
@@ -126,13 +129,18 @@ class Configuration(QObject):
             self.close(avoidSave=True)
             raise e
 
-    def save(self):
+    def save(self, file=None):
         """
         return a dictionary suitable for saving to json (inverse of load)
         :return: dictionary
         """
         self.configAboutToSave.emit()
         cfg = {}
+        if file is not None:
+            # TODO: we assume here that this is a new config; a "save to file" feature is not yet implemented.
+            self._propertyCollection.defineProperty("CFGFILE", file,
+                                                    "The absolute path to the configuration file.",
+                                                    options=dict(enum=[file]))
         try:
             cfg["CFGFILE"] = self._propertyCollection.getProperty("CFGFILE")
         except PropertyCollectionPropertyNotFound:

@@ -64,7 +64,7 @@ class ConfigFileLoader:
         :return: None
         """
         # TODO: saving to new file will eventually destroy relative paths.
-        cfg = config.save()
+        cfg = config.save(file)
         if file is None:
             file = cfg["CFGFILE"]
         del cfg["CFGFILE"]
