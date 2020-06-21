@@ -10,6 +10,7 @@ Console entry point script for starting nexxT from command line without GUI.
 
 from argparse import ArgumentParser
 import logging
+import signal
 import sys
 from PySide2.QtCore import QCoreApplication
 from PySide2.QtWidgets import QApplication
@@ -21,6 +22,8 @@ from nexxT.core.Application import Application
 from nexxT.interface import Services
 
 from nexxT.services.ConsoleLogger import ConsoleLogger
+from nexxT.services.SrvConfiguration import MVCConfigurationBase
+from nexxT.services.SrvPlaybackControl import PlaybackControlConsole
 from nexxT.services.gui.GuiLogger import GuiLogger
 from nexxT.services.gui.MainWindow import MainWindow
 from nexxT.services.gui.Configuration import MVCConfigurationGUI
@@ -28,13 +31,15 @@ from nexxT.services.gui.PlaybackControl import MVCPlaybackControlGUI
 
 logger = logging.getLogger(__name__)
 
-def setupConsoleServices(config): # pylint: disable=unused-argument
+def setupConsoleServices(config):
     """
     Adds services available in console mode.
     :param config: a nexxT.core.Configuration instance
     :return: None
     """
     Services.addService("Logging", ConsoleLogger())
+    Services.addService("PlaybackControl", PlaybackControlConsole())
+    Services.addService("Configuration", MVCConfigurationBase(config))
 
 def setupGuiServices(config):
     """
@@ -48,7 +53,7 @@ def setupGuiServices(config):
     Services.addService("PlaybackControl", MVCPlaybackControlGUI(config))
     Services.addService("Configuration", MVCConfigurationGUI(config))
 
-def startNexT(cfgfile, active, withGui):
+def startNexT(cfgfile, active, execScripts, execCode, withGui):
     """
     Starts next with the given config file and activates the given application.
     :param cfgfile: path to config file
@@ -91,6 +96,20 @@ def startNexT(cfgfile, active, withGui):
         #PluginManager.singleton().unloadAll()
         logger.debug("cleaning up complete")
 
+    code_globals = {}
+    for c in execCode:
+        logger.info("Executing code '%s'", c)
+        # note that exec is used intentionally here to provide the user with scripting possibilities
+        exec(compile(c, "<string>", 'exec'), code_globals) # pylint: disable=exec-used
+        logger.debug("Executing code done")
+
+    for s in execScripts:
+        logger.info("Executing script '%s'", s)
+        with open(s) as fscript:
+            # note that exec is used intentionally here to provide the user with scripting possibilities
+            exec(compile(fscript.read(), s, 'exec'), code_globals)  # pylint: disable=exec-used
+        logger.debug("Executing script done")
+
     res = app.exec_()
     logger.debug("closing config")
     config.close()
@@ -116,13 +135,14 @@ def main(withGui):
                         help="sets the log verbosity")
     parser.add_argument("-q", "--quiet", action="store_true", default=False, help="disble logging to stderr")
     parser.add_argument("-e", "--execpython", action="append", default=[],
-                        help="execute arbitrary python code before actually starting the application.")
+                        help="execute arbitrary python code given in a string before actually starting the "
+                             "application.")
+    parser.add_argument("-s", "--execscript", action="append", default=[],
+                        help="execute arbitrary python code given in a file before actually starting the application.")
     args = parser.parse_args()
     if args.cfg is None and  args.active is not None:
         parser.error("Active application set, but no config given.")
 
-    for e in args.execpython:
-        exec(e)
     nexT_logger = logging.getLogger()
     nexT_logger.setLevel(args.verbosity)
     nexT_logger.debug("Setting verbosity: %s", args.verbosity)
@@ -137,13 +157,14 @@ def main(withGui):
             handler = logging.FileHandler(args.logfile)
             handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
             nexT_logger.addHandler(handler)
-    startNexT(args.cfg, args.active, withGui=withGui)
+    startNexT(args.cfg, args.active, args.execscript, args.execpython, withGui=withGui)
 
 def mainConsole():
     """
     entry point for console application
     :return:
     """
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
     main(withGui=False)
 
 def mainGui():

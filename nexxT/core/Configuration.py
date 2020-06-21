@@ -9,7 +9,6 @@ This module provides the nexxT class Configuration
 """
 
 import logging
-import shiboken2
 from PySide2.QtCore import QObject, Slot, Signal
 from nexxT.core.Application import Application
 from nexxT.core.CompositeFilter import CompositeFilter

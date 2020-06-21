@@ -5,219 +5,20 @@
 #
 
 """
-This module provides the playback control GUI service for the nexxT framework.
+This module provides the nexxT GUI service PlaybackControl
 """
-
 import functools
-import pathlib
 import logging
 import os
-from PySide2.QtCore import QObject, Signal, Slot, QDateTime, Qt, QDir, QTimer, QMutex, QMutexLocker
+from PySide2.QtCore import Signal, QDateTime, Qt, QTimer
 from PySide2.QtWidgets import (QWidget, QGridLayout, QLabel, QBoxLayout, QSlider, QToolBar, QAction, QApplication,
                                QStyle, QLineEdit, QFileSystemModel, QTreeView, QHeaderView, QActionGroup)
 from nexxT.interface import Services
-from nexxT.interface import FilterState
-from nexxT.core.Exceptions import NexTRuntimeError, PropertyCollectionPropertyNotFound
-from nexxT.core.Application import Application
-from nexxT.core.Utils import FileSystemModelSortProxy, assertMainThread, MethodInvoker, handleException
+from nexxT.core.Exceptions import PropertyCollectionPropertyNotFound
+from nexxT.core.Utils import FileSystemModelSortProxy, assertMainThread
+from nexxT.services.SrvPlaybackControl import MVCPlaybackControlBase
 
 logger = logging.getLogger(__name__)
-
-class MVCPlaybackControlBase(QObject):
-    """
-    Base class for interacting with playback controller, usually this is connected to a
-    harddisk player.
-    """
-    startPlayback = Signal()
-    pausePlayback = Signal()
-    stepForward = Signal(str)
-    stepBackward = Signal(str)
-    seekBeginning = Signal()
-    seekEnd = Signal()
-    seekTime = Signal(QDateTime)
-    setSequence = Signal(str)
-    setTimeFactor = Signal(float)
-
-    def __init__(self):
-        super().__init__()
-        self._deviceId = 0
-        self._registeredDevices = {}
-        self._mutex = QMutex()
-
-    @Slot(QObject, "QStringList")
-    def setupConnections(self, playbackDevice, nameFilters):
-        """
-        Sets up signal/slot connections between this view/controller instance and the given playbackDevice. This
-        function is thread safe and shall be called by a direct QT connection.
-        It is intended, that this function is called in the onStart(...) method of a filter. It expects playbackDevice
-        to provide the following slots:
-
-        - startPlayback() (starts generating DataSamples)
-        - pausePlayback() (pause mode, stop generating DataSamples)
-        - stepForward(QString stream) (optional; in case given, a single step operation shall be performed.
-                               if stream is not None, the playback shall stop when receiving the next data sample
-                               of stream; otherwise the playback shall proceed to the next data sample of any stream)
-        - stepBackward(QString stream) (optional; see stepForward)
-        - seekBeginning(QString stream) (optional; goes to the beginning of the sequence)
-        - seekEnd() (optional; goes to the end of the stream)
-        - seekTime(QString QDateTime) (optional; goes to the specified time stamp)
-        - setSequence(QString) (optional; opens the given sequence)
-        - setTimeFactor(float) (optional; sets the playback time factor, factor > 0)
-
-        It expects playbackDevice to provide the following signals (all signals are optional):
-
-        - sequenceOpened(QString filename, QDateTime begin, QDateTime end, QStringList streams)
-        - currentTimestampChanged(QDateTime currentTime)
-        - playbackStarted()
-        - playbackPaused()
-        - timeRatioChanged()
-
-        :param playbackDevice: a QObject providing the aforementioned signals and slots
-        :param nameFilters: a QStringList providing information about suported fileextensions (e.g. ["*.avi", "*.mp4"])
-        :return:
-        """
-        with QMutexLocker(self._mutex):
-            for devid in self._registeredDevices:
-                if self._registeredDevices[devid]["object"] is playbackDevice:
-                    raise NexTRuntimeError("Trying to register a playbackDevice object twice.")
-
-            if not self.startPlayback.connect(playbackDevice.startPlayback):
-                raise NexTRuntimeError("cannot connect to slot startPlayback()")
-            if not self.pausePlayback.connect(playbackDevice.pausePlayback):
-                raise NexTRuntimeError("cannot connect to slot pausePlayback()")
-
-            connections = [(self.startPlayback, playbackDevice.startPlayback),
-                           (self.pausePlayback, playbackDevice.pausePlayback)]
-            featureset = set(["startPlayback", "pausePlayback"])
-            for feature in ["stepForward", "stepBackward", "seekTime", "seekBeginning", "seekEnd",
-                            "setTimeFactor"]:
-                signal = getattr(self, feature)
-                slot = getattr(playbackDevice, feature, None)
-                if slot is not None and signal.connect(slot, Qt.UniqueConnection):
-                    featureset.add(feature)
-                    connections.append((signal, slot))
-
-            @handleException
-            def setSequenceWrapper(filename):
-                assertMainThread()
-                if Application.activeApplication is None:
-                    return
-                if Application.activeApplication.getState() not in [FilterState.ACTIVE, FilterState.OPENED]:
-                    return
-                if QDir.match(nameFilters, pathlib.Path(filename).name):
-                    logger.debug("setSequence %s", filename)
-                    if Application.activeApplication.getState() == FilterState.ACTIVE:
-                        Application.activeApplication.stop()
-                    setSequenceWrapper.invoke = MethodInvoker(dict(object=playbackDevice, method="setSequence"),
-                                                              Qt.QueuedConnection, filename)
-                    Application.activeApplication.start()
-                    logger.debug("setSequence done")
-                else:
-                    logger.debug("%s does not match filters: %s", filename, nameFilters)
-
-            # setSequence is called only if filename matches the given filters
-            if self.setSequence.connect(setSequenceWrapper, Qt.DirectConnection):
-                featureset.add("setSequence")
-                connections.append((self.setSequence, setSequenceWrapper))
-            for feature in ["sequenceOpened", "currentTimestampChanged", "playbackStarted", "playbackPaused",
-                            "timeRatioChanged"]:
-                slot = getattr(self, feature)
-                signal = getattr(playbackDevice, feature, None)
-                if signal is not None and signal.connect(slot, Qt.UniqueConnection):
-                    featureset.add(feature)
-                    connections.append((signal, slot))
-
-            self._registeredDevices[self._deviceId] = dict(object=playbackDevice,
-                                                           featureset=featureset,
-                                                           nameFilters=nameFilters,
-                                                           connections=connections)
-            self._deviceId += 1
-            self._updateFeatureSet()
-
-    @Slot(QObject)
-    def removeConnections(self, playbackDevice):
-        """
-        unregisters the given playbackDevice and disconnects all. It is intended that this function is called in the
-        onStop(...) method of a filter.
-
-        :param playbackDevice: the playback device to be unregistered.
-        :return: None
-        """
-        with QMutexLocker(self._mutex):
-            found = []
-            for devid in self._registeredDevices:
-                if self._registeredDevices[devid]["object"] is playbackDevice:
-                    found.append(devid)
-            if len(found) > 0:
-                for devid in found:
-                    for signal, slot in self._registeredDevices[devid]["connections"]:
-                        signal.disconnect(slot)
-                    del self._registeredDevices[devid]
-                logger.debug("disconnected connections of playback device. number of devices left: %d",
-                             len(self._registeredDevices))
-                self._updateFeatureSet()
-
-    def _updateFeatureSet(self):
-        featureset = set()
-        nameFilters = set()
-        featureCount = {}
-        for devid in self._registeredDevices:
-            for f in self._registeredDevices[devid]["featureset"]:
-                if not f in featureCount:
-                    featureCount[f] = 0
-                featureCount[f] += 1
-            featureset = featureset.union(self._registeredDevices[devid]["featureset"])
-            nameFilters = nameFilters.union(self._registeredDevices[devid]["nameFilters"])
-        for f in featureCount:
-            if featureCount[f] > 1 and f in ["seekTime", "setSequence", "setTimeFactor"]:
-                logger.warning("Multiple playback devices are providing slots intended for single usage."
-                               "Continuing anyways.")
-        self.supportedFeaturesChanged(featureset, nameFilters)
-
-    def supportedFeaturesChanged(self, featureset, nameFilters):
-        """
-        Can be overriden to get the supported features of the connected playbackDevice(s). This function is called
-        from multiple threads, but not at the same time.
-        :param featureset set of supported features
-        :param nameFilters set of supported nameFilters
-        :return:
-        """
-
-    def sequenceOpened(self, filename, begin, end, streams):
-        """
-        Notifies about an opened sequence.
-        :param filename: the filename which has been opened
-        :param begin: timestamp of sequence's first sample
-        :param end: timestamp of sequence's last sample
-        :param streams: list of streams in the sequence
-        :return: None
-        """
-
-    def currentTimestampChanged(self, currentTime):
-        """
-        Notifies about a changed timestamp
-        :param currentTime: the new current timestamp
-        :return: None
-        """
-
-    def playbackStarted(self):
-        """
-        Notifies about starting playback
-        :return: None
-        """
-
-    def playbackPaused(self):
-        """
-        Notifies about pause playback
-        :return: None
-        """
-
-    def timeRatioChanged(self, newRatio):
-        """
-        Notifies about a changed playback time ratio,
-        :param newRatio the new playback ratio as a float
-        :return: None
-        """
 
 class MVCPlaybackControlGUI(MVCPlaybackControlBase):
     """
@@ -253,17 +54,17 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
 
         # pylint: disable=unnecessary-lambda
         # let's stay on the safe side and do not use emit as a slot...
-        self.actStart.triggered.connect(lambda: self.startPlayback.emit())
-        self.actPause.triggered.connect(lambda: self.pausePlayback.emit())
-        self.actStepFwd.triggered.connect(lambda: self.stepForward.emit(self.selectedStream()))
-        self.actStepBwd.triggered.connect(lambda: self.stepBackward.emit(self.selectedStream()))
-        self.actSeekEnd.triggered.connect(lambda: self.seekEnd.emit())
-        self.actSeekBegin.triggered.connect(lambda: self.seekBeginning.emit())
+        self.actStart.triggered.connect(lambda: self._startPlayback.emit())
+        self.actPause.triggered.connect(lambda: self._pausePlayback.emit())
+        self.actStepFwd.triggered.connect(lambda: self._stepForward.emit(self.selectedStream()))
+        self.actStepBwd.triggered.connect(lambda: self._stepBackward.emit(self.selectedStream()))
+        self.actSeekEnd.triggered.connect(lambda: self._seekEnd.emit())
+        self.actSeekBegin.triggered.connect(lambda: self._seekBeginning.emit())
         # pylint: enable=unnecessary-lambda
 
         def setTimeFactor(newFactor):
             logger.debug("new time factor %f", newFactor)
-            self.setTimeFactor.emit(newFactor)
+            self._setTimeFactor.emit(newFactor)
 
         for r in self.actSetTimeFactor:
             logger.debug("adding action for time factor %f", r)
@@ -373,12 +174,12 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
             a.triggered.connect(self.openRecent)
             recentMenu.addAction(a)
 
-        self.supportedFeaturesChanged(set(), set())
+        self._supportedFeaturesChanged(set(), set())
 
     def __del__(self):
         logger.debug("deleting playback control")
 
-    def supportedFeaturesChanged(self, featureset, nameFilters):
+    def _supportedFeaturesChanged(self, featureset, nameFilters):
         """
         overwritten from MVCPlaybackControlBase. This function is called
         from multiple threads, but not at the same time.
@@ -447,7 +248,7 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
         if idx.isValid():
             self.browser.scrollTo(idx)
 
-    def sequenceOpened(self, filename, begin, end, streams):
+    def _sequenceOpened(self, filename, begin, end, streams):
         """
         Notifies about an opened sequence.
         :param filename: the filename which has been opened
@@ -461,7 +262,7 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
         self.positionSlider.setRange(0, end.toMSecsSinceEpoch() - begin.toMSecsSinceEpoch())
         self.beginLabel.setText(begin.toString("hh:mm:ss.zzz"))
         self.endLabel.setText(end.toString("hh:mm:ss.zzz"))
-        self.currentTimestampChanged(begin)
+        self._currentTimestampChanged(begin)
         self.filenameLabel.setText(filename)
         idx = self.fileSystemModel.index(filename)
         if self.useProxy:
@@ -481,7 +282,7 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
             self.actGroupStreamMenu.addAction(act)
         QTimer.singleShot(250, self.scrollToCurrent)
 
-    def currentTimestampChanged(self, currentTime):
+    def _currentTimestampChanged(self, currentTime):
         """
         Notifies about a changed timestamp
         :param currentTime: the new current timestamp
@@ -510,7 +311,7 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
             return
         if self.actStart.isEnabled():
             ts = QDateTime.fromMSecsSinceEpoch(self.beginTime.toMSecsSinceEpoch() + value, self.beginTime.timeSpec())
-            self.seekTime.emit(ts)
+            self._seekTime.emit(ts)
         else:
             logger.warning("Can't seek while playing.")
 
@@ -528,7 +329,7 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
             self.currentLabel.setEnabled(False)
             self.currentLabel.setText(ts.toString("hh:mm:ss.zzz"))
 
-    def playbackStarted(self):
+    def _playbackStarted(self):
         """
         Notifies about starting playback
         :return: None
@@ -538,7 +339,7 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
         if "pausePlayback" in self.featureset:
             self.actPause.setEnabled(True)
 
-    def playbackPaused(self):
+    def _playbackPaused(self):
         """
         Notifies about pause playback
         :return: None
@@ -585,9 +386,9 @@ class MVCPlaybackControlGUI(MVCPlaybackControlBase):
             self.recentSeqs[0].setText(filename)
             self.recentSeqs[0].setData(filename)
             self.recentSeqs[0].setVisible(True)
-            self.setSequence.emit(filename)
+            self._setSequence.emit(filename)
 
-    def timeRatioChanged(self, newRatio):
+    def _timeRatioChanged(self, newRatio):
         """
         Notifies about a changed playback time ratio,
         :param newRatio the new playback ratio as a float
