@@ -15,11 +15,11 @@ import sys
 from PySide2.QtCore import QCoreApplication
 from PySide2.QtWidgets import QApplication
 
-from nexxT.core.Utils import SQLiteHandler, MethodInvoker
+from nexxT.core.Utils import SQLiteHandler, MethodInvoker, waitForSignal
 from nexxT.core.ConfigFiles import ConfigFileLoader
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
-from nexxT.interface import Services
+from nexxT.interface import Services, FilterState
 
 from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.services.SrvConfiguration import MVCConfigurationBase
@@ -85,6 +85,7 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
         # need to hold the reference of this until the method is called
         i2 = MethodInvoker(dict(object=Application, method="initialize", thread=app.thread()),
                            MethodInvoker.IDLE_TASK) # pylint: disable=unused-variable
+        waitForSignal(Application.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
 
     def cleanup():
         logger.debug("cleaning up loaded services")

@@ -1,3 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2020 ifm electronic gmbh
+#
+# THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+#
+
 import logging
 from PySide2.QtCore import Qt, QCoreApplication, QTimer
 from nexxT.interface import Services, FilterState
@@ -5,13 +11,13 @@ from nexxT.core.Utils import MethodInvoker, waitForSignal
 
 logger = logging.getLogger(__name__)
 
-def execute():
+def execute_0():
     cfg = Services.getService("Configuration")
     pbc = Services.getService("PlaybackControl")
     log = Services.getService("Logging")
 
     # create a new configuration with a composite graph and an application
-    execute.i = MethodInvoker(cfg.newConfig, Qt.QueuedConnection, "basicworkflow.json")
+    execute_0.i = MethodInvoker(cfg.newConfig, Qt.QueuedConnection, "basicworkflow.json")
     waitForSignal(cfg.configuration().configNameChanged)
 
     # create simple composite filter
@@ -19,11 +25,11 @@ def execute():
     comp = cfg.configuration().compositeFilterByName("composite")
     node = comp.getGraph().addNode(library="pyfile://./SimpleStaticFilter.py",
                                    factoryFunction="SimpleStaticFilter")
-    comp.getGraph().getMockup(node).propertyCollection().setProperty("sleep_time", 0.2)
+    comp.getGraph().getMockup(node).propertyCollection().setProperty("sleep_time", 0.01)
 
-    execute.i = MethodInvoker(comp.getGraph().addDynamicInputPort, Qt.QueuedConnection, "CompositeOutput", "out")
+    execute_0.i = MethodInvoker(comp.getGraph().addDynamicInputPort, Qt.QueuedConnection, "CompositeOutput", "out")
     waitForSignal(comp.getGraph().dynInputPortAdded)
-    execute.i = MethodInvoker(comp.getGraph().addDynamicOutputPort, Qt.QueuedConnection, "CompositeInput", "in")
+    execute_0.i = MethodInvoker(comp.getGraph().addDynamicOutputPort, Qt.QueuedConnection, "CompositeInput", "in")
     waitForSignal(comp.getGraph().dynOutputPortAdded)
     comp.getGraph().addConnection("CompositeInput", "in", node, "inPort")
     comp.getGraph().addConnection(node, "outPort", "CompositeOutput", "out")
@@ -46,15 +52,26 @@ def execute():
     app.getGraph().addConnection(src, "outPort", flt, "in")
 
     # save application
-    execute.i = MethodInvoker(cfg.saveConfig, Qt.QueuedConnection)
+    execute_0.i = MethodInvoker(cfg.saveConfig, Qt.QueuedConnection)
     waitForSignal(cfg.configuration().configNameChanged)
 
-    # activate
-    execute.i = MethodInvoker(cfg.changeActiveApp, Qt.QueuedConnection, "myApp")
+    # change active app
+    execute_1.i = MethodInvoker(cfg.changeActiveApp, Qt.QueuedConnection, "myApp")
     waitForSignal(cfg.configuration().appActivated)
-    execute.i = MethodInvoker(cfg.activate, Qt.QueuedConnection)
+
+    # activate
+    execute_1.i = MethodInvoker(cfg.activate, Qt.QueuedConnection)
     waitForSignal(app.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
+
+    execute_1()
+
+def execute_1():
+    cfg = Services.getService("Configuration")
+    pbc = Services.getService("PlaybackControl")
+    log = Services.getService("Logging")
+
     logger.info("app activated")
+    app = cfg.configuration().applicationByName("myApp")
 
     t = QTimer()
     t.setSingleShot(True)
@@ -62,11 +79,11 @@ def execute():
     t.start()
     waitForSignal(t.timeout)
 
-    execute.i = MethodInvoker(cfg.deactivate, Qt.QueuedConnection)
+    execute_1.i = MethodInvoker(cfg.deactivate, Qt.QueuedConnection)
     waitForSignal(app.activeApplication.stateChanged, lambda s: s == FilterState.CONSTRUCTED)
     logger.info("app deactivated")
 
-    execute.i = MethodInvoker(cfg.activate, Qt.QueuedConnection)
+    execute_1.i = MethodInvoker(cfg.activate, Qt.QueuedConnection)
     waitForSignal(app.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
     logger.info("app activated")
 
@@ -76,19 +93,19 @@ def execute():
     t.start()
     waitForSignal(t.timeout)
 
-    execute.i = MethodInvoker(cfg.deactivate, Qt.QueuedConnection)
+    execute_1.i = MethodInvoker(cfg.deactivate, Qt.QueuedConnection)
     waitForSignal(app.activeApplication.stateChanged, lambda s: s == FilterState.CONSTRUCTED)
     logger.info("app deactivated")
 
     # re-open this application
-    execute.i = MethodInvoker(cfg.loadConfig, Qt.QueuedConnection, "basicworkflow.json")
+    execute_1.i = MethodInvoker(cfg.loadConfig, Qt.QueuedConnection, "basicworkflow.json")
     waitForSignal(cfg.configuration().configNameChanged)
     logger.info("config loaded")
 
     # activate
-    execute.i = MethodInvoker(cfg.changeActiveApp, Qt.QueuedConnection, "myApp")
+    execute_1.i = MethodInvoker(cfg.changeActiveApp, Qt.QueuedConnection, "myApp")
     waitForSignal(cfg.configuration().appActivated)
-    execute.i = MethodInvoker(cfg.activate, Qt.QueuedConnection)
+    execute_1.i = MethodInvoker(cfg.activate, Qt.QueuedConnection)
     waitForSignal(app.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
     logger.info("app activated")
 
@@ -98,19 +115,9 @@ def execute():
     t.start()
     waitForSignal(t.timeout)
 
-    if 0:
-        import os,pprint, time
-        pprint.pprint(os.environ)
-        try:
-            from pytest_cov.embed import cleanup
-        except ImportError:
-            pass
-        else:
-            print("Cleaning up")
-            cleanup()
+    execute_1.i = MethodInvoker(QCoreApplication.quit, Qt.QueuedConnection)
 
-        #time.sleep(120)
-    execute.i = MethodInvoker(QCoreApplication.quit, Qt.QueuedConnection)
-
-
-execute()
+if stage == 0:
+    execute_0()
+elif stage == 1:
+    execute_1()
