@@ -16,6 +16,7 @@ import datetime
 import platform
 import os.path
 import sqlite3
+import time
 from PySide2.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
                             QMutexLocker, QRecursiveMutex, QTimer, QSortFilterProxyModel, Qt)
 from nexxT.core.Exceptions import NexTInternalError, InvalidIdentifierException
@@ -63,6 +64,34 @@ class MethodInvoker(QObject):
         :return: None
         """
         self.callback(*self.args)
+
+def waitForSignal(signal, callback=None, timeout=None):
+    """
+    Waits for the given signal. If a callback is given, it will be called with the signal's arguments until the
+    return value of the callback evaluates to true. If a timeout is given (in seconds), a TimeoutError will be
+    thrown after the time has elapsed.
+    :param signal: a Qt signal to be waited for, suitable for slot connections.
+    :param callback: a callable called
+    :param timeout: an optional timeout in seconds.
+    :return: None
+    """
+    _received = False
+    def _slot(*args, **kw):
+        nonlocal _received
+        if callback is None:
+            _received = True
+        else:
+            if callback(*args, **kw):
+               _received = True
+    if not signal.connect(_slot, Qt.QueuedConnection):
+        raise NexTInternalError("cannot connect the signal.")
+    t0 = time.perf_counter()
+    while not _received:
+        QCoreApplication.processEvents()
+        if timeout is not None and time.perf_counter() - t0 > timeout:
+            signal.disconnect(_slot)
+            raise TimeoutError()
+    signal.disconnect(_slot)
 
 class Barrier:
     """

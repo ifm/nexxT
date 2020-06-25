@@ -8,7 +8,7 @@
 Console entry point script for starting nexxT from command line without GUI.
 """
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 import logging
 import signal
 import sys
@@ -139,6 +139,17 @@ def main(withGui):
                              "application.")
     parser.add_argument("-s", "--execscript", action="append", default=[],
                         help="execute arbitrary python code given in a file before actually starting the application.")
+    def str2bool(v):
+        if isinstance(v, bool):
+            return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise ArgumentTypeError('Boolean value expected.')
+    parser.add_argument("-g", "--gui", type=str2bool, default=withGui, const=True, nargs='?',
+                        help="If true, start nexxT with GUI otherwise use console mode.")
     args = parser.parse_args()
     if args.cfg is None and  args.active is not None:
         parser.error("Active application set, but no config given.")
@@ -157,7 +168,7 @@ def main(withGui):
             handler = logging.FileHandler(args.logfile)
             handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
             nexT_logger.addHandler(handler)
-    startNexT(args.cfg, args.active, args.execscript, args.execpython, withGui=withGui)
+    startNexT(args.cfg, args.active, args.execscript, args.execpython, withGui=args.gui)
 
 def mainConsole():
     """
