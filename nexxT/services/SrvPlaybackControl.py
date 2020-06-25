@@ -216,7 +216,8 @@ class MVCPlaybackControlBase(QObject):
 
 class PlaybackControlConsole(MVCPlaybackControlBase):
     """
-    Console service for playback control. Basically inverts the signals and slots
+    Console service for playback control. Basically inverts the signals and slots and provides an API for scripting.
+    The GUI service inherits from this class, so that the GUI can also be scripted in the same way.
     """
     supportedFeaturesChanged = Signal(object, object)
     sequenceOpened = Signal(str, QDateTime, QDateTime, object)

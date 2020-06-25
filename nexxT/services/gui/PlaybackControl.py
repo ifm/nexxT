@@ -16,11 +16,11 @@ from PySide2.QtWidgets import (QWidget, QGridLayout, QLabel, QBoxLayout, QSlider
 from nexxT.interface import Services
 from nexxT.core.Exceptions import PropertyCollectionPropertyNotFound
 from nexxT.core.Utils import FileSystemModelSortProxy, assertMainThread
-from nexxT.services.SrvPlaybackControl import MVCPlaybackControlBase
+from nexxT.services.SrvPlaybackControl import PlaybackControlConsole
 
 logger = logging.getLogger(__name__)
 
-class MVCPlaybackControlGUI(MVCPlaybackControlBase):
+class MVCPlaybackControlGUI(PlaybackControlConsole):
     """
     GUI implementation of MVCPlaybackControlBase
     """
