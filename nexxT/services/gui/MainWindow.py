@@ -18,7 +18,7 @@ from nexxT.core.Application import Application
 
 logger = logging.getLogger(__name__)
 
-class NexxTMdiSubWindow(QMdiSubWindow):
+class NexxTMdiSubWindow(QMdiSubWindow): # pragma: no cover
     """
     Need subclassing for getting close / show events and saving / restoring state.
     """
@@ -120,7 +120,7 @@ class NexxTMdiSubWindow(QMdiSubWindow):
             self.resize(restoredNormalGeometry.size())
         return True
 
-class NexxTDockWidget(QDockWidget):
+class NexxTDockWidget(QDockWidget): # pragma: no cover
     """
     Need subclassing for getting close / show events
     """
@@ -144,7 +144,7 @@ class NexxTDockWidget(QDockWidget):
         self.visibleChanged.emit(True)
         return super().showEvent(showEvent)
 
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow): # pragma: no cover
     """
     Main Window service for the nexxT frameworks. Other services usually create dock windows, filters use the
     subplot functionality to create grid-layouted views.

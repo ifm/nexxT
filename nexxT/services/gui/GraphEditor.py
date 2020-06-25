@@ -22,7 +22,7 @@ from nexxT.core.PluginManager import PluginManager
 from nexxT.interface import InputPortInterface, OutputPortInterface
 from nexxT.services.gui import GraphLayering
 
-class MyGraphicsPathItem(QGraphicsPathItem, QObject):
+class MyGraphicsPathItem(QGraphicsPathItem, QObject): # pragma: no cover
     """
     Little subclass for receiving hover events and scene position changes outside the items
     """
@@ -64,7 +64,7 @@ class MyGraphicsPathItem(QGraphicsPathItem, QObject):
             self.scenePosChanged.emit(value)
         return super().itemChange(change, value)
 
-class MySimpleTextItem(QGraphicsSimpleTextItem):
+class MySimpleTextItem(QGraphicsSimpleTextItem): # pragma: no cover
     """
     QGraphicsSimpleTextItem with a background brush
     """
@@ -97,7 +97,7 @@ class MySimpleTextItem(QGraphicsSimpleTextItem):
         painter.setPen(p)
         super().paint(painter, option, widget)
 
-class BaseGraphScene(QGraphicsScene):
+class BaseGraphScene(QGraphicsScene): # pragma: no cover
     """
     Basic graph display and manipulation scene. Generic base class intended to be overwritten.
     """
@@ -806,7 +806,7 @@ class BaseGraphScene(QGraphicsScene):
             x += maxdx + self.STYLE_ROLE_HSPACING
 
 
-class GraphScene(BaseGraphScene):
+class GraphScene(BaseGraphScene): # pragma: no cover
     """
     Concrete class interacting with a BaseGraph or FilterGraph instance
     """

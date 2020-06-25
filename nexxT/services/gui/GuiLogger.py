@@ -18,7 +18,7 @@ from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.interface import Services
 from nexxT.core.Utils import assertMainThread
 
-class LogHandler(logging.Handler):
+class LogHandler(logging.Handler): # pragma: no cover
     """
     Python logging handler which passes python log records to the gui.
     """
@@ -43,7 +43,7 @@ class LogHandler(logging.Handler):
                  record.name, record.filename, str(record.lineno))
         self.logView.addLogRecord(items)
 
-class LogView(QTableView):
+class LogView(QTableView): # pragma: no cover
     """
     Class implementing the GUI log display.
     """
@@ -232,7 +232,7 @@ class LogView(QTableView):
         """
         self.model.clear()
 
-class GuiLogger(ConsoleLogger):
+class GuiLogger(ConsoleLogger): # pragma: no cover
     """
     Logging service in GUI mode.
     """

@@ -9,9 +9,12 @@ This module defines the class NexTThread.
 """
 
 import logging
-from PySide2.QtCore import QObject, Signal, Slot, QCoreApplication, QThread
+import sys
+import threading
+from PySide2.QtCore import QObject, Signal, Slot, QCoreApplication, QThread, Qt
 from nexxT.interface import FilterState
 from nexxT.core.Exceptions import NodeExistsError, NexTInternalError, NodeNotFoundError, NexTRuntimeError
+from nexxT.core.Utils import handleException
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,7 @@ class NexTThread(QObject):
         else:
             self._qthread = QThread(parent=self)
             self._qthread.setObjectName(name)
+            self._qthread.started.connect(self.startupHook, Qt.DirectConnection)
             self._qthread.start()
         self.moveToThread(self._qthread)
         self.cleanUpCalled = False
@@ -58,6 +62,13 @@ class NexTThread(QObject):
             logger.warning("Thread:: calling cleanup in destructor.")
             self.cleanup()
         logger.debug("destructor of Thread done")
+
+    @handleException
+    def startupHook(self):
+        if hasattr(sys, "settrace") and threading._trace_hook is not None:
+            logger.info("Registering startup hook for coverage")
+            sys.settrace(threading._trace_hook)
+            logger.info("Startup hook registered")
 
     def cleanup(self):
         """

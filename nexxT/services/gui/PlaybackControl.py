@@ -20,7 +20,7 @@ from nexxT.services.SrvPlaybackControl import PlaybackControlConsole
 
 logger = logging.getLogger(__name__)
 
-class MVCPlaybackControlGUI(PlaybackControlConsole):
+class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
     """
     GUI implementation of MVCPlaybackControlBase
     """
