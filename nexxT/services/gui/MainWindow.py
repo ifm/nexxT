@@ -239,7 +239,7 @@ class MainWindow(QMainWindow): # pragma: no cover
         return self.toolbar
 
     @Slot(str, QObject, int, int)
-    def newDockWidget(self, name, parent, defaultArea, allowedArea=Qt.LeftDockWidgetArea|Qt.BottomDockWidgetArea):
+    def newDockWidget(self, name, parent, defaultArea, allowedArea=Qt.LeftDockWidgetArea|Qt.BottomDockWidgetArea, defaultLoc=None):
         """
         This function is supposed to be called by services
         :param name: the name of the dock window
@@ -248,12 +248,16 @@ class MainWindow(QMainWindow): # pragma: no cover
         :param allowedArea: the allowed dock areas
         :return: a new QDockWindow instance
         """
-        res = NexxTDockWidget(name, parent)
+        res = NexxTDockWidget(name, parent if parent is not None else self)
         res.setAllowedAreas(allowedArea)
         res.setAttribute(Qt.WA_DeleteOnClose, False)
         self.addDockWidget(defaultArea, res)
         self._registerWindow(res, res.objectNameChanged)
         res.setObjectName(name)
+        if defaultLoc is not None:
+            dl = self.findChild(QDockWidget, defaultLoc)
+            if dl is not None:
+                self.tabifyDockWidget(dl, res)
         return res
 
     @staticmethod

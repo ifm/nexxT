@@ -24,10 +24,13 @@ from nexxT.interface import Services, FilterState
 from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.services.SrvConfiguration import MVCConfigurationBase
 from nexxT.services.SrvPlaybackControl import PlaybackControlConsole
+from nexxT.services.SrvRecordingControl import MVCRecordingControlBase
 from nexxT.services.gui.GuiLogger import GuiLogger
 from nexxT.services.gui.MainWindow import MainWindow
 from nexxT.services.gui.Configuration import MVCConfigurationGUI
 from nexxT.services.gui.PlaybackControl import MVCPlaybackControlGUI
+from nexxT.services.gui.RecordingControl import MVCRecordingControlGUI
+
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +41,8 @@ def setupConsoleServices(config):
     :return: None
     """
     Services.addService("Logging", ConsoleLogger())
-    Services.addService("PlaybackControl", PlaybackControlConsole())
+    Services.addService("PlaybackControl", PlaybackControlConsole(config))
+    Services.addService("RecordingControl", MVCRecordingControlBase(config))
     Services.addService("Configuration", MVCConfigurationBase(config))
 
 def setupGuiServices(config):
@@ -51,6 +55,7 @@ def setupGuiServices(config):
     Services.addService("MainWindow", mainWindow)
     Services.addService("Logging", GuiLogger())
     Services.addService("PlaybackControl", MVCPlaybackControlGUI(config))
+    Services.addService("RecordingControl", MVCRecordingControlGUI(config))
     Services.addService("Configuration", MVCConfigurationGUI(config))
 
 def startNexT(cfgfile, active, execScripts, execCode, withGui):

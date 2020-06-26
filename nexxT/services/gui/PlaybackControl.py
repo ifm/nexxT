@@ -28,7 +28,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
 
     def __init__(self, config):
         assertMainThread()
-        super().__init__()
+        super().__init__(config)
 
         # state
         self.preventSeek = False

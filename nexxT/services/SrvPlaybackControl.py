@@ -5,7 +5,7 @@
 #
 
 """
-This module provides the playback control GUI service for the nexxT framework.
+This module provides the playback control console service for the nexxT framework.
 """
 
 import pathlib
@@ -226,6 +226,27 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     playbackPaused = Signal()
     timeRatioChanged = Signal(float)
 
+    def __init__(self, config):
+        super().__init__()
+        self._playing = False
+        self._appConn = None
+        config.appActivated.connect(self._activeAppChanged)
+
+    def _activeAppChanged(self, name, activeApp):
+        if self._appConn is not None:
+            try:
+                self._appConn.disconnect(self._stateChanged)
+            except Exception as e:
+                pass
+            self._appConn = None
+        if activeApp is not None:
+            self._appConn = activeApp.stateChanged
+            activeApp.stateChanged.connect(self._stateChanged)
+
+    def _stateChanged(self, newstate):
+        if newstate != FilterState.ACTIVE and self._playing:
+            self.pausePlayback()
+
     def startPlayback(self):
         """
         Start playback
@@ -328,6 +349,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         Notifies about starting playback
         :return: None
         """
+        self._playing = True
         self.playbackStarted.emit()
 
     def _playbackPaused(self):
@@ -335,6 +357,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         Notifies about pause playback
         :return: None
         """
+        self._playing = False
         self.playbackPaused.emit()
 
     def _timeRatioChanged(self, newRatio):
