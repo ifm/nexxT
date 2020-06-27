@@ -236,31 +236,3 @@ class GraphRep:
                     lr.append(self.id2name[n])
             res.append(lr)
         return res
-
-def _main():
-    # a test function
-    # pylint: disable=import-outside-toplevel
-
-    import random
-    import time
-
-    t0 = time.time()
-    random.seed(0)
-    gr = GraphRep()
-    numNodes = 15
-    maxNumEdges = 3
-    minNumEdges = 1
-    for i in range(numNodes):
-        gr.addNode(i)
-    for i in range(numNodes):
-        for _ in range(random.randint(minNumEdges, maxNumEdges)):
-            j = random.randint(0, numNodes-1)
-            gr.addEdge(i, j)
-    layers, numCrosses = gr.sortLayers()
-    for l in layers:
-        print(l)
-    print("numCrosses", numCrosses)
-    print("time spent: %.3s" % (time.time() - t0))
-
-if __name__ == "__main__":
-    _main()

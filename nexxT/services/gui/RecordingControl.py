@@ -21,7 +21,7 @@ from nexxT.services.SrvRecordingControl import MVCRecordingControlBase
 
 logger = logging.getLogger(__name__)
 
-class MVCRecordingControlGUI(MVCRecordingControlBase):
+class MVCRecordingControlGUI(MVCRecordingControlBase): # pragma: no cover
     """
     This service implements a GUI frontend for the recording service
     """

@@ -17,7 +17,7 @@ import numpy as np
 import h5py
 from PySide2.QtCore import Signal, QDateTime, QTimer
 from nexxT.interface import Filter, Services, DataSample
-from nexxT.core.Utils import handleException
+from nexxT.core.Utils import handleException, isMainThread
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,8 @@ class Hdf5Writer(Filter):
         """
         srv = Services.getService("RecordingControl")
         srv.setupConnections(self)
+        if isMainThread():
+            logger.warning("Hdf5Writer seems to run in GUI thread. Consider to move it to a seperate thread.")
 
     def onStop(self):
         """
@@ -268,6 +270,8 @@ class Hdf5Reader(Filter):
     def onOpen(self):
         srv = Services.getService("PlaybackControl")
         srv.setupConnections(self, ["*.h5", "*.hdf5", "*.hdf"])
+        if isMainThread():
+            logger.warning("Hdf5Reader seems to run in GUI thread. Consider to move it to a seperate thread.")
 
     def onStart(self):
         if self._name is not None:

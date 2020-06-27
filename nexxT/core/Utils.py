@@ -120,12 +120,15 @@ class Barrier:
             self.condition.wakeAll()
         self.mutex.unlock()
 
+def isMainThread():
+    return not QCoreApplication.instance() or QThread.currentThread() == QCoreApplication.instance().thread()
+
 def assertMainThread():
     """
     assert that function is called in main thread, otherwise, a NexTInternalError is raised
     :return: None
     """
-    if QCoreApplication.instance() and not QThread.currentThread() == QCoreApplication.instance().thread():
+    if not isMainThread():
         raise NexTInternalError("Non thread-safe function is called in unexpected thread.")
 
 
