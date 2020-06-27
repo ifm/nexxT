@@ -294,6 +294,13 @@ class Configuration(QObject):
         """
         return [app.getName() for app in self._applications]
 
+    def getCompositeFilterNames(self):
+        """
+        Return list of composite filters
+        :return: list of strings
+        """
+        return [cf.getName() for cf in self._compositeFilters]
+
     @staticmethod
     def _checkUniqueName(collection, name):
         for i in collection:

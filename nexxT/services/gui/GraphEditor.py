@@ -8,6 +8,7 @@
 This module provides the graph editor GUI service of the nexxT service.
 """
 
+import logging
 import platform
 import os.path
 from PySide2.QtWidgets import (QGraphicsScene, QGraphicsItemGroup, QGraphicsSimpleTextItem,
@@ -841,7 +842,7 @@ class GraphScene(BaseGraphScene): # pragma: no cover
 
         self.actRenameNode = QAction("Rename node ...", self)
         self.actRemoveNode = QAction("Remove node ...", self)
-        self.actAddNode = QAction("Add node ...", self)
+        self.actAddNode = QAction("Add filter from file ...", self)
         self.actAutoLayout = QAction("Auto layourt", self)
         self.actRemoveConnection = QAction("Remove connection ...", self)
         self.actRenameNode.triggered.connect(self.renameDialog)
@@ -853,8 +854,12 @@ class GraphScene(BaseGraphScene): # pragma: no cover
             self.actRemovePort = QAction("Remove dynamic port ...", self)
             self.actAddInputPort = QAction("Add dynamic input port ...", self)
             self.actAddOutputPort = QAction("Add dynamic output port ...", self)
+            self.actAddNodeFromMod = QAction("Add filter from python module ...", self)
+            self.actAddComposite = QAction("Add filter form composite definition ...", self)
             self.actSetThread = QAction("Set thread ...", self)
-            self.actAddNode.triggered.connect(self.onAddFilter)
+            self.actAddNode.triggered.connect(self.onAddFilterFromFile)
+            self.actAddNodeFromMod.triggered.connect(self.onAddFilterFromMod)
+            self.actAddComposite.triggered.connect(self.onAddComposite)
             self.actSetThread.triggered.connect(self.setThread)
         elif isinstance(self.graph, BaseGraph):
             self.actRenamePort = QAction("Rename port ...", self)
@@ -866,6 +871,7 @@ class GraphScene(BaseGraphScene): # pragma: no cover
         self.actRemovePort.triggered.connect(self.removeDialog)
         self.actAddInputPort.triggered.connect(self.addInputPort)
         self.actAddOutputPort.triggered.connect(self.addOutputPort)
+        self.autoLayout()
 
     def getData(self, item, role):
         if isinstance(item, BaseGraphScene.NodeItem) and isinstance(self.graph, FilterGraph):
@@ -943,9 +949,16 @@ class GraphScene(BaseGraphScene): # pragma: no cover
         else:
             self.itemOfContextMenu = event.scenePos()
             m = QMenu(self.views()[0])
-            m.addActions([self.actAddNode, self.actAutoLayout])
+            cfs = self.compositeFilters()
+            self.actAddComposite.setEnabled(len(cfs) > 0)
+            m.addActions([self.actAddNode, self.actAddNodeFromMod, self.actAddComposite, self.actAutoLayout])
             m.exec_(event.screenPos())
         self.itemOfContextMenu = None
+
+    def compositeFilters(self):
+        sc = self.graph.getSubConfig()
+        conf = sc.getConfiguration()
+        return conf.getCompositeFilterNames()
 
     def renameDialog(self):
         """
@@ -1061,24 +1074,53 @@ class GraphScene(BaseGraphScene): # pragma: no cover
             self.graph.addNode(newName)
             self.nodes[newName].setPos(self.itemOfContextMenu)
 
-    def onAddFilter(self):
+    def onAddFilterFromFile(self):
         """
-        Called when the user wants to add a new filter (FilterGraph variant). Opens a dialog to select files.
+        Called when the user wants to add a new filter from a file (FilterGraph variant).
+        Opens a dialog to select the file.
         :return:
         """
-        pm = PluginManager.singleton()
         if platform.system().lower() == "linux":
             suff = "*.so"
         else:
             suff = "*.dll"
         library, ok = QFileDialog.getOpenFileName(self.views()[0], "Choose Library",
-                                                  filter="Python Files (*.py);;Binary Files (%s)" % suff)
+                                                  filter="Filters (*.py %s)" % suff)
         if not (ok and library is not None and os.path.exists(library)):
             return
         if library.endswith(".py"):
             library = "pyfile://" + library
         else:
             library = "binary://" + library
+        self._genericAdd(library)
+
+    def onAddFilterFromMod(self):
+        """
+        Called when the user wants to add a new filter from a python module.
+        :return:
+        """
+        library, ok = QInputDialog.getText(self.views()[0], "Choose python module", "Choose python module", text="pymod://")
+        if ok:
+            if not library.startswith("pymod://"):
+                library = "pymod://" + library
+            self._genericAdd(library)
+
+    def onAddComposite(self):
+        """
+        Called when the user wants to add a new composite filter to this graph.
+        :return:
+        """
+        cfs = self.compositeFilters()
+        compName, ok = QInputDialog.getItem(self.views()[0], "Choose composite filter", "Choose composite filter", cfs)
+        if ok:
+            sc = self.graph.getSubConfig()
+            conf = sc.getConfiguration()
+            comp = conf.compositeFilterByName(compName)
+            name = self.graph.addNode(comp, "compositeNode", suggestedName=compName)
+            self.nodes[name].setPos(self.itemOfContextMenu)
+
+    def _genericAdd(self, library):
+        pm = PluginManager.singleton()
         filters = pm.getFactoryFunctions(library)
         if len(filters) > 0:
             factory, ok = QInputDialog.getItem(self.views()[0], "Choose filter", "Choose filter", filters)
@@ -1088,3 +1130,4 @@ class GraphScene(BaseGraphScene): # pragma: no cover
             factory = filters[0]
         name = self.graph.addNode(library, factory)
         self.nodes[name].setPos(self.itemOfContextMenu)
+

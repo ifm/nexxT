@@ -56,15 +56,20 @@ class PythonLibrary:
     """
     _pyLoadCnt = 0
 
-    def __init__(self, library):
-        PythonLibrary._pyLoadCnt += 1
+    def __init__(self, library, isModule):
         self._library = library
+        self._isModule = isModule
         modulesBefore = set(sys.modules.keys())
-        logging.getLogger(__name__).debug("importing python module from file '%s'", library)
-        # https://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
-        spec = importlib.util.spec_from_file_location("nexxT.plugins.plugin%d" % PythonLibrary._pyLoadCnt, library)
-        self._mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(self._mod)
+        if not isModule:
+            PythonLibrary._pyLoadCnt += 1
+            logging.getLogger(__name__).debug("importing python module from file '%s'", library)
+            # https://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
+            spec = importlib.util.spec_from_file_location("nexxT.plugins.plugin%d" % PythonLibrary._pyLoadCnt, library)
+            self._mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(self._mod)
+        else:
+            logging.getLogger(__name__).debug("importing python module from file '%s'", library)
+            self._mod = importlib.import_module(library)
         modulesAfter = set(sys.modules.keys())
         self._loadedModules = modulesAfter.difference(modulesBefore)
         self._availableFilters = None
@@ -205,6 +210,8 @@ class PluginManager(QObject):
     def _load(self, library, prop=None):
         if library.startswith("pyfile://"):
             return self._loadPyfile(library[len("pyfile://"):], prop)
+        if library.startswith("pymod://"):
+            return self._loadPymod(library[len("pymod://"):], prop)
         if library.startswith("binary://"):
             return self._loadBinary(library[len("binary://"):], prop)
         raise UnknownPluginType("don't know how to load library '%s'" % library)
@@ -213,7 +220,11 @@ class PluginManager(QObject):
     def _loadPyfile(library, prop=None):
         if prop is not None:
             library = prop.evalpath(library)
-        return PythonLibrary(library)
+        return PythonLibrary(library, isModule=False)
+
+    @staticmethod
+    def _loadPymod(library, prop=None):
+        return PythonLibrary(library, isModule=True)
 
     @staticmethod
     def _loadBinary(library, prop=None):

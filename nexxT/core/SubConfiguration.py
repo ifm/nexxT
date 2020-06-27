@@ -30,6 +30,7 @@ class SubConfiguration(QObject):
         checkIdentifier(name)
         self._propertyCollection = PropertyCollectionImpl(name, configuration.propertyCollection())
         self._graph = FilterGraph(self)
+        self._config = configuration
         self._name = name
 
     #def dump(self):
@@ -73,6 +74,13 @@ class SubConfiguration(QObject):
         :return: a FilterGraph instance
         """
         return self._graph
+
+    def getConfiguration(self):
+        """
+        Get the corresponding nexxT configuration
+        :return: a Configuration instance
+        """
+        return self._config
 
     @staticmethod
     def _connectionStringToTuple(con):

@@ -94,17 +94,17 @@ class FilterGraph(BaseGraph):
         filterMockup.createFilterAndUpdate()
         self._filters[name] = filterMockup
         assert super().addNode(name) == name
-        for port in filterMockup.getStaticInputPorts():
-            self.addInputPort(name, port.name())
-        for port in filterMockup.getStaticOutputPorts():
-            self.addOutputPort(name, port.name())
-        filterMockup.portInformationUpdated.connect(self.portInformationUpdated)
         if factoryFunction == "compositeNode" and hasattr(library, "checkRecursion"):
             try:
                 library.checkRecursion()
             except CompositeRecursion as e:
                 self.deleteNode(name)
                 raise e
+        for port in filterMockup.getStaticInputPorts():
+            self.addInputPort(name, port.name())
+        for port in filterMockup.getStaticOutputPorts():
+            self.addOutputPort(name, port.name())
+        filterMockup.portInformationUpdated.connect(self.portInformationUpdated)
         return name
     # pylint: enable=arguments-differ
 
