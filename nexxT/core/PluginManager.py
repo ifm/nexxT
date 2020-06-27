@@ -211,7 +211,7 @@ class PluginManager(QObject):
         if library.startswith("pyfile://"):
             return self._loadPyfile(library[len("pyfile://"):], prop)
         if library.startswith("pymod://"):
-            return self._loadPymod(library[len("pymod://"):], prop)
+            return self._loadPymod(library[len("pymod://"):])
         if library.startswith("binary://"):
             return self._loadBinary(library[len("binary://"):], prop)
         raise UnknownPluginType("don't know how to load library '%s'" % library)
@@ -223,7 +223,7 @@ class PluginManager(QObject):
         return PythonLibrary(library, isModule=False)
 
     @staticmethod
-    def _loadPymod(library, prop=None):
+    def _loadPymod(library):
         return PythonLibrary(library, isModule=True)
 
     @staticmethod

@@ -226,7 +226,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     playbackPaused = Signal()
     timeRatioChanged = Signal(float)
 
-    def __init__(self, config):
+    def __init__(self, config): # pylint: disable=unused-argument
         super().__init__()
         self._playing = False
         self._appConn = None

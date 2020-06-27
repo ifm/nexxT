@@ -145,15 +145,14 @@ def main(withGui):
                              "application.")
     parser.add_argument("-s", "--execscript", action="append", default=[],
                         help="execute arbitrary python code given in a file before actually starting the application.")
-    def str2bool(v):
-        if isinstance(v, bool):
-            return v
-        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+    def str2bool(value):
+        if isinstance(value, bool):
+            return value
+        if value.lower() in ('yes', 'true', 't', 'y', '1'):
             return True
-        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        if value.lower() in ('no', 'false', 'f', 'n', '0'):
             return False
-        else:
-            raise ArgumentTypeError('Boolean value expected.')
+        raise ArgumentTypeError('Boolean value expected.')
     parser.add_argument("-g", "--gui", type=str2bool, default=withGui, const=True, nargs='?',
                         help="If true, start nexxT with GUI otherwise use console mode.")
     args = parser.parse_args()

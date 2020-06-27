@@ -82,7 +82,7 @@ def waitForSignal(signal, callback=None, timeout=None):
             _received = True
         else:
             if callback(*args, **kw):
-               _received = True
+                _received = True
     if not signal.connect(_slot, Qt.QueuedConnection):
         raise NexTInternalError("cannot connect the signal.")
     t0 = time.perf_counter()
@@ -332,7 +332,6 @@ if __name__ == "__main__": # pragma: no cover
     def _smokeTestBarrier():
         # pylint: disable=import-outside-toplevel
         # pylint: disable=missing-class-docstring
-        import time
         import random
 
         n = 10

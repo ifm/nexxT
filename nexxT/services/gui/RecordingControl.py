@@ -91,11 +91,11 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
         self.actStop.setEnabled(False)
 
     def _setDir(self):
-        dir = QFileDialog.getExistingDirectory(parent=self.dockWidget,
-                                               caption="Select recording target directory",
-                                               dir=self._directory)
-        if dir != "" and dir is not None:
-            self._directory = str(Path(dir).absolute())
+        tdir = QFileDialog.getExistingDirectory(parent=self.dockWidget,
+                                                caption="Select recording target directory",
+                                                dir=self._directory)
+        if tdir != "" and tdir is not None:
+            self._directory = str(Path(tdir).absolute())
             self._directoryLabel.setText(self._directory)
 
     def _supportedFeaturesChanged(self, featureset):
@@ -110,10 +110,12 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
             self.actSetDir.setEnabled(False)
             self._statusLabel.setText("(disabled)")
 
-    def _onUpdateStatus(self, filter, file, length, bytesWritten):
+    def _onUpdateStatus(self, originFilter, file, length, bytesWritten):
         lines = self._statusLabel.text().split("\n")
-        if length < 0: length = None
-        if bytesWritten < 0: bytesWritten = None
+        if length < 0:
+            length = None
+        if bytesWritten < 0:
+            bytesWritten = None
         updated = False
         if bytesWritten is None:
             bw = "??"
@@ -131,7 +133,7 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
         else:
             newl = None
         if newl is not None:
-            for i,l in enumerate(lines):
+            for i, l in enumerate(lines):
                 if l.startswith(Path(file).name + ":"):
                     updated = True
                     lines[i] = newl
@@ -142,7 +144,7 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
                 lines = lines[1:]
         else:
             toDel = None
-            for i,l in enumerate(lines):
+            for i, l in enumerate(lines):
                 if l.startswith(Path(file).name + ":"):
                     toDel = i
                     break
@@ -152,12 +154,12 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
             lines.append("inactive")
         self._statusLabel.setText("\n".join(lines))
 
-    def _onNotifyError(self, filter, errorDesc):
+    def _onNotifyError(self, originFilter, errorDesc):
         lines = self._statusLabel.text().split("\n")
-        newl = filter.objectName() + ": " + "ERROR: " + errorDesc
+        newl = originFilter.objectName() + ": " + "ERROR: " + errorDesc
         updated = False
-        for i,l in enumerate(lines):
-            if l.startswith(filter.objectName() + ":"):
+        for i, l in enumerate(lines):
+            if l.startswith(originFilter.objectName() + ":"):
                 updated = True
                 lines[i] = newl
                 break

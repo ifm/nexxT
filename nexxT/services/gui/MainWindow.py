@@ -239,7 +239,8 @@ class MainWindow(QMainWindow): # pragma: no cover
         return self.toolbar
 
     @Slot(str, QObject, int, int)
-    def newDockWidget(self, name, parent, defaultArea, allowedArea=Qt.LeftDockWidgetArea|Qt.BottomDockWidgetArea, defaultLoc=None):
+    def newDockWidget(self, name, parent, defaultArea, allowedArea=Qt.LeftDockWidgetArea|Qt.BottomDockWidgetArea,
+                      defaultLoc=None):
         """
         This function is supposed to be called by services
         :param name: the name of the dock window

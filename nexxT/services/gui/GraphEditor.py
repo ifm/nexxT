@@ -8,7 +8,6 @@
 This module provides the graph editor GUI service of the nexxT service.
 """
 
-import logging
 import platform
 import os.path
 from PySide2.QtWidgets import (QGraphicsScene, QGraphicsItemGroup, QGraphicsSimpleTextItem,
@@ -956,6 +955,10 @@ class GraphScene(BaseGraphScene): # pragma: no cover
         self.itemOfContextMenu = None
 
     def compositeFilters(self):
+        """
+        Get a list of names of composite filters.
+        :return: a list of strings
+        """
         sc = self.graph.getSubConfig()
         conf = sc.getConfiguration()
         return conf.getCompositeFilterNames()
@@ -1099,7 +1102,7 @@ class GraphScene(BaseGraphScene): # pragma: no cover
         Called when the user wants to add a new filter from a python module.
         :return:
         """
-        library, ok = QInputDialog.getText(self.views()[0], "Choose python module", "Choose python module", text="pymod://")
+        library, ok = QInputDialog.getText(self.views()[0], "Choose python module", "Choose python module")
         if ok:
             if not library.startswith("pymod://"):
                 library = "pymod://" + library
@@ -1130,4 +1133,3 @@ class GraphScene(BaseGraphScene): # pragma: no cover
             factory = filters[0]
         name = self.graph.addNode(library, factory)
         self.nodes[name].setPos(self.itemOfContextMenu)
-

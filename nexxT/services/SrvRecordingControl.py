@@ -11,7 +11,6 @@ This module provides the recording control console service for the nexxT framewo
 import logging
 from PySide2.QtCore import QObject, Signal, Slot, Qt, QMutex, QMutexLocker
 from nexxT.core.Exceptions import NexTRuntimeError
-from nexxT.interface import FilterState
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ class MVCRecordingControlBase(QObject):
     statusUpdate = Signal(QObject, str, float, int)
     notifyError = Signal(QObject, str)
 
-    def __init__(self, config):
+    def __init__(self, config): # pylint: disable=unused-argument
         super().__init__()
         self._deviceId = 0
         self._registeredDevices = {}
@@ -159,4 +158,3 @@ class MVCRecordingControlBase(QObject):
         """
         self._recordingActive = False
         self._stopRecording.emit()
-

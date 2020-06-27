@@ -64,10 +64,17 @@ class NexTThread(QObject):
         logger.debug("destructor of Thread done")
 
     @handleException
-    def startupHook(self):
-        if hasattr(sys, "settrace") and threading._trace_hook is not None:
+    def startupHook(self): # pylint: disable=no-self-use
+        """
+        see https://github.com/nedbat/coveragepy/issues/582
+        and https://github.com/nedbat/coveragepy/issues/686
+        However it is still not working as expected. PortImpl still gets not covered even though this has been done.
+        :return:
+        """
+        th = threading._trace_hook # pylint: disable=protected-access
+        if hasattr(sys, "settrace") and th is not None:
             logger.info("Registering startup hook for coverage")
-            sys.settrace(threading._trace_hook)
+            sys.settrace(th)
             logger.info("Startup hook registered")
 
     def cleanup(self):
