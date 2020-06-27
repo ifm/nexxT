@@ -44,7 +44,7 @@ class MVCPlaybackControlBase(QObject):
         """
         Sets up signal/slot connections between this view/controller instance and the given playbackDevice. This
         function is thread safe and shall be called by a direct QT connection.
-        It is intended, that this function is called in the onStart(...) method of a filter. It expects playbackDevice
+        It is intended, that this function is called in the onOpen(...) method of a filter. It expects playbackDevice
         to provide the following slots:
 
         - startPlayback() (starts generating DataSamples)
@@ -65,7 +65,7 @@ class MVCPlaybackControlBase(QObject):
         - currentTimestampChanged(QDateTime currentTime)
         - playbackStarted()
         - playbackPaused()
-        - timeRatioChanged()
+        - timeRatioChanged(float)
 
         :param playbackDevice: a QObject providing the aforementioned signals and slots
         :param nameFilters: a QStringList providing information about suported fileextensions (e.g. ["*.avi", "*.mp4"])
@@ -133,7 +133,7 @@ class MVCPlaybackControlBase(QObject):
     def removeConnections(self, playbackDevice):
         """
         unregisters the given playbackDevice and disconnects all. It is intended that this function is called in the
-        onStop(...) method of a filter.
+        onClose(...) method of a filter.
 
         :param playbackDevice: the playback device to be unregistered.
         :return: None
@@ -230,22 +230,6 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         super().__init__()
         self._playing = False
         self._appConn = None
-        config.appActivated.connect(self._activeAppChanged)
-
-    def _activeAppChanged(self, name, activeApp):
-        if self._appConn is not None:
-            try:
-                self._appConn.disconnect(self._stateChanged)
-            except Exception as e:
-                pass
-            self._appConn = None
-        if activeApp is not None:
-            self._appConn = activeApp.stateChanged
-            activeApp.stateChanged.connect(self._stateChanged)
-
-    def _stateChanged(self, newstate):
-        if newstate != FilterState.ACTIVE and self._playing:
-            self.pausePlayback()
 
     def startPlayback(self):
         """

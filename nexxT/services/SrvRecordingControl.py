@@ -32,7 +32,6 @@ class MVCRecordingControlBase(QObject):
         self._mutex = QMutex()
         self._recordingActive = False
         self._appConn = None
-        config.appActivated.connect(self._activeAppChanged)
 
     @Slot(QObject)
     def setupConnections(self, recordingDevice):
@@ -105,21 +104,6 @@ class MVCRecordingControlBase(QObject):
                 logger.debug("disconnected connections of recording device. number of devices left: %d",
                              len(self._registeredDevices))
                 self._updateFeatureSet()
-
-    def _activeAppChanged(self, name, activeApp):
-        if self._appConn is not None:
-            try:
-                self._appConn.disconnect(self._stateChanged)
-            except Exception as e:
-                pass
-            self._appConn = None
-        if activeApp is not None:
-            self._appConn = activeApp.stateChanged
-            activeApp.stateChanged.connect(self._stateChanged)
-
-    def _stateChanged(self, newstate):
-        if newstate != FilterState.ACTIVE and self._recordingActive:
-            self.stopRecording()
 
     def _updateFeatureSet(self):
         featureset = set()
