@@ -10,7 +10,7 @@ This module defines the PropertyCollection interface class of the nexxT framewor
 
 from PySide2.QtCore import QObject, Signal, Slot
 
-class PropertyHandler:
+class PropertyHandler: # pragma: no cover
     """
     This class represents a property definition for a specific type. The type handles loading/saving from and to
     .json configs as well as providing editor widgets for modifying the property in a model/view framework.
@@ -83,7 +83,7 @@ class PropertyHandler:
         """
         raise NotImplementedError()
 
-class PropertyCollection(QObject):
+class PropertyCollection(QObject): # pragma: no cover
     """
     This class represents a collection of properties. These collections are organized in a tree, such that there
     are parent/child relations. This is a generic base class, which is implemented in the core package. Access to

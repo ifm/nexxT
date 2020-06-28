@@ -22,6 +22,35 @@ class NexTThread(QObject):
     """
     A thread of the active application
     """
+
+    class ThreadWithCoverage(QThread):
+        """
+        A thread with coverage enabled (if present)
+        """
+
+        @handleException
+        def startupHook(self): # pylint: disable=no-self-use
+            """
+            see https://github.com/nedbat/coveragepy/issues/582
+            and https://github.com/nedbat/coveragepy/issues/686
+            :return:
+            """
+            th = threading._trace_hook # pylint: disable=protected-access
+            if hasattr(sys, "settrace") and th is not None:
+                logger.info("Registering startup hook for coverage")
+                sys.settrace(th)
+                logger.info("Startup hook registered")
+            else:
+                logger.debug("Skip startup hook registration (coverage not enabled).")
+
+        def run(self):
+            """
+            Overwritten from QThread, registers the trace hook and proceeds with normal event-loop processing.
+            :return:
+            """
+            self.startupHook()
+            super().run()
+
     operationFinished = Signal() # used to synchronize threads from active application
 
     _operations = dict(
@@ -49,9 +78,8 @@ class NexTThread(QObject):
         if name == "main":
             self._qthread = QCoreApplication.instance().thread()
         else:
-            self._qthread = QThread(parent=self)
+            self._qthread = self.ThreadWithCoverage(parent=self)
             self._qthread.setObjectName(name)
-            self._qthread.started.connect(self.startupHook, Qt.DirectConnection)
             self._qthread.start()
         self.moveToThread(self._qthread)
         self.cleanUpCalled = False
@@ -62,20 +90,6 @@ class NexTThread(QObject):
             logger.warning("Thread:: calling cleanup in destructor.")
             self.cleanup()
         logger.debug("destructor of Thread done")
-
-    @handleException
-    def startupHook(self): # pylint: disable=no-self-use
-        """
-        see https://github.com/nedbat/coveragepy/issues/582
-        and https://github.com/nedbat/coveragepy/issues/686
-        However it is still not working as expected. PortImpl still gets not covered even though this has been done.
-        :return:
-        """
-        th = threading._trace_hook # pylint: disable=protected-access
-        if hasattr(sys, "settrace") and th is not None:
-            logger.info("Registering startup hook for coverage")
-            sys.settrace(th)
-            logger.info("Startup hook registered")
 
     def cleanup(self):
         """

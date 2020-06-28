@@ -4,6 +4,9 @@ if test -z "$1"; then
 else
   PYTEST="$1"
 fi
-                      "$PYTEST"              --cov=nexxT.core --cov=nexxT.interface --cov=nexxT.services --cov-report html ../nexxT/tests
-NEXXT_VARIANT=nonopt  "$PYTEST" --cov-append --cov=nexxT.core --cov=nexxT.interface --cov=nexxT.services --cov-report html ../nexxT/tests
-NEXXT_DISABLE_CIMPL=1 "$PYTEST" --cov-append --cov=nexxT.core --cov=nexxT.interface --cov=nexxT.services --cov-report html ../nexxT/tests
+
+ADD_FLAGS=""
+
+                      "$PYTEST" $ADD_FLAGS              --cov=nexxT.core --cov=nexxT.interface --cov=nexxT.services --cov=nexxT.filters --cov-report html ../nexxT/tests
+NEXXT_VARIANT=nonopt  "$PYTEST" $ADD_FLAGS --cov-append --cov=nexxT.core --cov=nexxT.interface --cov=nexxT.services --cov=nexxT.filters --cov-report html ../nexxT/tests
+NEXXT_DISABLE_CIMPL=1 "$PYTEST" $ADD_FLAGS --cov-append --cov=nexxT.core --cov=nexxT.interface --cov=nexxT.services --cov=nexxT.filters --cov-report html ../nexxT/tests

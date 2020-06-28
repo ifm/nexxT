@@ -76,8 +76,10 @@ def waitForSignal(signal, callback=None, timeout=None):
     :return: None
     """
     _received = False
+    _sigArgs = None
     def _slot(*args, **kw):
-        nonlocal _received
+        nonlocal _received, _sigArgs
+        _sigArgs = args
         if callback is None:
             _received = True
         else:
@@ -92,6 +94,7 @@ def waitForSignal(signal, callback=None, timeout=None):
             signal.disconnect(_slot)
             raise TimeoutError()
     signal.disconnect(_slot)
+    return _sigArgs
 
 class Barrier:
     """
@@ -121,6 +124,10 @@ class Barrier:
         self.mutex.unlock()
 
 def isMainThread():
+    """
+    check whether current thread is main thread or not
+    :return: boolean
+    """
     return not QCoreApplication.instance() or QThread.currentThread() == QCoreApplication.instance().thread()
 
 def assertMainThread():

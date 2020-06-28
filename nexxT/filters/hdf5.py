@@ -187,26 +187,21 @@ class Hdf5Reader(Filter):
     def pausePlayback(self):
         if self._playing:
             self._playing = False
+            self._untilStream = None
+            self._dir = 1
             self._timer.stop()
             self._updateTimer.stop()
             self._updateCurrentTimestamp()
             self.playbackPaused.emit()
 
     def stepForward(self, stream):
-        self.pausePlayback()
-        while 1:
-            s = self._transmitNextSample()
-            if stream in [None,''] or s == stream:
-                break
-        self._updateCurrentTimestamp()
+        self._untilStream = stream if stream is not None else ''
+        self.startPlayback()
 
     def stepBackward(self, stream):
-        self.pausePlayback()
-        while 1:
-            s = self._transmitNextSample(-1)
-            if stream in [None,''] or s == stream:
-                break
-        self._updateCurrentTimestamp()
+        self._dir = -1
+        self._untilStream = stream if stream is not None else ''
+        self.startPlayback()
 
     def seekBeginning(self):
         self.pausePlayback()
@@ -218,21 +213,25 @@ class Hdf5Reader(Filter):
     def seekEnd(self):
         self.pausePlayback()
         for p in self._portToIdx:
-            self._portToIdx[p] = len(self._currentFile["streams"][p])-1
-        self._transmitCurrent()
+            self._portToIdx[p] = len(self._currentFile["streams"][p])
+        self._dir = -1
+        self._transmitNextSample()
+        self._dir = +1
         self._updateCurrentTimestamp()
 
     def seekTime(self, dt):
         t = dt.toMSecsSinceEpoch()*1000
+        nValid = 0
         for p in self._portToIdx:
             s = self._currentFile["streams"][p]
             # binary search
-            minIdx = 0
-            vMin = s[minIdx,"rcvTimestamp"]
-            maxIdx = len(self._currentFile["streams"][p])-1
-            vMax = s[maxIdx,"rcvTimestamp"]
+            minIdx = -1
+            vMin = -np.inf
+            num = len(self._currentFile["streams"][p])
+            maxIdx = num
+            vMax = np.inf
             while maxIdx - minIdx > 1:
-                testIdx = (minIdx + maxIdx)//2
+                testIdx = max(0, min(num-1, (minIdx + maxIdx)//2))
                 vTest = s[testIdx,"rcvTimestamp"]
                 if vTest <= t:
                     minIdx = testIdx
@@ -241,7 +240,13 @@ class Hdf5Reader(Filter):
                     maxIdx = testIdx
                     vMax = vTest
             self._portToIdx[p] = minIdx
-        self._transmitCurrent()
+            if minIdx >= 0:
+                # note: minIdx is always below num
+                nValid += 1
+        if nValid > 0:
+            self._transmitCurrent()
+        else:
+            self._transmitNextSample()
         self._updateCurrentTimestamp()
 
     def setSequence(self, filename):
@@ -264,6 +269,8 @@ class Hdf5Reader(Filter):
         self._updateTimer.timeout.connect(self._updateCurrentTimestamp)
         self._currentTimestamp = None
         self._playing = None
+        self._untilStream = None
+        self._dir = 1
         self._ports = None
         self._timeFactor = 1
 
@@ -322,34 +329,33 @@ class Hdf5Reader(Filter):
             tmax = max(t, tmax)
         return QDateTime.fromMSecsSinceEpoch(tmin//1000), QDateTime.fromMSecsSinceEpoch(tmax//1000)
 
-    def _getNextSample(self, dir):
+    def _getNextSample(self):
         # check which port has the next sample to deliver according to rcv timestamps
         nextPort = None
         for p in self._portToIdx:
             idx = self._portToIdx[p]
-            idx += dir
+            idx = idx + self._dir
             if idx >= 0 and idx < len(self._currentFile["streams"][p]):
                 ts = self._currentFile["streams"][p][idx,"rcvTimestamp"]
-                if nextPort is None or ts < nextPort[0]:
+                if nextPort is None or (ts < nextPort[0] and self._dir > 0) or (ts > nextPort[0] and self._dir < 0):
                     nextPort = (ts, p)
         return nextPort
 
     @handleException
-    def _transmitNextSample(self, dir=+1):
-        assert dir in [+1, -1]
+    def _transmitNextSample(self):
         startTime = time.perf_counter_ns()
-        nextPort = self._getNextSample(dir)
+        nextPort = self._getNextSample()
         # when next data sample arrives sooner than this threshold, do not use the QTimer but perform busy waiting
         noSleepThreshold_ns = 0.005*1e9 # 5 ms
         # maximum time in busy-wait strategy (measured from the beginning of the function)
         maxTimeInMethod = 0.05*1e9 # yield all 50 ms
         while nextPort is not None:
             ts,pname = nextPort
-            self._portToIdx[pname] += dir
+            self._portToIdx[pname] += self._dir
             lastTransmit = self._transmit(pname)
             if not self._playing:
                 return pname
-            nextPort = self._getNextSample(dir)
+            nextPort = self._getNextSample()
             if nextPort is not None:
                 newTs,p = nextPort
                 nowTime = time.perf_counter_ns()
@@ -373,14 +379,17 @@ class Hdf5Reader(Filter):
         # transmit sample over corresponding port
         self._ports[[p.name() for p in self._ports].index(pname)].transmit(sample)
         self._currentTimestampChanged(QDateTime.fromMSecsSinceEpoch(rcvTimestamp//1000))
+        if self._untilStream is not None:
+            if self._untilStream == pname or self._untilStream == '':
+                self.pausePlayback()
         return res
 
     def _transmitCurrent(self):
         ports = list(self._portToIdx.keys())
         values = [self._currentFile["streams"][p][self._portToIdx[p],"rcvTimestamp"] for p in ports]
         sortedIdx = sorted(range(len(values)), key=lambda x: values[x])
-        for idx in sortedIdx:
-            self._transmit(ports[idx])
+        # transmit most recent sample
+        self._transmit(ports[sortedIdx[-1]])
 
     def _currentTimestampChanged(self, t):
         self._currentTimestamp = t

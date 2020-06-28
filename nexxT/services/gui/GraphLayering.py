@@ -60,7 +60,7 @@ class GraphRep:
         self.dgForward[fromId].add(toId)
         self.dgBackward[toId].add(fromId)
 
-    def dump(self, title=None):
+    def dump(self, title=None): # pragma: no cover
         """
         Dump to stdout for debugging
         :param title: an optional title for the stdout section

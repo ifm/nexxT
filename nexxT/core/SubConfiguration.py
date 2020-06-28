@@ -59,6 +59,7 @@ class SubConfiguration(QObject):
         if name != self._name:
             oldName = self._name
             self._name = name
+            self._propertyCollection.setObjectName(name)
             self.nameChanged.emit(self, oldName)
 
     def getPropertyCollection(self):

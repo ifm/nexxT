@@ -268,7 +268,8 @@ class Configuration(QObject):
         """
         name = "application"
         idx = 1
-        while len([a for a in self._applications if a.getName() == name]) > 0:
+        existing = [a.getName() for a in self._applications]
+        while name in existing:
             idx += 1
             name = "application_%d" % idx
         Application(name, self)

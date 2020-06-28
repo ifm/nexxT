@@ -18,13 +18,26 @@ class SimpleStaticFilter(Filter):
         self.outPort = OutputPort(False, "outPort", environment)
         self.addStaticPort(self.outPort)
         self.sleep_time = self.propertyCollection().defineProperty("sleep_time", 0.0,
-                                                                "sleep time to simulate computational load [s]")
+                                                                   "sleep time to simulate computational load [s]",
+                                                                   options=dict(min=0.0, max=1.0))
+        self.log_rcv = self.propertyCollection().defineProperty("log_rcv", True, "whether or not to log receive events")
+        self.log_prefix = self.propertyCollection().defineProperty("log_prefix", "", "a prefix for log messages")
+        self.propertyCollection().defineProperty("an_int_property", 4223, "to have coverage for the integer props",
+                                                 options=dict(min=1234, max=5000))
+        self.propertyCollection().defineProperty("an_enum_property", "e1", "to have coverage for the integer props",
+                                                 options=dict(enum=["e1", "e2"]))
+
+    def onStart(self):
+        self.log_rcv = self.propertyCollection().getProperty("log_rcv")
+        self.log_prefix = self.propertyCollection().getProperty("log_prefix")
+        self.propertyCollection().getProperty("an_int_property")
+        self.propertyCollection().getProperty("an_enum_property")
 
     def onPortDataChanged(self, inputPort):
         dataSample = inputPort.getData()
         self.afterReceive(dataSample)
-        if dataSample.getDatatype() == "text/utf8":
-            logging.getLogger(__name__).info("received: %s", dataSample.getContent().data().decode("utf8"))
+        if dataSample.getDatatype() == "text/utf8" and self.log_rcv:
+            logging.getLogger(__name__).info("%sreceived: %s", self.log_prefix, dataSample.getContent().data().decode("utf8"))
         newSample = DataSample.copy(dataSample)
         time.sleep(self.sleep_time)
         self.beforeTransmit(dataSample)
@@ -47,6 +60,7 @@ class SimpleSource(Filter):
         self.outPort = OutputPort(False, "outPort", environment)
         self.addStaticPort(self.outPort)
         self.timeout_ms = int(1000 / self.propertyCollection().defineProperty("frequency", 1.0, "frequency of data generation [Hz]"))
+        self.log_tr = self.propertyCollection().defineProperty("log_tr", True, "whether or not to log transmit events")
 
     def onStart(self):
         self.timer = QTimer()
@@ -56,6 +70,7 @@ class SimpleSource(Filter):
         self.timer.start(self.timeout_ms/10)
         self.counter = 0
         self.lastSendTime = None
+        self.log_tr = self.propertyCollection().getProperty("log_tr")
 
     def newDataEvent(self):
         t = time.monotonic()
@@ -67,7 +82,8 @@ class SimpleSource(Filter):
         self.counter += 1
         c = "Sample %d" % self.counter
         s = DataSample(c.encode("utf8"), "text/utf8", int(time.time()/DataSample.TIMESTAMP_RES))
-        logging.getLogger(__name__).info("transmit: %s", c)
+        if self.log_tr:
+            logging.getLogger(__name__).info("transmit: %s", c)
         self.beforeTransmit(s)
         self.outPort.transmit(s)
         self.afterTransmit()

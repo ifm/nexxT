@@ -397,12 +397,12 @@ def defaultHandler(propertyValue):
     :param propertyValue: the property value
     :return: a PropertyHandler instance
     """
+    if isinstance(propertyValue, bool):
+        return BoolHandler
     if isinstance(propertyValue, int):
         return IntHandler
     if isinstance(propertyValue, str):
         return StringHandler
     if isinstance(propertyValue, float):
         return FloatHandler
-    if isinstance(propertyValue, bool):
-        return BoolHandler
     raise PropertyCollectionUnknownType("Cannot deduce default handler for property value %s" % repr(propertyValue))
