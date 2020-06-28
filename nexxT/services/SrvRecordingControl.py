@@ -155,6 +155,11 @@ class MVCRecordingControlBase(QObject):
         self._startRecording.emit(directory)
 
     def stateChanged(self, state):
+        """
+        Stops the recording when application is stopped.
+        :param state: the new filter state
+        :return:
+        """
         if self._recordingActive and state == FilterState.OPENED:
             self.stopRecording()
 
