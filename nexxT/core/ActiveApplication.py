@@ -369,11 +369,13 @@ class ActiveApplication(QObject):
         while self._operationInProgress and self._state != FilterState.ACTIVE:
             QCoreApplication.processEvents()
         if self._state != FilterState.ACTIVE:
+            logger.warning("Unexpected state %s", FilterState.state2str(self._state))
             raise FilterStateMachineError(self._state, FilterState.STOPPING)
         self._operationInProgress = True
         self._state = FilterState.STOPPING
         self.performOperation.emit("stop", Barrier(len(self._threads)))
         while self._state == FilterState.STOPPING:
+            logger.internal("stopping ... %s", FilterState.state2str(self._state))
             QCoreApplication.processEvents()
         self._operationInProgress = False
         logger.internal("leaving stop operation, new state %s", FilterState.state2str(self._state))
