@@ -141,7 +141,7 @@ def test_BasicWorkflow():
                                 expectPause = True
                     elif mode == "stepFwd[stream2]":
                         if l[-1] == "stepForward[stream2]":
-                            assert expectPause or idx > len(allFrames)
+                            assert expectPause or idx >= len(allFrames)
                             expectPause = False
                             nsteps += 1
                             if nsteps >= 2:
