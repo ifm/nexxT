@@ -43,7 +43,7 @@ class IntHandler(PropertyHandler):
         :param value: an integer is expected
         :return: the validated integer
         """
-        assert isinstance(value, int)
+        assert isinstance(value, (float, int, bool))
         return self.validate(value)
 
     def toConfig(self, value):
@@ -241,7 +241,7 @@ class FloatHandler(PropertyHandler):
         :param value: a float is expected
         :return: the validated float
         """
-        assert isinstance(value, (float, int))
+        assert isinstance(value, (float, int, bool))
         return float(self.validate(value))
 
     def toConfig(self, value):
@@ -335,7 +335,7 @@ class BoolHandler(PropertyHandler):
         :param value: a bool is expected
         :return: the bool
         """
-        assert isinstance(value, bool)
+        assert isinstance(value, (float, int, bool))
         return self.validate(value)
 
     def toConfig(self, value):
@@ -362,6 +362,8 @@ class BoolHandler(PropertyHandler):
         :param value: the value to be tested (a bool)
         :return: the adapted, valid value
         """
+        if isinstance(value, str):
+            return value.lower() == "true"
         return bool(value)
 
     def createEditor(self, parent):
@@ -370,7 +372,8 @@ class BoolHandler(PropertyHandler):
         :param parent: the parent of the widget
         :return: a QCheckBox instance
         """
-        res = QCheckBox(parent)
+        res = QComboBox(parent)
+        res.addItems([self.toViewValue(x) for x in [False, True]])
         res.setFrame(False)
         return res
 
@@ -381,7 +384,7 @@ class BoolHandler(PropertyHandler):
         :param value: the option value (a bool)
         :return: None
         """
-        editor.setChecked(value)
+        editor.setCurrentText(self.toViewValue(value))
 
     def getEditorData(self, editor):
         """
@@ -389,8 +392,10 @@ class BoolHandler(PropertyHandler):
         :param editor: the instance returned by createEditor
         :return: the bool value
         """
-        return editor.isChecked()
-
+        res = editor.currentText() == self.toViewValue(True)
+        return res
+        
+        
 def defaultHandler(propertyValue):
     """
     Return a suitable property handler given the value.
