@@ -301,7 +301,7 @@ class FloatHandler(PropertyHandler):
         :param value: the option value (a float)
         :return: None
         """
-        editor.setValue(str(value))
+        editor.setText(self.toViewValue(value))
 
     def getEditorData(self, editor):
         """
@@ -309,7 +309,7 @@ class FloatHandler(PropertyHandler):
         :param editor: the instance returned by createEditor
         :return: the float value
         """
-        return self.validate(editor.value())
+        return self.validate(editor.text())
 
 
 class BoolHandler(PropertyHandler):

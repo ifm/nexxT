@@ -220,6 +220,8 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
         if self.model.isApplication(index):
             app = self.model.data(index, Qt.DisplayRole)
             self.changeActiveApp(app)
+        else:
+            self.treeView.edit(index)
 
     def appActivated(self, name, app): # pylint: disable=unused-argument
         """
