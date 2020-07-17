@@ -32,10 +32,12 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
         super().__init__(configuration)
         assertMainThread()
         srv = Services.getService("MainWindow")
+        srv.aboutToClose.connect(self._aboutToClose)
         confMenu = srv.menuBar().addMenu("&Configuration")
         toolBar = srv.getToolBar()
 
         configuration.configNameChanged.connect(self._configNameChanged)
+        configuration.dirtyChanged.connect(self._dirtyChanged)
 
         self.actLoad = QAction(QApplication.style().standardIcon(QStyle.SP_DialogOpenButton), "Open config", self)
         self.actLoad.triggered.connect(self._execLoad)
@@ -99,6 +101,8 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
 
     def _execLoad(self):
         assertMainThread()
+        if self._checkDirty():
+            return
         fn, _ = QFileDialog.getOpenFileName(self.mainWidget, "Load configuration", self.cfgfile, filter="*.json")
         if fn is not None and fn != "":
             logger.debug("Loading config file %s", fn)
@@ -110,9 +114,11 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
 
     def _openRecent(self):
         """
-        Called when the user clicks on a recent sequence.
+        Called when the user clicks on a recent config.
         :return:
         """
+        if self._checkDirty():
+            return
         action = self.sender()
         fn = action.data()
         try:
@@ -122,8 +128,27 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
             logger.exception("Error while loading configuration %s: %s", fn, str(e))
             QMessageBox.warning(self.mainWidget, "Error while loading configuration", str(e))
 
+    def _checkDirty(self):
+        if self._configuration.dirty():
+            ans = QMessageBox.question(None, "Save changes?",
+                                       "There are unsaved changes. Do you want to save them?",
+                                       buttons=QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+                                       defaultButton=QMessageBox.Save)
+            if ans == QMessageBox.Save:
+                self.saveConfig()
+                return False
+            if ans == QMessageBox.Cancel:
+                return True
+        return False
+
+    def _aboutToClose(self, mainWindow):
+        if self._checkDirty():
+            mainWindow.ignoreCloseEvent()
+
     def _execNew(self):
         assertMainThread()
+        if self._checkDirty():
+            return
         fn, _ = QFileDialog.getSaveFileName(self.mainWidget, "Save configuration", filer="*.json")
         if fn is not None and fn != "":
             logger.debug("Creating config file %s", fn)
@@ -205,11 +230,7 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
         logger.debug("_configNameChanged: %s", cfgfile)
         assertMainThread()
         self.cfgfile = cfgfile
-        srv = Services.getService("MainWindow")
-        if cfgfile is None:
-            srv.setWindowTitle("nexxT")
-        else:
-            srv.setWindowTitle("nexxT: " + cfgfile)
+        self._dirtyChanged(self._configuration.dirty())
         foundIdx = None
         for i, a in enumerate(self.recentConfigs):
             if a.data() == cfgfile:
@@ -223,6 +244,16 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
         self.recentConfigs[0].setText(cfgfile)
         self.recentConfigs[0].setData(cfgfile)
         self.recentConfigs[0].setVisible(True)
+
+    def _dirtyChanged(self, dirty):
+        srv = Services.getService("MainWindow")
+        if self.cfgfile is None:
+            title = "nexxT: <unnamed>"
+        else:
+            title = "nexxT: " + self.cfgfile
+        if dirty:
+            title += " *"
+        srv.setWindowTitle(title)
 
     def _onItemDoubleClicked(self, index):
         assertMainThread()

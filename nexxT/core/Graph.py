@@ -68,6 +68,7 @@ class FilterGraph(BaseGraph):
         :return:
         """
         self._filters.clear()
+        self.dirtyChanged.emit()
 
     # pylint: disable=arguments-differ
     # different arguments to BaseGraph are wanted in this case
@@ -90,6 +91,7 @@ class FilterGraph(BaseGraph):
             propColl = self._properties.getChildCollection(name)
         except PropertyCollectionChildNotFound:
             propColl = PropertyCollectionImpl(name, self._properties)
+        propColl.propertyChanged.connect(self.setDirty)
         filterMockup = FilterMockup(library, factoryFunction, propColl, self)
         filterMockup.createFilterAndUpdate()
         self._filters[name] = filterMockup
@@ -105,8 +107,17 @@ class FilterGraph(BaseGraph):
         for port in filterMockup.getStaticOutputPorts():
             self.addOutputPort(name, port.name())
         filterMockup.portInformationUpdated.connect(self.portInformationUpdated)
+        self.dirtyChanged.emit()
         return name
     # pylint: enable=arguments-differ
+
+    @Slot()
+    def setDirty(self):
+        """
+        Notification of dirty state (called from propertycollections.
+        :return:
+        """
+        self.dirtyChanged.emit()
 
     def getMockup(self, name):
         """
@@ -154,6 +165,7 @@ class FilterGraph(BaseGraph):
         assertMainThread()
         self._filters[node].addDynamicPort(port, InputPortInterface)
         self.dynInputPortAdded.emit(node, port)
+        self.dirtyChanged.emit()
 
     @Slot(str, str, str)
     def renameDynamicInputPort(self, node, oldPort, newPort):
@@ -168,6 +180,7 @@ class FilterGraph(BaseGraph):
         self.renameInputPort(node, oldPort, newPort)
         self._filters[node].renameDynamicPort(oldPort, newPort, InputPortInterface)
         self.dynInputPortRenamed.emit(node, oldPort, newPort)
+        self.dirtyChanged.emit()
 
     @Slot(str, str)
     def deleteDynamicInputPort(self, node, port):
@@ -180,6 +193,7 @@ class FilterGraph(BaseGraph):
         assertMainThread()
         self._filters[node].deleteDynamicPort(port, InputPortInterface)
         self.dynInputPortDeleted.emit(node, port)
+        self.dirtyChanged.emit()
 
     @Slot(str, str)
     def addDynamicOutputPort(self, node, port):
@@ -192,6 +206,7 @@ class FilterGraph(BaseGraph):
         assertMainThread()
         self._filters[node].addDynamicPort(port, OutputPortInterface)
         self.dynOutputPortAdded.emit(node, port)
+        self.dirtyChanged.emit()
 
     @Slot(str, str, str)
     def renameDynamicOutputPort(self, node, oldPort, newPort):
@@ -206,6 +221,7 @@ class FilterGraph(BaseGraph):
         self.renameOutputPort(node, oldPort, newPort)
         self._filters[node].renameDynamicPort(oldPort, newPort, OutputPortInterface)
         self.dynOutputPortRenamed.emit(node, oldPort, newPort)
+        self.dirtyChanged.emit()
 
     @Slot(str, str)
     def deleteDynamicOutputPort(self, node, port):
@@ -218,6 +234,7 @@ class FilterGraph(BaseGraph):
         assertMainThread()
         self._filters[node].deleteDynamicPort(port, OutputPortInterface)
         self.dynOutputPortDeleted.emit(node, port)
+        self.dirtyChanged.emit()
 
     @Slot(object, object)
     def portInformationUpdated(self, oldIn, oldOut):

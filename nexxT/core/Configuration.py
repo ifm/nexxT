@@ -31,6 +31,7 @@ class Configuration(QObject):
     appActivated = Signal(str, object)
     configLoaded = Signal()
     configAboutToSave = Signal()
+    dirtyChanged = Signal(bool)
 
     CONFIG_TYPE_COMPOSITE = 0
     CONFIG_TYPE_APPLICATION = 1
@@ -55,6 +56,25 @@ class Configuration(QObject):
         self._applications = []
         self._propertyCollection = PropertyCollectionImpl("root", None)
         self._guiState = PropertyCollectionImpl("_guiState", self._propertyCollection)
+        self._dirty = False
+
+    @Slot(bool)
+    def setDirty(self, dirty=True):
+        """
+        Slot to actualize the dirty flag of the configuration file. Emits the dirtyChanged signal if necessary.
+        :param dirty: new dirty state given as a boolean
+        :return:
+        """
+        if dirty != self._dirty:
+            self._dirty = dirty
+            self.dirtyChanged.emit(self._dirty)
+
+    def dirty(self):
+        """
+        Returns the current dirty state.
+        :return: a boolean
+        """
+        return self._dirty
 
     @Slot()
     def close(self, avoidSave=False):
@@ -122,6 +142,7 @@ class Configuration(QObject):
             for cfg_app in cfg["applications"]:
                 app = Application(cfg_app["name"], self)
                 app.load(cfg_app, compositeLookup)
+            self.setDirty(False)
             self.configNameChanged.emit(cfg["CFGFILE"])
             self.configLoaded.emit()
         except RuntimeError as e:
@@ -148,6 +169,7 @@ class Configuration(QObject):
         cfg["composite_filters"] = [cf.save() for cf in self._compositeFilters]
         cfg["applications"] = [app.save() for app in self._applications]
         self.configNameChanged.emit(cfg["CFGFILE"])
+        self.setDirty(False)
         return cfg
 
     def propertyCollection(self):
@@ -228,6 +250,7 @@ class Configuration(QObject):
         if oldName != newName:
             self._checkUniqueName(self._compositeFilters, newName)
             self.compositeFilterByName(oldName).setName(newName)
+            self.setDirty(True)
 
     @Slot(str, str)
     def renameApp(self, oldName, newName):
@@ -240,6 +263,7 @@ class Configuration(QObject):
         if oldName != newName:
             self._checkUniqueName(self._applications, newName)
             self.applicationByName(oldName).setName(newName)
+            self.setDirty(True)
 
     def addComposite(self, compFilter):
         """
@@ -250,6 +274,7 @@ class Configuration(QObject):
         self._checkUniqueName(self._compositeFilters, compFilter.getName())
         self._compositeFilters.append(compFilter)
         self.subConfigAdded.emit(compFilter)
+        self.setDirty(True)
 
     def addApplication(self, app):
         """
@@ -260,6 +285,7 @@ class Configuration(QObject):
         self._checkUniqueName(self._applications, app.getName())
         self._applications.append(app)
         self.subConfigAdded.emit(app)
+        self.setDirty(True)
 
     def addNewApplication(self):
         """

@@ -30,6 +30,7 @@ class SubConfiguration(QObject):
         checkIdentifier(name)
         self._propertyCollection = PropertyCollectionImpl(name, configuration.propertyCollection())
         self._graph = FilterGraph(self)
+        self._graph.dirtyChanged.connect(configuration.setDirty)
         self._config = configuration
         self._name = name
 
@@ -61,6 +62,7 @@ class SubConfiguration(QObject):
             self._name = name
             self._propertyCollection.setObjectName(name)
             self.nameChanged.emit(self, oldName)
+            self._config.setDirty()
 
     def getPropertyCollection(self):
         """

@@ -150,7 +150,7 @@ class MainWindow(QMainWindow): # pragma: no cover
     subplot functionality to create grid-layouted views.
     """
     mdiSubWindowCreated = Signal(QMdiSubWindow) # TODO: remove, is not necessary anymore with subplot feature
-    aboutToClose = Signal()
+    aboutToClose = Signal(object)
 
     def __init__(self, config):
         super().__init__()
@@ -166,6 +166,7 @@ class MainWindow(QMainWindow): # pragma: no cover
         self.managedSubplots = {}
         self.windows = {}
         self.activeApp = None
+        self._ignoreCloseEvent = False
 
     def closeEvent(self, closeEvent):
         """
@@ -173,10 +174,24 @@ class MainWindow(QMainWindow): # pragma: no cover
         :param closeEvent: a QCloseEvent instance
         :return:
         """
+        self._ignoreCloseEvent = False
+        self.aboutToClose.emit(self)
+        if self._ignoreCloseEvent:
+            logger.info("Ignoring event")
+            closeEvent.ignore()
+            return
+        closeEvent.accept()
         self.saveState()
         self.saveMdiState()
-        self.aboutToClose.emit()
-        return super().closeEvent(closeEvent)
+        super().closeEvent(closeEvent)
+
+    def ignoreCloseEvent(self):
+        """
+        Can be called in slots connected to aboutToClose for requesting to ignore the event.
+        Use case is the "There are unsaved changes" dialog.
+        :return:
+        """
+        self._ignoreCloseEvent = True
 
     def restoreState(self):
         """

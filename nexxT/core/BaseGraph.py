@@ -31,6 +31,7 @@ class BaseGraph(QObject):
     outPortDeleted = Signal(str, str)
     connectionAdded = Signal(str, str, str, str)
     connectionDeleted = Signal(str, str, str, str)
+    dirtyChanged = Signal()
 
     def __init__(self):
         assertMainThread()
@@ -70,6 +71,7 @@ class BaseGraph(QObject):
             raise NodeExistsError(name)
         self._nodes[name] = dict(inports=[], outports=[])
         self.nodeAdded.emit(name)
+        self.dirtyChanged.emit()
         return name
 
     @Slot(str, str)
@@ -98,6 +100,7 @@ class BaseGraph(QObject):
                 c = (c[0], c[1], newName, c[3])
             self._connections[i] = c
         self.nodeRenamed.emit(oldName, newName)
+        self.dirtyChanged.emit()
 
     @Slot(str)
     def deleteNode(self, name):
@@ -117,6 +120,7 @@ class BaseGraph(QObject):
             self.deleteOutputPort(name, outport)
         del self._nodes[name]
         self.nodeDeleted.emit(name)
+        self.dirtyChanged.emit()
 
     @Slot(str, str, str, str)
     def addConnection(self, nodeNameFrom, portNameFrom, nodeNameTo, portNameTo):
@@ -141,6 +145,7 @@ class BaseGraph(QObject):
             raise ConnectionExistsError(nodeNameFrom, portNameFrom, nodeNameTo, portNameTo)
         self._connections.append((nodeNameFrom, portNameFrom, nodeNameTo, portNameTo))
         self.connectionAdded.emit(nodeNameFrom, portNameFrom, nodeNameTo, portNameTo)
+        self.dirtyChanged.emit()
 
     @Slot(str, str, str, str)
     def deleteConnection(self, nodeNameFrom, portNameFrom, nodeNameTo, portNameTo):
@@ -157,6 +162,7 @@ class BaseGraph(QObject):
             raise ConnectionNotFound(nodeNameFrom, portNameFrom, nodeNameTo, portNameTo)
         self._connections.remove((nodeNameFrom, portNameFrom, nodeNameTo, portNameTo))
         self.connectionDeleted.emit(nodeNameFrom, portNameFrom, nodeNameTo, portNameTo)
+        self.dirtyChanged.emit()
 
     @Slot(str, str)
     def addInputPort(self, node, portName):
