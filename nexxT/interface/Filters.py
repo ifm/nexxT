@@ -195,3 +195,38 @@ class Filter(QObject):
         the opposite to onInit(...)
         :return: None
         """
+
+class FilterSurrogate:
+    """
+    This class acts as a surrogate to reference a filter from a DLL/shared object plugin from within python.
+    Create an instance in one of your modules and preferrably create an entry point for it.
+    """
+    def __init__(self, dllUrls, name):
+        """
+        Create a CFilterSurrogate instance.
+        :param dllUrls: might be (1) a dictionary mapping variant names to URLs, variant names are usually "nonopt" and
+                        "release" or (2) a url string which will be mapped to the release variant
+                        Note that URLs for binary libraries (DLL's or shared objects) are of the form
+                        "binary://<absolute-path-to-dll>".'The absolute path might contain variables like
+                        ${NEXXT_PLATFORM} or ${NEXXT_VARIANT}.
+        :param name: the name of the filter class or factory function
+        """
+        if not isinstance(dllUrls, dict):
+            dllUrls = {"release": dllUrls}
+        self._dllUrls = dllUrls
+        self._name = name
+
+    def dllUrl(self, variant):
+        """
+        returns the absolute path of the optimzed dll/shared object
+        """
+        try:
+            return self._dllUrls[variant]
+        except KeyError:
+            return self._dllUrls["release"]
+
+    def name(self):
+        """
+        returns the name of the filter class
+        """
+        return self._name

@@ -31,6 +31,7 @@ if nexxT.useCImpl:
     OutputPort = lambda *args, **kw: Port.make_shared(OutputPortInterface(*args, **kw))
     InputPort = (lambda dynamic, name, environment, queueSizeSamples=1, queueSizeSeconds=-1:
                  Port.make_shared(InputPortInterface(dynamic, name, environment, queueSizeSamples, queueSizeSeconds)))
+    from nexxT.interface.Filters import FilterSurrogate
 else:
     # pylint: enable=invalid-name
     from nexxT.interface.Ports import Port
@@ -43,7 +44,7 @@ else:
     OutputPortInterface.setupDirectConnection = OutputPort.setupDirectConnection
     OutputPortInterface.setupInterThreadConnection = OutputPort.setupInterThreadConnection
     del PortImpl
-    from nexxT.interface.Filters import Filter, FilterState
+    from nexxT.interface.Filters import Filter, FilterState, FilterSurrogate
     from nexxT.interface.DataSamples import DataSample
     from nexxT.interface.PropertyCollections import PropertyCollection, PropertyHandler
     from nexxT.interface.Services import Services

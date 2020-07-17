@@ -146,7 +146,7 @@ def checkIdentifier(name):
     :return: None
     """
     if re.match(r'^[A-Za-z_][A-Za-z0-9_-]*$', name) is None:
-        InvalidIdentifierException(name)
+        raise InvalidIdentifierException(name)
 
 # https://github.com/ar4s/python-sqlite-logging/blob/master/sqlite_handler.py
 class SQLiteHandler(logging.Handler):

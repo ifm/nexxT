@@ -8,8 +8,10 @@
 This module provides the graph editor GUI service of the nexxT service.
 """
 
+import logging
 import platform
 import os.path
+import pkg_resources
 from PySide2.QtWidgets import (QGraphicsScene, QGraphicsItemGroup, QGraphicsSimpleTextItem,
                                QGraphicsPathItem, QGraphicsItem, QMenu, QAction, QInputDialog, QMessageBox,
                                QGraphicsLineItem, QFileDialog)
@@ -19,8 +21,12 @@ from nexxT.core.BaseGraph import BaseGraph
 from nexxT.core.Graph import FilterGraph
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.PluginManager import PluginManager
+from nexxT.core.Utils import checkIdentifier, handleException
+from nexxT.core.Exceptions import InvalidIdentifierException
 from nexxT.interface import InputPortInterface, OutputPortInterface
 from nexxT.services.gui import GraphLayering
+
+logger = logging.getLogger(__name__)
 
 class MyGraphicsPathItem(QGraphicsPathItem, QObject): # pragma: no cover
     """
@@ -853,6 +859,27 @@ class GraphScene(BaseGraphScene): # pragma: no cover
             self.actRemovePort = QAction("Remove dynamic port ...", self)
             self.actAddInputPort = QAction("Add dynamic input port ...", self)
             self.actAddOutputPort = QAction("Add dynamic output port ...", self)
+            self.entryPointActions = dict()
+            for ep in pkg_resources.iter_entry_points("nexxT.filters"):
+                d = self.entryPointActions
+                groups = ep.name.split(".")
+                name = groups[-1]
+                try:
+                    checkIdentifier(name)
+                except InvalidIdentifierException:
+                    logger.warning("Entry point '%s' is no valid identifier. Ignoring.", ep.name)
+                    continue
+                groups = groups[:-1]
+                for g in groups:
+                    if not g in d:
+                        d[g] = dict()
+                    d = d[g]
+                if name in d:
+                    logger.warning("Entry point '%s' registered twice, ignoring duplicates", ep.name)
+                else:
+                    d[name] = QAction(name)
+                    d[name].setData(ep.name)
+                    d[name].triggered.connect(self.addFilterFromEntryPoint)
             self.actAddNodeFromMod = QAction("Add filter from python module ...", self)
             self.actAddComposite = QAction("Add filter form composite definition ...", self)
             self.actSetThread = QAction("Set thread ...", self)
@@ -950,7 +977,16 @@ class GraphScene(BaseGraphScene): # pragma: no cover
             m = QMenu(self.views()[0])
             cfs = self.compositeFilters()
             self.actAddComposite.setEnabled(len(cfs) > 0)
-            m.addActions([self.actAddNode, self.actAddNodeFromMod, self.actAddComposite, self.actAutoLayout])
+            m.addActions([self.actAddNode, self.actAddNodeFromMod, self.actAddComposite])
+            flm = m.addMenu("Filter Library")
+            def populate(menu, src):
+                for k in sorted(src):
+                    if isinstance(src[k], dict):
+                        populate(menu.addMenu(k), src[k])
+                    else:
+                        menu.addAction(src[k])
+            populate(flm, self.entryPointActions)
+            m.addAction(self.actAutoLayout)
             m.exec_(event.screenPos())
         self.itemOfContextMenu = None
 
@@ -1107,6 +1143,20 @@ class GraphScene(BaseGraphScene): # pragma: no cover
             if not library.startswith("pymod://"):
                 library = "pymod://" + library
             self._genericAdd(library)
+
+    @handleException
+    def _addFilterFromEntryPoint(self):
+        ep_name = self.sender().data()
+        library = "entry_point://" + ep_name
+        name = self.graph.addNode(library, ep_name.split(".")[-1])
+        self.nodes[name].setPos(self.itemOfContextMenu)
+
+    def addFilterFromEntryPoint(self):
+        """
+        Add a filter from its corresponding entry point (the entry point is deduced from the sender action's data()).
+        :return:
+        """
+        self._addFilterFromEntryPoint()
 
     def onAddComposite(self):
         """

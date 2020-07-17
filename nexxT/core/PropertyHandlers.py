@@ -9,7 +9,7 @@ This module contains the specific nexxT property handlers for the supported type
 """
 
 import logging
-from PySide2.QtWidgets import QSpinBox, QLineEdit, QComboBox, QCheckBox
+from PySide2.QtWidgets import QSpinBox, QLineEdit, QComboBox
 from PySide2.QtGui import QDoubleValidator
 from nexxT.interface import PropertyHandler
 from nexxT.core.Exceptions import PropertyParsingError, PropertyCollectionUnknownType
@@ -394,8 +394,7 @@ class BoolHandler(PropertyHandler):
         """
         res = editor.currentText() == self.toViewValue(True)
         return res
-        
-        
+
 def defaultHandler(propertyValue):
     """
     Return a suitable property handler given the value.

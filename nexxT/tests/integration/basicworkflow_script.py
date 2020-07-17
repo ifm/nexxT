@@ -65,8 +65,8 @@ def execute_0():
     app = cfg.configuration().applicationByName("myApp")
     import nexxT
     if nexxT.useCImpl:
-        src = app.getGraph().addNode(library="binary://./binary/${NEXXT_PLATFORM}/${NEXXT_VARIANT}/test_plugins",
-                                      factoryFunction="SimpleSource")
+        src = app.getGraph().addNode(library="entry_point://tests.nexxT.CSimpleSource",
+                                      factoryFunction="entry_point")
     else:
         src = app.getGraph().addNode(library="pyfile://./SimpleStaticFilter.py",
                                       factoryFunction="SimpleSource")

@@ -289,8 +289,6 @@ class PropertyCollectionImpl(PropertyCollection):
         :param path: a string
         :return: absolute path as string
         """
-        if Path(path).is_absolute():
-            return path
         root_prop = self
         while root_prop.parent() is not None:
             root_prop = root_prop.parent()

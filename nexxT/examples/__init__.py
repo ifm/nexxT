@@ -5,16 +5,11 @@
 #
 
 from pathlib import Path
+from PySide2 import QtMultimedia # needed to load corresponding DLL before loading the nexxT plugin
 from nexxT.interface import FilterSurrogate
 
-CSimpleSource = FilterSurrogate(
-    "binary://" + str((Path(__file__).parent /
+AviReader = FilterSurrogate(
+    "binary://" + str((Path(__file__).parent.parent / "tests" /
                        "binary" / "${NEXXT_PLATFORM}" / "${NEXXT_VARIANT}" / "test_plugins").absolute()),
-    "SimpleSource"
-)
-
-CTestExceptionFilter = FilterSurrogate(
-    "binary://" + str((Path(__file__).parent /
-                       "binary" / "${NEXXT_PLATFORM}" / "${NEXXT_VARIANT}" / "test_plugins").absolute()),
-    "TestExceptionFilter"
+    "VideoPlaybackDevice"
 )

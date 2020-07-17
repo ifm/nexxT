@@ -15,9 +15,10 @@ import logging
 from collections import OrderedDict
 import importlib.util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
+import pkg_resources
 from PySide2.QtCore import QObject
 from nexxT.core.Exceptions import UnknownPluginType, NexTRuntimeError, PluginException
-from nexxT.interface import Filter
+from nexxT.interface import Filter, FilterSurrogate
 from nexxT.core import PluginInterface
 import nexxT
 
@@ -56,40 +57,68 @@ class PythonLibrary:
     """
     _pyLoadCnt = 0
 
-    def __init__(self, library, isModule):
+    LIBTYPE_FILE = 0
+    LIBTYPE_MODULE = 1
+    LIBTYPE_ENTRY_POINT = 2
+
+    def __init__(self, library, libtype):
         self._library = library
-        self._isModule = isModule
+        self._libtype = libtype
         modulesBefore = set(sys.modules.keys())
-        if not isModule:
+        if self._libtype == self.LIBTYPE_FILE:
             PythonLibrary._pyLoadCnt += 1
             logging.getLogger(__name__).debug("importing python module from file '%s'", library)
             # https://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
             spec = importlib.util.spec_from_file_location("nexxT.plugins.plugin%d" % PythonLibrary._pyLoadCnt, library)
             self._mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(self._mod)
-        else:
-            logging.getLogger(__name__).debug("importing python module from file '%s'", library)
+        elif self._libtype == self.LIBTYPE_MODULE:
+            logging.getLogger(__name__).debug("importing python module '%s'", library)
             self._mod = importlib.import_module(library)
+        elif self._libtype == self.LIBTYPE_ENTRY_POINT:
+            logging.getLogger(__name__).debug("loading entry point '%s'", library)
+            found = []
+            for ep in pkg_resources.iter_entry_points("nexxT.filters"):
+                if ep.name == library:
+                    found.append(ep)
+            if len(found) > 1:
+                logging.getLogger(__name__).warning("found more than one entry points named '%s'", library)
+            if len(found) == 0:
+                raise ModuleNotFoundError("Entry point '%s' not found." % (library))
+            self._mod = found[0].load()
         modulesAfter = set(sys.modules.keys())
         self._loadedModules = modulesAfter.difference(modulesBefore)
         self._availableFilters = None
 
     def __getattr__(self, attr):
-        res = getattr(self._mod, attr, None)
+        if self._libtype in [self.LIBTYPE_FILE, self.LIBTYPE_MODULE]:
+            res = getattr(self._mod, attr, None)
+        elif self._libtype == self.LIBTYPE_ENTRY_POINT:
+            res = self._mod
+        if isinstance(res, FilterSurrogate):
+            variant = os.environ.get("NEXXT_VARIANT", "release")
+            dll = res.dllUrl(variant)
+            # load library and get the filter by accessing the given class or factory function
+            return getattr(PluginManager.singleton().getLibrary(dll), res.name())
         if res is not None:
             return res
         raise NexTRuntimeError("requested creation func '%s' not found in %s" % (attr, self._library))
 
     def _checkAvailableFilters(self):
-        self._availableFilters = []
-        for attr in sorted(dir(self._mod)):
-            if isinstance(attr, str) and attr[0] != "_":
-                f = getattr(self._mod, attr)
-                try:
-                    if issubclass(f, Filter) and not f is Filter:
-                        self._availableFilters.append(attr)
-                except TypeError:
-                    pass
+        if self._libtype == self.LIBTYPE_ENTRY_POINT:
+            self._availableFilters = ["entry_point"]
+        else:
+            self._availableFilters = []
+            for attr in sorted(dir(self._mod)):
+                if isinstance(attr, str) and attr[0] != "_":
+                    f = getattr(self._mod, attr)
+                    try:
+                        if issubclass(f, Filter) and not f is Filter:
+                            self._availableFilters.append(attr)
+                        if isinstance(f, FilterSurrogate):
+                            self._availableFilters.append(attr)
+                    except TypeError:
+                        pass
 
     def __getitem__(self, idx):
         if self._availableFilters is None:
@@ -141,6 +170,7 @@ class PluginManager(QObject):
 
     def __init__(self):
         super().__init__()
+        self._prop = None
         # loaded libraries
         self._libraries = OrderedDict()
 
@@ -155,9 +185,10 @@ class PluginManager(QObject):
         """
         if isinstance(library, str):
             prop = filterEnvironment.propertyCollection()
+            self._prop = prop
             if library not in self._libraries:
                 try:
-                    self._libraries[library] = self._load(library, prop)
+                    self._libraries[library] = self._load(library)
                 except UnknownPluginType:
                     # pass exception from loader through
                     raise
@@ -180,6 +211,15 @@ class PluginManager(QObject):
         :param library: library as string instance
         :return: list of strings
         """
+        lib = self.getLibrary(library)
+        return [lib[i] for i in range(len(lib))]
+
+    def getLibrary(self, library):
+        """
+        return the Library instance from the given url
+        :param library: string instance with library url
+        :return: either a PythonLibrary or a BinaryLibrary instance
+        """
         if library not in self._libraries:
             try:
                 self._libraries[library] = self._load(library)
@@ -193,7 +233,7 @@ class PluginManager(QObject):
                 raise PluginException("Unexpected exception while loading the library %s (%s)" %
                                       (library, e))
         lib = self._libraries[library]
-        return [lib[i] for i in range(len(lib))]
+        return lib
 
     def unloadAll(self):
         """
@@ -207,24 +247,30 @@ class PluginManager(QObject):
     def _unload(self, library):
         self._libraries[library].unload()
 
-    def _load(self, library, prop=None):
+    def _load(self, library):
         if library.startswith("pyfile://"):
-            return self._loadPyfile(library[len("pyfile://"):], prop)
+            return self._loadPyfile(library[len("pyfile://"):], self._prop)
         if library.startswith("pymod://"):
             return self._loadPymod(library[len("pymod://"):])
+        if library.startswith("entry_point://"):
+            return self._loadEntryPoint(library[len("entry_point://"):])
         if library.startswith("binary://"):
-            return self._loadBinary(library[len("binary://"):], prop)
+            return self._loadBinary(library[len("binary://"):], self._prop)
         raise UnknownPluginType("don't know how to load library '%s'" % library)
 
     @staticmethod
     def _loadPyfile(library, prop=None):
         if prop is not None:
             library = prop.evalpath(library)
-        return PythonLibrary(library, isModule=False)
+        return PythonLibrary(library, libtype=PythonLibrary.LIBTYPE_FILE)
 
     @staticmethod
     def _loadPymod(library):
-        return PythonLibrary(library, isModule=True)
+        return PythonLibrary(library, libtype=PythonLibrary.LIBTYPE_MODULE)
+
+    @staticmethod
+    def _loadEntryPoint(library):
+        return PythonLibrary(library, libtype=PythonLibrary.LIBTYPE_ENTRY_POINT)
 
     @staticmethod
     def _loadBinary(library, prop=None):

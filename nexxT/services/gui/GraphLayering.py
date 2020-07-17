@@ -26,6 +26,8 @@ class GraphRep:
         self.dgBackward = {} # mapping id's to predessor sets
         self.cycleEdges = set()
         self.longEdges = set()
+        self.n = 0
+        self.vn = 0
         if baseGraphScene is not None:
             for n in baseGraphScene.nodes.keys():
                 self.addNode(n)
@@ -156,6 +158,9 @@ class GraphRep:
                             if (h < i and k > j) or (h > i and k < j):
                                 res += 1
             return res
+
+        if self.n == 0:
+            return [], 0
 
         layers, node2layer = self.assignLayers()
         self.longEdges = set()

@@ -13,8 +13,8 @@
       "nodes": [
         {
           "name": "source",
-          "library": "binary://../../tests/binary/${NEXXT_PLATFORM}/${NEXXT_VARIANT}/test_plugins",
-          "factoryFunction": "VideoPlaybackDevice",
+          "library": "entry_point://examples.videoplayback.AviReader",
+          "factoryFunction": "entry_point",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
           "dynamicOutputPorts": [],
@@ -28,8 +28,8 @@
         },
         {
           "name": "display",
-          "library": "pyfile://./QImageDisplay.py",
-          "factoryFunction": "QImageDisplay",
+          "library": "entry_point://examples.videoplayback.QImageDisplay",
+          "factoryFunction": "entry_point",
           "dynamicInputPorts": [],
           "staticInputPorts": [
             "inPort"

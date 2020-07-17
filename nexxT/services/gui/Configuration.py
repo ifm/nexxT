@@ -9,6 +9,7 @@ This module provides the Configuration GUI service of the nexxT framework.
 """
 
 import logging
+import shiboken2
 from PySide2.QtCore import (Qt, QSettings, QByteArray, QDataStream, QIODevice)
 from PySide2.QtGui import QPainter
 from PySide2.QtWidgets import (QTreeView, QAction, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
@@ -130,10 +131,18 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
 
     def _addGraphView(self, subConfig):
         g = subConfig.getGraph()
+        # remove already deleted graph views from internal list
+        valid_graphViews = []
+        for gv in self._graphViews:
+            if shiboken2.isValid(gv): # pylint: disable=no-member
+                valid_graphViews.append(gv)
+        self._graphViews = valid_graphViews
+        # check if graph view is already there
         for gv in self._graphViews:
             if gv.widget().scene().graph == g:
                 logger.info("Graph view already exists.")
                 return
+        # create new graph view
         srv = Services.getService("MainWindow")
         graphDw = srv.newDockWidget("Graph (%s)" % (subConfig.getName()), parent=None,
                                     defaultArea=Qt.RightDockWidgetArea,

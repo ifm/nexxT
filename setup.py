@@ -54,6 +54,7 @@ try:
             return python, abi, plat
             
 except ImportError:
+    print("Warning: wheel is not installed but it is recommended for building nexxT.")
     bdist_wheel = None
 
 class InstallPlatlib(install):
@@ -141,7 +142,7 @@ if build_required:
     os.chdir(str(cwd))    
     
 setup(name='nexxT',
-      install_requires=["PySide2==5.14.2.2", "shiboken2==5.14.2.2", "jsonschema>=3.2.0", "h5py>=2.10.0"], 
+      install_requires=["PySide2==5.14.2.2", "shiboken2==5.14.2.2", "jsonschema>=3.2.0", "h5py>=2.10.0", "setuptools>=41.0.0"], 
       version=os.environ.get("NEXXT_VERSION", "0.0.0"),
       description='An extensible framework.',
       author='Christoph Wiedemann',
@@ -150,7 +151,8 @@ setup(name='nexxT',
       license="Apache-2",
       include_package_data = True,
       packages=['nexxT', 'nexxT.interface', 'nexxT.tests', 'nexxT.services', 'nexxT.services.gui', 'nexxT.filters',
-                'nexxT.tests.interface', 'nexxT.core', 'nexxT.tests.core', 'nexxT.tests.integration'],
+                'nexxT.tests.interface', 'nexxT.core', 'nexxT.tests.core', 'nexxT.tests.integration', 
+                'nexxT.examples', 'nexxT.examples.videoplayback'],
       cmdclass={
         'bdist_wheel': bdist_wheel,
         'install': InstallPlatlib,
@@ -158,7 +160,20 @@ setup(name='nexxT',
       entry_points = {
         'console_scripts' : ['nexxT-gui=nexxT.core.AppConsole:mainGui',
                              'nexxT-console=nexxT.core.AppConsole:mainConsole',
-                            ]
+                            ],
+        'nexxT.filters' : [
+            'harddisk.HDF5Reader = nexxT.filters.hdf5:Hdf5Reader',
+            'harddisk.HDF5Writer = nexxT.filters.hdf5:Hdf5Writer',
+            'examples.videoplayback.AviReader = nexxT.examples:AviReader',
+            'examples.videoplayback.QImageDisplay = nexxT.examples.videoplayback.QImageDisplay:QImageDisplay',
+            'tests.nexxT.CSimpleSource = nexxT.tests:CSimpleSource',
+            'tests.nexxT.PySimpleSource = nexxT.tests.interface.SimpleStaticFilter:SimpleSource',
+            'tests.nexxT.PySimpleStaticFilter = nexxT.tests.interface.SimpleStaticFilter:SimpleStaticFilter',
+            'tests.nexxT.PySimpleDynInFilter = nexxT.tests.interface.SimpleDynamicFilter:SimpleDynInFilter',
+            'tests.nexxT.PySimpleDynOutFilter = nexxT.tests.interface.SimpleDynamicFilter:SimpleDynOutFilter',
+            'tests.nexxT.CTestExceptionFilter = nexxT.tests:CTestExceptionFilter',
+            'tests.nexxT.PyTestExceptionFilter = nexxT.tests.interface.TestExceptionFilter:TestExceptionFilter',
+            ],
       },
       distclass=BinaryDistribution,
      )
