@@ -263,17 +263,9 @@ class GuiLogger(ConsoleLogger): # pragma: no cover
         self.actClear.triggered.connect(self.logWidget.clear)
         #self.actSingleLine.toggled.connect(self.logWidget.setUniformRowHeights)
 
-        self.actInternal = QAction("Internal")
-        self.actDebug = QAction("Debug")
-        self.actInfo = QAction("Info")
-        self.actWarning = QAction("Warning")
-        self.actError = QAction("Error")
+        self.actDisable = QAction("Disable")
+        self.actDisable.triggered.connect(self.setLogLevel)
 
-        self.actInternal.triggered.connect(lambda: mainLogger.setLevel(logging.INTERNAL))
-        self.actDebug.triggered.connect(lambda: mainLogger.setLevel(logging.DEBUG))
-        self.actInfo.triggered.connect(lambda: mainLogger.setLevel(logging.INFO))
-        self.actWarning.triggered.connect(lambda: mainLogger.setLevel(logging.WARNING))
-        self.actError.triggered.connect(lambda: mainLogger.setLevel(logging.ERROR))
         self.actGroup = QActionGroup(self)
         self.actGroup.setExclusive(True)
         levelno = mainLogger.level
@@ -292,6 +284,9 @@ class GuiLogger(ConsoleLogger): # pragma: no cover
             else:
                 a.setChecked(False)
             logMenu.addAction(a)
+        self.loglevelMap[self.actDisable] = 100
+        logMenu.addAction(self.actDisable)
+        
         logMenu.addSeparator()
         logMenu.addAction(self.actClear)
         logMenu.addAction(self.actFollow)
