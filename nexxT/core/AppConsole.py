@@ -84,6 +84,8 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
         mainWindow = Services.getService("MainWindow")
         mainWindow.restoreState()
         mainWindow.show()
+        # the reference will still be held by the service, but here we don't need it anymore
+        del mainWindow 
     if active is not None:
         config.activate(active)
         # pylint: disable=unused-variable
