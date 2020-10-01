@@ -197,6 +197,10 @@ class Filter(QObject):
         """
         
     def environment(self):
+        """
+        Returns the environment associated with this filter.
+        :return: a FilterEnvironment instance
+        """
         return _environment
 
 class FilterSurrogate:

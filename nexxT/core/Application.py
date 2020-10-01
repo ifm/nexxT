@@ -84,6 +84,10 @@ class Application(SubConfiguration):
         assertMainThread()
         if Application.activeApplication is None:
             raise NexTRuntimeError("No active application to initialize")
+        # make sure that the application is re-created before initializing it
+        # this is needed to synchronize the properties, etc.
+        MethodInvoker(Application.activeApplication.getApplication().getConfiguration().activate,
+                      Qt.DirectConnection, Application.activeApplication.getApplication().getName())
         MethodInvoker(Application.activeApplication.init, Qt.DirectConnection)
         MethodInvoker(Application.activeApplication.open, Qt.DirectConnection)
         MethodInvoker(Application.activeApplication.start, Qt.DirectConnection)

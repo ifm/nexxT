@@ -124,6 +124,11 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
         :return: None
         """
         with QMutexLocker(self._portMutex):
+            logger.debug("remove port: %s", port)
+            if useCImpl:
+                for p in self._ports:
+                    if p.data() == port.data():
+                        port = p
             self._ports.remove(port)
 
     def _getInputPorts(self, dynamic):
