@@ -105,7 +105,7 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
             # make sure to make copies of the shared pointers
             port = copy.copy(port)
         with QMutexLocker(self._portMutex):
-            assert self.state() in [FilterState.CONSTRUCTING, FilterState.CONSTRUCTED]
+            assert self.state() in [FilterState.CONSTRUCTING, FilterState.CONSTRUCTED, FilterState.INITIALIZING]
             dynInSupported, dynOutSupported = self.getDynamicPortsSupported()
             if port.dynamic() and ((port.isInput() and not dynInSupported) or
                                    (port.isOutput() and not dynOutSupported)):

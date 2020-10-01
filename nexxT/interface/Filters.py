@@ -195,6 +195,9 @@ class Filter(QObject):
         the opposite to onInit(...)
         :return: None
         """
+        
+    def environment(self):
+        return _environment
 
 class FilterSurrogate:
     """
