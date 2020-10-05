@@ -8,7 +8,7 @@
 Console entry point script for starting nexxT from command line without GUI.
 """
 
-from argparse import ArgumentParser, ArgumentTypeError
+from argparse import ArgumentParser, ArgumentTypeError, RawDescriptionHelpFormatter
 import logging
 import signal
 import sys
@@ -135,7 +135,20 @@ def main(withGui):
     main function used as entry point
     :return: None
     """
-    parser = ArgumentParser(description="nexxT console application")
+    parser = ArgumentParser(description="nexxT console application", 
+                            formatter_class=RawDescriptionHelpFormatter, 
+                            epilog="""\
+The following environment variables have effect on nexxT's behaviour:
+
+NEXXT_VARIANT: 
+    might be set to 'nonopt' to use the non-optimized variant
+
+NEXXT_DISABLE_CIMPL: 
+    If set to '1', the nexxT C extensions are replaced by native python modules.
+
+NEXXT_CEXT_PATH:
+    Can be set to override the default search path for the nexxT C extension.
+""")
     parser.add_argument("cfg", nargs='?', help=".json configuration file of the project to be loaded.")
     parser.add_argument("-a", "--active", default=None, type=str,
                         help="active application; default: first application in config file")
