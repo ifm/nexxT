@@ -39,6 +39,8 @@ def execute_0():
     created app.
     :return:
     """
+    logger.info("execute_0:begin")
+
     cfg = Services.getService("Configuration")
 
     # create a new configuration with a composite graph and an application
@@ -141,7 +143,10 @@ def execute_0():
 
     # activate
     execute_1.i = MethodInvoker(cfg.activate, Qt.QueuedConnection)
-    waitForSignal(app.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
+    waitForSignal(cfg.configuration().appActivated)
+    if app.activeApplication.getState() != FilterState.ACTIVE:
+        waitForSignal(app.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
+    logger.info("execute_0:end")
 
 def execute_1():
     """
@@ -150,6 +155,7 @@ def execute_1():
     after 3 more seconds, quit
     :return:
     """
+    logger.info("execute_1:begin")
     cfg = Services.getService("Configuration")
     rc = Services.getService("RecordingControl")
 
@@ -167,7 +173,9 @@ def execute_1():
     logger.info("app deactivated")
 
     execute_1.i = MethodInvoker(cfg.activate, Qt.QueuedConnection)
-    waitForSignal(app.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
+    waitForSignal(cfg.configuration().appActivated)
+    if app.activeApplication.getState() != FilterState.ACTIVE:
+        waitForSignal(app.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
 
     execute_1.i = MethodInvoker(rc.startRecording, Qt.QueuedConnection, ".")
     logger.info("app activated")
@@ -191,7 +199,9 @@ def execute_1():
     execute_1.i = MethodInvoker(cfg.changeActiveApp, Qt.QueuedConnection, "myApp")
     waitForSignal(cfg.configuration().appActivated)
     execute_1.i = MethodInvoker(cfg.activate, Qt.QueuedConnection)
-    waitForSignal(app.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
+    waitForSignal(cfg.configuration().appActivated)
+    if app.activeApplication.getState() != FilterState.ACTIVE:
+        waitForSignal(app.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
     logger.info("app activated")
 
     t = QTimer()
@@ -201,8 +211,10 @@ def execute_1():
     waitForSignal(t.timeout)
 
     execute_1.i = MethodInvoker(QCoreApplication.quit, Qt.QueuedConnection)
+    logger.info("execute_1:end")
 
 def execute_2():
+    logger.info("execute_2:begin")
     cfg = Services.getService("Configuration")
     pbc = Services.getService("PlaybackControl")
 
@@ -261,6 +273,8 @@ def execute_2():
     logger.info("seekTimeEnd")
 
     execute_2.i = MethodInvoker(QCoreApplication.quit, Qt.QueuedConnection)
+    logger.info("execute_2:end")
+    
 
 if stage == 0:
     execute_0()

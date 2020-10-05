@@ -92,7 +92,10 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
         # need to hold the reference of this until the method is called
         i2 = MethodInvoker(dict(object=Application, method="initialize", thread=app.thread()),
                            MethodInvoker.IDLE_TASK) # pylint: disable=unused-variable
-        waitForSignal(Application.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
+        waitForSignal(config.appActivated)
+        if Application.activeApplication.getState() != FilterState.ACTIVE:
+            waitForSignal(Application.activeApplication.stateChanged, lambda s: s == FilterState.ACTIVE)
+        logger.info("done")
 
     def cleanup():
         logger.debug("cleaning up loaded services")
