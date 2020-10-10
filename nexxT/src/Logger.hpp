@@ -10,7 +10,7 @@
 
 #include "Services.hpp"
 #include "NexTLinkage.hpp"
-#include "QtCore/QMetaObject"
+#include <QtCore/QMetaObject>
 
 #define NEXT_LOG_LEVEL_NOTSET 0
 #define NEXT_LOG_LEVEL_INTERNAL 5
@@ -22,22 +22,35 @@
 
 #ifdef AVOID_NAMESPACE
 #define NEXT_LOG_INTERNAL(msg) log(NEXT_LOG_LEVEL_INTERNAL, msg, __FILE__, __LINE__)
-#define NEXT_LOG_DEBUG(msg) log(NEXT_LOG_LEVEL_DEBUG, msg, __FILE__, __LINE__)
-#define NEXT_LOG_INFO(msg) log(NEXT_LOG_LEVEL_INFO, msg, __FILE__, __LINE__)
-#define NEXT_LOG_WARN(msg) log(NEXT_LOG_LEVEL_WARN, msg, __FILE__, __LINE__)
-#define NEXT_LOG_ERROR(msg) log(NEXT_LOG_LEVEL_ERROR, msg, __FILE__, __LINE__)
-#define NEXT_LOG_CRITICAL(msg) log(NEXT_LOG_LEVEL_CRITICAL, msg, __FILE__, __LINE__)
+#define NEXT_LOG_DEBUG(msg) Logging::log(NEXT_LOG_LEVEL_DEBUG, msg, __FILE__, __LINE__)
+#define NEXT_LOG_INFO(msg) Logging::log(NEXT_LOG_LEVEL_INFO, msg, __FILE__, __LINE__)
+#define NEXT_LOG_WARN(msg) Logging::log(NEXT_LOG_LEVEL_WARN, msg, __FILE__, __LINE__)
+#define NEXT_LOG_ERROR(msg) Logging::log(NEXT_LOG_LEVEL_ERROR, msg, __FILE__, __LINE__)
+#define NEXT_LOG_CRITICAL(msg) Logging::log(NEXT_LOG_LEVEL_CRITICAL, msg, __FILE__, __LINE__)
 #else
-#define NEXT_LOG_INTERNAL(msg) nexxT::log(NEXT_LOG_LEVEL_INTERNAL, msg, __FILE__, __LINE__)
-#define NEXT_LOG_DEBUG(msg) nexxT::log(NEXT_LOG_LEVEL_DEBUG, msg, __FILE__, __LINE__)
-#define NEXT_LOG_INFO(msg) nexxT::log(NEXT_LOG_LEVEL_INFO, msg, __FILE__, __LINE__)
-#define NEXT_LOG_WARN(msg) nexxT::log(NEXT_LOG_LEVEL_WARN, msg, __FILE__, __LINE__)
-#define NEXT_LOG_ERROR(msg) nexxT::log(NEXT_LOG_LEVEL_ERROR, msg, __FILE__, __LINE__)
-#define NEXT_LOG_CRITICAL(msg) nexxT::log(NEXT_LOG_LEVEL_CRITICAL, msg, __FILE__, __LINE__)
+#define NEXT_LOG_INTERNAL(msg) nexxT::Logging::log(NEXT_LOG_LEVEL_INTERNAL, msg, __FILE__, __LINE__)
+#define NEXT_LOG_DEBUG(msg) nexxT::Logging::log(NEXT_LOG_LEVEL_DEBUG, msg, __FILE__, __LINE__)
+#define NEXT_LOG_INFO(msg) nexxT::Logging::log(NEXT_LOG_LEVEL_INFO, msg, __FILE__, __LINE__)
+#define NEXT_LOG_WARN(msg) nexxT::Logging::log(NEXT_LOG_LEVEL_WARN, msg, __FILE__, __LINE__)
+#define NEXT_LOG_ERROR(msg) nexxT::Logging::log(NEXT_LOG_LEVEL_ERROR, msg, __FILE__, __LINE__)
+#define NEXT_LOG_CRITICAL(msg) nexxT::Logging::log(NEXT_LOG_LEVEL_CRITICAL, msg, __FILE__, __LINE__)
 #endif
 
 START_NAMESPACE
-    DLLEXPORT void log(unsigned int level, const QString &message, const QString &file, unsigned int line);
+    class DLLEXPORT Logging
+    {
+        static unsigned int loglevel;
+        static void _log(unsigned int level, const QString &message, const QString &file, unsigned int line);
+    public:
+        static void setLogLevel(unsigned int level);
+        static inline void log(unsigned int level, const QString &message, const QString &file, unsigned int line)
+        {
+            if( level >= loglevel )
+            {
+                _log(level, message, file, line);
+            }
+        }
+    };
 STOP_NAMESPACE
 
 #endif

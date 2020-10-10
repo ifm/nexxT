@@ -10,7 +10,14 @@
 USE_NAMESPACE
 
 START_NAMESPACE
-    void log(unsigned int level, const QString &message, const QString &file, unsigned int line)
+    unsigned int Logging::loglevel;
+
+    void Logging::setLogLevel(unsigned int level)
+    {
+        loglevel = level;
+    }
+
+    void Logging::_log(unsigned int level, const QString &message, const QString &file, unsigned int line)
     { 
         SharedQObjectPtr logger = Services::getService("Logging");
         if( !logger.isNull() )

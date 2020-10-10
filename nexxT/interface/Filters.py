@@ -195,13 +195,13 @@ class Filter(QObject):
         the opposite to onInit(...)
         :return: None
         """
-        
+
     def environment(self):
         """
         Returns the environment associated with this filter.
         :return: a FilterEnvironment instance
         """
-        return _environment
+        return self._environment
 
 class FilterSurrogate:
     """

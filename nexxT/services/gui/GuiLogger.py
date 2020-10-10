@@ -55,6 +55,16 @@ class LogView(QTableView): # pragma: no cover
         def __init__(self):
             super().__init__()
             self.entries = []
+            self.singleLineMode = True
+
+        def setSingleLineMode(self, enabled):
+            """
+            called from the table view to indicate single line mode (in this mode only the last line of a log message
+            is displayed.
+            :param enabled: boolean
+            :return:
+            """
+            self.singleLineMode = enabled
 
         def rowCount(self, parent):
             """
@@ -147,7 +157,6 @@ class LogView(QTableView): # pragma: no cover
                 return None
             e = self.entries[modelIndex.row()]
             if role in [Qt.DisplayRole, Qt.EditRole]:
-                #print("data", modelIndex.row(), modelIndex.column(), role)
                 if modelIndex.column() == 1:
                     levelno = e[1]
                     if levelno <= logging.INTERNAL:
@@ -161,7 +170,14 @@ class LogView(QTableView): # pragma: no cover
                     if logging.WARNING < levelno <= logging.ERROR:
                         return "ERROR"
                     return "CRITICAL"
+                if modelIndex.column() == 2 and self.singleLineMode:
+                    msg = e[2]
+                    if "\n" in msg:
+                        msg = msg[msg.rfind("\n")+1:]
+                    return msg
                 return e[modelIndex.column()]
+            if role == Qt.ToolTipRole:
+                return e[2]
             if role == Qt.BackgroundColorRole:
                 levelno = e[1]
                 if levelno <= logging.INTERNAL:
@@ -180,11 +196,12 @@ class LogView(QTableView): # pragma: no cover
     def __init__(self):
         super().__init__()
         self.follow = True
-        self.model = self.LogModel()
-        #self.setUniformRowHeights(True)
+        self._model = self.LogModel()
         self.setShowGrid(False)
         self.queue = Queue()
-        self.setModel(self.model)
+        self.setModel(self._model)
+        self._rowHeight = None
+        self._uniformRowHeights = True
         self.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
@@ -197,6 +214,63 @@ class LogView(QTableView): # pragma: no cover
         self.timer.setSingleShot(False)
         self.timer.start(100)
         self.timer.timeout.connect(self.update, Qt.QueuedConnection)
+
+    def setUniformRowHeights(self, enabled):
+        """
+        Takeover from QTreeView, see also here https://stackoverflow.com/questions/50943356/qtableview-performance
+        :param enabled:
+        :return:
+        """
+        if enabled != self._uniformRowHeights:
+            self._uniformRowHeights = enabled
+            self._model.setSingleLineMode(enabled)
+            self._rowHeight = None
+            if enabled:
+                func = self.sizeHintForRow
+            else:
+                func = lambda r: max(self._getCellHeights(r))
+            for r in range(self._model.rowCount(QModelIndex())):
+                self.setRowHeight(r, func(r))
+            if self.follow:
+                self.scrollToBottom()
+
+    def sizeHintForRow(self, row):
+        """
+        return a size hint for the given row index
+        :param row: the row index as integer
+        :return: the height of the row as integer
+        """
+        if self._uniformRowHeights:
+            if row < 0 or row >= self._model.rowCount(QModelIndex()):
+                # Mirror super implementation.
+                return -1
+            return self._getRowHeight()
+        return super().sizeHintForRow(row)
+
+    def _getRowHeight(self):
+        if self._rowHeight is None:
+            self._rowHeight = max(self._getCellHeights())
+        return self._rowHeight
+
+    def changeEvent(self, event):
+        """
+        This for instance happens when the style sheet changed. It may affect
+        the calculated row height. So invalidate:
+        :param event: the event causing the change
+        :return:
+        """
+        self._rowHeight = None
+        super().changeEvent(event)
+
+    def _getCellHeights(self, row=0):
+        self.ensurePolished()
+        option = self.viewOptions()
+        model = self._model
+        for column in range(model.columnCount(QModelIndex())):
+            index = model.index(row, column, QModelIndex())
+            delegate = self.itemDelegate(index)
+            if delegate:
+                yield delegate.sizeHint(option, index).height()
 
     def addLogRecord(self, items):
         """
@@ -213,7 +287,7 @@ class LogView(QTableView): # pragma: no cover
         """
         assertMainThread()
         if not self.queue.empty():
-            self.model.update(self.queue)
+            self._model.update(self.queue)
             if self.follow:
                 self.scrollToBottom()
 
@@ -230,7 +304,7 @@ class LogView(QTableView): # pragma: no cover
         Clears the view
         :return: None
         """
-        self.model.clear()
+        self._model.clear()
 
 class GuiLogger(ConsoleLogger): # pragma: no cover
     """
@@ -258,10 +332,11 @@ class GuiLogger(ConsoleLogger): # pragma: no cover
         self.actSingleLine = QAction("Single Line")
         self.actSingleLine.setCheckable(True)
         self.actSingleLine.setChecked(True)
+        self.logWidget.setUniformRowHeights(True)
 
         self.actFollow.toggled.connect(self.logWidget.setFollow)
         self.actClear.triggered.connect(self.logWidget.clear)
-        #self.actSingleLine.toggled.connect(self.logWidget.setUniformRowHeights)
+        self.actSingleLine.toggled.connect(self.logWidget.setUniformRowHeights)
 
         self.actDisable = QAction("Disable")
         self.actDisable.triggered.connect(self.setLogLevel)
@@ -286,7 +361,6 @@ class GuiLogger(ConsoleLogger): # pragma: no cover
             logMenu.addAction(a)
         self.loglevelMap[self.actDisable] = 100
         logMenu.addAction(self.actDisable)
-        
         logMenu.addSeparator()
         logMenu.addAction(self.actClear)
         logMenu.addAction(self.actFollow)

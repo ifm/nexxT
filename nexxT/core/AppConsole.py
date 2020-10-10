@@ -85,7 +85,7 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
         mainWindow.restoreState()
         mainWindow.show()
         # the reference will still be held by the service, but here we don't need it anymore
-        del mainWindow 
+        del mainWindow
     if active is not None:
         config.activate(active)
         # pylint: disable=unused-variable
@@ -135,8 +135,8 @@ def main(withGui):
     main function used as entry point
     :return: None
     """
-    parser = ArgumentParser(description="nexxT console application", 
-                            formatter_class=RawDescriptionHelpFormatter, 
+    parser = ArgumentParser(description="nexxT console application",
+                            formatter_class=RawDescriptionHelpFormatter,
                             epilog="""\
 The following environment variables have effect on nexxT's behaviour:
 

@@ -36,7 +36,7 @@ logger.__class__ = type("CplusplusLogger", (logger.__class__,), dict(makeRecord=
 
 class ConsoleLogger(QObject):
     """
-    Logging service to console (using python logging module)
+    Logging service to console (using python logging module). This class is used to log messages in C++.
     """
     @Slot(int, str, str, int)
     def log(self, level, message, file, line): # pylint: disable=no-self-use

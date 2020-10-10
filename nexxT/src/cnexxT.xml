@@ -127,6 +127,7 @@
             </modify-function>
         </object-type>
 
-        
+        <object-type name="Logging" />
+
     </namespace-type>
 </typesystem>

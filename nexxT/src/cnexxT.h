@@ -14,3 +14,4 @@
 #include "Services.hpp"
 #include "PropertyCollection.hpp"
 #include "NexTPlugins.hpp"
+#include "Logger.hpp"

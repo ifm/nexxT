@@ -54,5 +54,12 @@ def setup():
         import cnexxT as imp_cnexxT
         global cnexxT
         cnexxT = imp_cnexxT
+        def setLevel(level):
+            ret = setLevel.origFunc(level)
+            cnexxT.nexxT.Logging.setLogLevel(logger.level)
+            return ret
+        setLevel.origFunc = logger.setLevel
+        logger.setLevel = setLevel
+        logger.setLevel(logging.INFO)
 
 setup()
