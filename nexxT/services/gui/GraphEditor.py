@@ -1221,7 +1221,7 @@ class GraphScene(BaseGraphScene): # pragma: no cover
                 for op in outputPorts:
                     self.graph.addDynamicOutputPort(item.name, op)
             else:
-                QMessageBox.information(self.views()[0], "The filter does not suggest any ports.")
+                QMessageBox.information(self.views()[0], "nexxT: information", "The filter does not suggest any ports.")
 
     def onAddFilterFromFile(self):
         """
