@@ -14,14 +14,15 @@ import os.path
 import pkg_resources
 from PySide2.QtWidgets import (QGraphicsScene, QGraphicsItemGroup, QGraphicsSimpleTextItem,
                                QGraphicsPathItem, QGraphicsItem, QMenu, QAction, QInputDialog, QMessageBox,
-                               QGraphicsLineItem, QFileDialog)
+                               QGraphicsLineItem, QFileDialog, QDialog, QGridLayout, QCheckBox, QVBoxLayout, QGroupBox,
+                               QDialogButtonBox)
 from PySide2.QtGui import QBrush, QPen, QColor, QPainterPath, QImage
 from PySide2.QtCore import QPointF, Signal, QObject, QRectF, QSizeF, Qt
 from nexxT.core.BaseGraph import BaseGraph
 from nexxT.core.Graph import FilterGraph
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.PluginManager import PluginManager
-from nexxT.core.Utils import checkIdentifier, handleException
+from nexxT.core.Utils import checkIdentifier, handleException, assertMainThread
 from nexxT.core.Exceptions import InvalidIdentifierException
 from nexxT.interface import InputPortInterface, OutputPortInterface
 from nexxT.services.gui import GraphLayering
@@ -811,6 +812,91 @@ class BaseGraphScene(QGraphicsScene): # pragma: no cover
                 maxdx = max(maxdx, self.nodes[n].nodeWidth())
             x += maxdx + self.STYLE_ROLE_HSPACING
 
+class PortSelectorDialog(QDialog):
+    """
+    Dialog for selecting the ports which shall be created.
+    """
+    def __init__(self, parent, inputPorts, outputPorts, graph, nodeName):
+        """
+        Constructor
+        :param parent: this dialog's parent widget
+        :param inputPorts: the list of input port names
+        :param outputPorts: the list of output port names
+        :param graph: the corresponding BaseGraph instance
+        :param nodeName: the name of the corresponding node
+        """
+        super().__init__(parent)
+        layout = QGridLayout()
+        gbi = QGroupBox("Input Ports", self)
+        gbo = QGroupBox("Output Ports", self)
+        vbi = QVBoxLayout()
+        vbo = QVBoxLayout()
+        self.inputCheckBoxes = []
+        self.outputCheckBoxes = []
+        self.selectedInputPorts = []
+        self.selectedOutputPorts = []
+        for ip in inputPorts:
+            cb = QCheckBox(ip)
+            cb.setText(ip)
+            cb.setChecked(True)
+            if ip in graph.allInputPorts(nodeName):
+                cb.setEnabled(False)
+            else:
+                cb.setEnabled(True)
+            vbi.addWidget(cb)
+            self.inputCheckBoxes.append(cb)
+        gbi.setLayout(vbi)
+        for op in outputPorts:
+            cb = QCheckBox(op)
+            cb.setText(op)
+            cb.setChecked(True)
+            if op in graph.allOutputPorts(nodeName):
+                cb.setEnabled(False)
+            else:
+                cb.setEnabled(True)
+            vbo.addWidget(cb)
+            self.outputCheckBoxes.append(cb)
+        gbo.setLayout(vbo)
+        layout = QGridLayout(self)
+        layout.addWidget(gbi, 0, 0)
+        layout.addWidget(gbo, 0, 1)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+        layout.addWidget(buttonBox, 1, 0, 1, 2)
+        self.setLayout(layout)
+        self.setWindowTitle("Select Ports to be created")
+
+    def accept(self):
+        """
+        Accepts user selection.
+        """
+        self.selectedInputPorts = [cb.text() for cb in self.inputCheckBoxes if cb.isChecked() and cb.isEnabled()]
+        self.selectedOutputPorts = [cb.text() for cb in self.outputCheckBoxes if cb.isChecked() and cb.isEnabled()]
+        return super().accept()
+        
+    def reject(self):
+        """
+        Rejects user selection.
+        """
+        self.selectedInputPorts = []
+        self.selectedOutputPorts = []
+        return super().reject()
+
+    @staticmethod
+    def getSelectedPorts(parent, inputPorts, outputPorts, graph, nodeName):
+        """
+        Convenience function for executing the dialog.
+        :param parent: this dialog's parent widget
+        :param inputPorts: the list of input port names
+        :param outputPorts: the list of output port names
+        :param graph: the corresponding BaseGraph instance
+        :param nodeName: the name of the corresponding node
+        """
+        d = PortSelectorDialog(parent, inputPorts, outputPorts, graph, nodeName)
+        if d.exec() == QDialog.Accepted:
+            return d.selectedInputPorts, d.selectedOutputPorts
+        return [], []
 
 class GraphScene(BaseGraphScene): # pragma: no cover
     """
@@ -859,6 +945,7 @@ class GraphScene(BaseGraphScene): # pragma: no cover
             self.actRemovePort = QAction("Remove dynamic port ...", self)
             self.actAddInputPort = QAction("Add dynamic input port ...", self)
             self.actAddOutputPort = QAction("Add dynamic output port ...", self)
+            self.actSuggestDynamicPorts = QAction("Suggest dynamic ports ...", self)
             self.entryPointActions = dict()
             for ep in pkg_resources.iter_entry_points("nexxT.filters"):
                 d = self.entryPointActions
@@ -883,6 +970,7 @@ class GraphScene(BaseGraphScene): # pragma: no cover
             self.actAddNodeFromMod = QAction("Add filter from python module ...", self)
             self.actAddComposite = QAction("Add filter form composite definition ...", self)
             self.actSetThread = QAction("Set thread ...", self)
+            self.actSuggestDynamicPorts.triggered.connect(self.onSuggestDynamicPorts)
             self.actAddNode.triggered.connect(self.onAddFilterFromFile)
             self.actAddNodeFromMod.triggered.connect(self.onAddFilterFromMod)
             self.actAddComposite.triggered.connect(self.onAddComposite)
@@ -944,13 +1032,15 @@ class GraphScene(BaseGraphScene): # pragma: no cover
         self.itemOfContextMenu = item
         if isinstance(item, BaseGraphScene.NodeItem):
             m = QMenu(self.views()[0])
-            m.addActions([self.actRenameNode, self.actRemoveNode, self.actAddInputPort, self.actAddOutputPort])
+            m.addActions([self.actRenameNode, self.actRemoveNode, self.actAddInputPort, self.actAddOutputPort,
+                          self.actSuggestDynamicPorts])
             if isinstance(self.graph, FilterGraph):
                 m.addAction(self.actSetThread)
                 mockup = self.graph.getMockup(item.name)
                 din, dout = mockup.getDynamicPortsSupported()
                 self.actAddInputPort.setEnabled(din)
                 self.actAddOutputPort.setEnabled(dout)
+                self.actSuggestDynamicPorts.setEnabled(din or dout)
                 if (issubclass(mockup.getPluginClass(), CompositeFilter) or
                         issubclass(mockup.getPluginClass(), CompositeFilter.CompositeNode) or
                         issubclass(mockup.getPluginClass(), CompositeFilter.CompositeOutputNode) or
@@ -1112,6 +1202,26 @@ class GraphScene(BaseGraphScene): # pragma: no cover
         if ok:
             self.graph.addNode(newName)
             self.nodes[newName].setPos(self.itemOfContextMenu)
+
+    def onSuggestDynamicPorts(self):
+        """
+        Called when the user wants to add dynamic ports based on the filter's suggestions.
+        :return:
+        """
+        assertMainThread()
+        item = self.itemOfContextMenu
+        if isinstance(item, BaseGraphScene.NodeItem) and isinstance(self.graph, FilterGraph):
+            mockup = self.graph.getMockup(item.name)
+            with mockup.createFilter() as env:
+                inputPorts, outputPorts = env.getPlugin().onSuggestDynamicPorts()
+            if len(inputPorts) > 0 or len(outputPorts) > 0:
+                inputPorts, outputPorts = PortSelectorDialog.getSelectedPorts(self.views()[0], inputPorts, outputPorts, self.graph, item.name)
+                for ip in inputPorts:
+                    self.graph.addDynamicInputPort(item.name, ip)
+                for op in outputPorts:
+                    self.graph.addDynamicOutputPort(item.name, op)
+            else:
+                QMessageBox.information(self.views()[0], "The filter does not suggest any ports.")
 
     def onAddFilterFromFile(self):
         """

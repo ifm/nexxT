@@ -72,6 +72,7 @@ START_NAMESPACE
         virtual void onStop();
         virtual void onClose();
         virtual void onDeinit();
+        virtual QList<QList<QString> > onSuggestDynamicPorts();
 
         BaseFilterEnvironment *environment() const;
 

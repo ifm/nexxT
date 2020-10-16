@@ -201,7 +201,16 @@ class Filter(QObject):
         Returns the environment associated with this filter.
         :return: a FilterEnvironment instance
         """
-        return _environment
+        return self._environment
+
+    def onSuggestDynamicPorts(self):
+        """
+        Shall return the suggested dynamic ports of this filter. Prominent example is to return the streams
+        contained in a HDF5 file. Note that it is safe to assume that the instance lives in the GUI thread,
+        when this function is called from the nexxT framework.
+        :return: listOfInputPortNames, listOfOutputPortNames
+        """
+        return [], []
 
 class FilterSurrogate:
     """

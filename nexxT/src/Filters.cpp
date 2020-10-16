@@ -156,6 +156,14 @@ void Filter::onDeinit()
     /* intentionally empty */
 }
 
+QList<QList<QString> > Filter::onSuggestDynamicPorts()
+{
+    QList<QString> inputPorts;
+    QList<QString> outputPorts;
+    return {inputPorts, outputPorts};
+}
+
+
 BaseFilterEnvironment *Filter::environment() const
 {
     return d->environment;
