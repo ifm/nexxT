@@ -259,7 +259,9 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         """
         assertMainThread()
         self.beginTime = begin
+        self.preventSeek = True
         self.positionSlider.setRange(0, end.toMSecsSinceEpoch() - begin.toMSecsSinceEpoch())
+        self.preventSeek = False
         self.beginLabel.setText(begin.toString("hh:mm:ss.zzz"))
         self.endLabel.setText(end.toString("hh:mm:ss.zzz"))
         self._currentTimestampChanged(begin)

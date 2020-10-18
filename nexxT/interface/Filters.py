@@ -203,6 +203,15 @@ class Filter(QObject):
         """
         return self._environment
 
+    def onSuggestDynamicPorts(self):
+        """
+        Shall return the suggested dynamic ports of this filter. Prominent example is to return the streams
+        contained in a HDF5 file. Note that it is safe to assume that the instance lives in the GUI thread,
+        when this function is called from the nexxT framework.
+        :return: listOfInputPortNames, listOfOutputPortNames
+        """
+        return [], []
+
 class FilterSurrogate:
     """
     This class acts as a surrogate to reference a filter from a DLL/shared object plugin from within python.

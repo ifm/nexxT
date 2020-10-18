@@ -317,6 +317,17 @@ class Hdf5Reader(Filter):
         srv = Services.getService("PlaybackControl")
         srv.removeConnections(self)
 
+    def onSuggestDynamicPorts(self):
+        try:
+            from PySide2.QtWidgets import QFileDialog
+            fn, ok = QFileDialog.getOpenFileName(caption="Choose template hdf5 file", filter="HDF5 files (*.h5 *.hdf5 *.hdf")
+            if ok:
+                f = h5py.File(fn, "r")
+                return [], [s for s in f["streams"]]
+        except Exception as e:
+            logger.exception("Caught exception during onSuggestDynamicPorts")
+        return [], []
+
     # private slots and methods
 
     def _timeSpan(self):

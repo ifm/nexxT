@@ -23,6 +23,11 @@ def test_static_filter():
     with FilterEnvironment("pyfile://" + os.path.dirname(__file__) + "/../interface/SimpleStaticFilter.py", "SimpleStaticFilter",
                            PropertyCollectionImpl("root", None) ) as staticPyFilter:
         f = staticPyFilter.getPlugin()
+        
+        # call the methods to check everything is sane
+        assert f.environment() is staticPyFilter
+        assert len(f.onSuggestDynamicPorts()[0]) == 0
+        assert len(f.onSuggestDynamicPorts()[1]) == 0
 
         origCallbacks = dict(onInit=f.onInit, onOpen=f.onOpen, onStart=f.onStart, onStop=f.onStop, onClose=f.onClose,
                              onDeinit=f.onDeinit, onPortDataChanged=f.onPortDataChanged)
