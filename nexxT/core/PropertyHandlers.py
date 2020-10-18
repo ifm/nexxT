@@ -286,10 +286,8 @@ class FloatHandler(PropertyHandler):
         """
         res = QLineEdit(parent)
         v = QDoubleValidator()
-        if "min" in self._options:
-            v.setBottom(self._options["min"])
-        if "max" in self._options:
-            res.setTop(self._options["max"])
+        # QDoubleValidator seems to have a very strange behaviour when bottom and/or top values are set.
+        # Therefore, we don't use this feature and rely on our own implementation.
         res.setValidator(v)
         res.setFrame(False)
         return res
@@ -309,7 +307,8 @@ class FloatHandler(PropertyHandler):
         :param editor: the instance returned by createEditor
         :return: the float value
         """
-        return self.validate(editor.text())
+        res = self.validate(float(editor.text()))
+        return res
 
 
 class BoolHandler(PropertyHandler):

@@ -59,6 +59,8 @@ START_NAMESPACE
 
         virtual void updatePortInformation(const BaseFilterEnvironment &other) = 0;
 
+        virtual QString getFullQualifiedName() const = 0;
+
     public:
         virtual int state() const = 0;
 

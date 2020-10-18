@@ -12,7 +12,7 @@ from argparse import ArgumentParser, ArgumentTypeError, RawDescriptionHelpFormat
 import logging
 import signal
 import sys
-from PySide2.QtCore import QCoreApplication
+from PySide2.QtCore import QCoreApplication, QLocale
 from PySide2.QtWidgets import QApplication
 
 from nexxT.core.Utils import SQLiteHandler, MethodInvoker, waitForSignal
@@ -25,12 +25,13 @@ from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.services.SrvConfiguration import MVCConfigurationBase
 from nexxT.services.SrvPlaybackControl import PlaybackControlConsole
 from nexxT.services.SrvRecordingControl import MVCRecordingControlBase
+from nexxT.services.SrvProfiling import ProfilingService
 from nexxT.services.gui.GuiLogger import GuiLogger
 from nexxT.services.gui.MainWindow import MainWindow
 from nexxT.services.gui.Configuration import MVCConfigurationGUI
 from nexxT.services.gui.PlaybackControl import MVCPlaybackControlGUI
 from nexxT.services.gui.RecordingControl import MVCRecordingControlGUI
-
+from nexxT.services.gui.Profiling import Profiling
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ def setupConsoleServices(config):
     Services.addService("PlaybackControl", PlaybackControlConsole(config))
     Services.addService("RecordingControl", MVCRecordingControlBase(config))
     Services.addService("Configuration", MVCConfigurationBase(config))
+    Services.addService("Profiling", ProfilingService())
 
 def setupGuiServices(config):
     """
@@ -57,6 +59,7 @@ def setupGuiServices(config):
     Services.addService("PlaybackControl", MVCPlaybackControlGUI(config))
     Services.addService("RecordingControl", MVCRecordingControlGUI(config))
     Services.addService("Configuration", MVCConfigurationGUI(config))
+    Services.addService("Profiling", Profiling())
 
 def startNexT(cfgfile, active, execScripts, execCode, withGui):
     """
@@ -67,6 +70,9 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
     """
     logger.debug("Starting nexxT...")
     config = Configuration()
+    lcl = QLocale.system()
+    lcl.setNumberOptions(QLocale.c().numberOptions())
+    QLocale.setDefault(lcl)
     if withGui:
         app = QApplication()
         app.setOrganizationName("nexxT")

@@ -11,10 +11,10 @@ This module defines the class NexTThread.
 import logging
 import sys
 import threading
-from PySide2.QtCore import QObject, Signal, Slot, QCoreApplication, QThread
-from nexxT.interface import FilterState
+from PySide2.QtCore import QObject, Signal, Slot, QCoreApplication, QThread, Qt
+from nexxT.interface import FilterState, Services
 from nexxT.core.Exceptions import NodeExistsError, NexTInternalError, NodeNotFoundError, NexTRuntimeError
-from nexxT.core.Utils import handleException
+from nexxT.core.Utils import handleException, MethodInvoker
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +73,15 @@ class NexTThread(QObject):
         self._filter2name = {}
         self._mockups = {}
         self._name = name
+        try:
+            self._profsrv = Services.getService("Profiling")
+        except KeyError:
+            self._profsrv = None
         if not self.thread() is QCoreApplication.instance().thread():
             raise NexTInternalError("unexpected thread")
         if name == "main":
             self._qthread = QCoreApplication.instance().thread()
+            self._qthread.setObjectName(name)
         else:
             self._qthread = self.ThreadWithCoverage(parent=self)
             self._qthread.setObjectName(name)
@@ -184,6 +189,10 @@ class NexTThread(QObject):
                 else:
                     op = getattr(self._filters[name], operation)
                     op()
+                if operation == "start":
+                    if self._profsrv is not None and self._profsrv.data() is not None: self._profsrv.registerThread()
+                elif operation == "stop":
+                    if self._profsrv is not None and self._profsrv.data() is not None: self._profsrv.deregisterThread()
             except Exception: # pylint: disable=broad-except
                 # catching a general exception is exactly what is wanted here
                 logging.getLogger(__name__).exception("Exception while performing operation '%s' on %s",

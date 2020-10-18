@@ -21,7 +21,7 @@ from nexxT.core.BaseGraph import BaseGraph
 from nexxT.core.Graph import FilterGraph
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.PluginManager import PluginManager
-from nexxT.core.Utils import checkIdentifier, handleException
+from nexxT.core.Utils import checkIdentifier, handleException, ThreadToColor
 from nexxT.core.Exceptions import InvalidIdentifierException
 from nexxT.interface import InputPortInterface, OutputPortInterface
 from nexxT.services.gui import GraphLayering
@@ -902,23 +902,11 @@ class GraphScene(BaseGraphScene): # pragma: no cover
     def getData(self, item, role):
         if isinstance(item, BaseGraphScene.NodeItem) and isinstance(self.graph, FilterGraph):
             if role == BaseGraphScene.STYLE_ROLE_BRUSH:
-                def newColor():
-                    n = len(self._threadBrushes)
-                    # [0] -> default ~ 120
-                    if n < 6:
-                        return QColor.fromHsv((120 + n*60) % 360, 200, 255)
-                    if n < 12:
-                        return QColor.fromHsv((30 + (n-6)*60) % 360, 200, 255)
-                    if n < 18:
-                        return QColor.fromHsv((30 + (n-6)*60) % 360, 100, 255)
-                    if n < 24:
-                        return QColor.fromHsv((30 + (n-6)*60) % 360, 100, 255)
-                    return QColor.fromHsv(0, 0, 200)
                 mockup = self.graph.getMockup(item.name)
                 threads = tuple(sorted(CompositeFilter.getThreadSet(mockup)))
                 for t in threads:
                     if not t in self._threadBrushes:
-                        self._threadBrushes[t] = QBrush(newColor())
+                        self._threadBrushes[t] = QBrush(ThreadToColor.singleton.get(t))
                 if len(threads) == 1:
                     return self._threadBrushes[threads[0]]
                 if threads not in self._threadBrushes:

@@ -12,6 +12,7 @@ import logging
 from PySide2.QtCore import QThread, QSemaphore, Signal, QObject, Qt
 from nexxT.interface.Ports import InputPortInterface, OutputPortInterface
 from nexxT.interface.DataSamples import DataSample
+from nexxT.interface.Services import Services
 from nexxT.core.Utils import handleException
 from nexxT.core.Exceptions import NexTRuntimeError, NexTInternalError
 
@@ -109,6 +110,11 @@ class InputPortImpl(InputPortInterface):
         super().__init__(dynamic, name, environment)
         self.queueSizeSamples = queueSizeSamples
         self.queueSizeSeconds = queueSizeSeconds
+        try:
+            self.srvprof = Services.getService("Profiling")
+        except KeyError:
+            self.srvprof = None
+        self.profname = None
         # the queue is implemented here as a python list, which is implemented as a c array
         # in cpython. Not the most performant choice, but it is usually not used because
         # this is just a reference implementation for the more performant C++ implementation
@@ -146,7 +152,13 @@ class InputPortImpl(InputPortInterface):
             queueSizeTime = self.queueSizeSeconds / DataSample.TIMESTAMP_RES
             while len(self.queue) > 0 and self.queue[0].getTimestamp() - self.queue[-1].getTimestamp() > queueSizeTime:
                 self.queue.pop()
+        if self.srvprof is not None:
+            if self.profname is None:
+                self.profname = self.environment().getFullQualifiedName() + self.name()
+            self.srvprof.beforePortDataChanged(self.profname)
         self.environment().portDataChanged(self)
+        if self.srvprof is not None:
+            self.srvprof.afterPortDataChanged(self.profname)
 
     def receiveAsync(self, dataSample, semaphore):
         return self._receiveAsync(dataSample, semaphore)

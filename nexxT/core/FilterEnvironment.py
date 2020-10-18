@@ -95,6 +95,23 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
                 logger.warning("Cannot find guiState.")
         return None
 
+    def getFullQualifiedName(self):
+        """
+        Returns the fully qualified name of this filter.
+        :return: a string instance.
+        """
+        # pylint: disable=import-outside-toplevel
+        # to avoid recursive import
+        from nexxT.core.Thread import NexTThread
+        from nexxT.core.Application import Application
+        if isinstance(self.parent(), NexTThread) and Application.activeApplication is not None:
+            try:
+                return self.parent().getName(self)
+            except NexTRuntimeError:
+                pass
+        logger.warning("Cannot find name of environment.")
+        return "?unknown?"
+
     def addPort(self, port):
         """
         Register a port of this filter.

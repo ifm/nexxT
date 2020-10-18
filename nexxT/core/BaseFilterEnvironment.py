@@ -122,3 +122,10 @@ else:
             except Exception: # pylint: disable=broad-except
                 # catching a general exception is exactly what is wanted here
                 logger.exception("Uncaught exception")
+
+        def getFullQualifiedName(self):
+            """
+            Returns the fully qualified name of this filter.
+            :return: string instance
+            """
+            raise NotImplementedError()

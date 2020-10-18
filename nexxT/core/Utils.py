@@ -19,6 +19,7 @@ import sqlite3
 import time
 from PySide2.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
                             QMutexLocker, QRecursiveMutex, QTimer, QSortFilterProxyModel, Qt)
+from PySide2.QtGui import QColor
 from nexxT.core.Exceptions import NexTInternalError, InvalidIdentifierException
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,33 @@ class MethodInvoker(QObject):
         :return: None
         """
         self.callback(*self.args)
+
+class ThreadToColor:
+    singleton = None
+
+    def _newColor(self):
+        n = len(self._threadColors)
+        # [0] -> default ~ 120
+        if n < 6:
+            return QColor.fromHsv((120 + n*60) % 360, 200, 255)
+        if n < 12:
+            return QColor.fromHsv((30 + (n-6)*60) % 360, 200, 255)
+        if n < 18:
+            return QColor.fromHsv((30 + (n-6)*60) % 360, 100, 255)
+        if n < 24:
+            return QColor.fromHsv((30 + (n-6)*60) % 360, 100, 255)
+        return QColor.fromHsv(0, 0, 200)
+
+    def __init__(self):
+        self._threadColors = {}
+        self.get("main")
+
+    def get(self, thread):
+        if not thread in self._threadColors:
+            self._threadColors[thread] = self._newColor()
+        return self._threadColors[thread]
+
+ThreadToColor.singleton = ThreadToColor()
 
 def waitForSignal(signal, callback=None, timeout=None):
     """

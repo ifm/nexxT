@@ -9,6 +9,8 @@
 #include "DataSamples.hpp"
 #include "FilterEnvironment.hpp"
 #include "Logger.hpp"
+#include "Services.hpp"
+
 #include <QtCore/QThread>
 #include <cstdio>
 
@@ -27,6 +29,8 @@ START_NAMESPACE
         int queueSizeSamples;
         double queueSizeSeconds;
         QList<SharedDataSamplePtr> queue;
+        SharedQObjectPtr srvprof;
+        QString profname;
     };
 
     struct InterThreadConnectionD
@@ -139,6 +143,8 @@ InputPortInterface::InputPortInterface(bool dynamic, const QString &name, BaseFi
     Port(dynamic, name, env),
     d(new InputPortD{queueSizeSamples, queueSizeSeconds})
 {
+    d->srvprof = Services::getService("Profiling");
+    d->profname = QString();
 }
 
 InputPortInterface::~InputPortInterface()
@@ -203,7 +209,21 @@ void InputPortInterface::addToQueue(const SharedDataSamplePtr &sample)
             d->queue.removeLast();
         }
     }
+    if(d->srvprof.data())
+    {
+        if( d->profname.isNull())
+        {
+            d->profname = environment()->getFullQualifiedName() + "/" + name();
+        }
+        QMetaObject::invokeMethod(d->srvprof.data(), "beforePortDataChanged", Qt::DirectConnection,
+                                  Q_ARG(QString, d->profname));
+    }
     environment()->portDataChanged(*this);
+    if(d->srvprof.data())
+    {
+        QMetaObject::invokeMethod(d->srvprof.data(), "afterPortDataChanged", Qt::DirectConnection,
+                                  Q_ARG(QString, d->profname));
+    }
 }
 
 void InputPortInterface::receiveAsync(const QSharedPointer<const DataSample> &sample, QSemaphore *semaphore)
