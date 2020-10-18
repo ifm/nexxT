@@ -42,7 +42,7 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
         self.actLoad = QAction(QApplication.style().standardIcon(QStyle.SP_DialogOpenButton), "Open config", self)
         self.actLoad.triggered.connect(self._execLoad)
         self.actSave = QAction(QApplication.style().standardIcon(QStyle.SP_DialogSaveButton), "Save config", self)
-        self.actSave.triggered.connect(self.saveConfig)
+        self.actSave.triggered.connect(self._execSaveConfig)
         self.actNew = QAction(QApplication.style().standardIcon(QStyle.SP_FileIcon), "New config", self)
         self.actNew.triggered.connect(self._execNew)
 
@@ -149,10 +149,26 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
         assertMainThread()
         if self._checkDirty():
             return
-        fn, _ = QFileDialog.getSaveFileName(self.mainWidget, "Save configuration", filer="*.json")
+        fn, _ = QFileDialog.getSaveFileName(self.mainWidget, "New configuration", ".", filter="*.json")
         if fn is not None and fn != "":
             logger.debug("Creating config file %s", fn)
             self.newConfig(fn)
+
+    def _execSaveConfig(self):
+        if self.configuration().filename() is None:
+            self._execSaveConfigAs()
+        else:
+            self.saveConfig()
+
+    def _execSaveConfigAs(self):
+        """
+        Opens a file dialog to get the save file name and calls saveConfig.
+        :return:
+        """
+        assertMainThread()
+        fn, _ = QFileDialog.getSaveFileName(self.mainWidget, "Save configuration as", ".", "*.json")
+        if fn is not None and fn != "":
+            self.saveConfigAs(fn)
 
     def _addGraphView(self, subConfig):
         g = subConfig.getGraph()

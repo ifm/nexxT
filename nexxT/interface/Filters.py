@@ -203,7 +203,7 @@ class Filter(QObject):
         """
         return self._environment
 
-    def onSuggestDynamicPorts(self):
+    def onSuggestDynamicPorts(self): # pylint: disable=no-self-use
         """
         Shall return the suggested dynamic ports of this filter. Prominent example is to return the streams
         contained in a HDF5 file. Note that it is safe to assume that the instance lives in the GUI thread,

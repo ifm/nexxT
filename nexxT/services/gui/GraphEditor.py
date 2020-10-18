@@ -874,7 +874,7 @@ class PortSelectorDialog(QDialog):
         self.selectedInputPorts = [cb.text() for cb in self.inputCheckBoxes if cb.isChecked() and cb.isEnabled()]
         self.selectedOutputPorts = [cb.text() for cb in self.outputCheckBoxes if cb.isChecked() and cb.isEnabled()]
         return super().accept()
-        
+
     def reject(self):
         """
         Rejects user selection.
@@ -1203,7 +1203,8 @@ class GraphScene(BaseGraphScene): # pragma: no cover
             with mockup.createFilter() as env:
                 inputPorts, outputPorts = env.getPlugin().onSuggestDynamicPorts()
             if len(inputPorts) > 0 or len(outputPorts) > 0:
-                inputPorts, outputPorts = PortSelectorDialog.getSelectedPorts(self.views()[0], inputPorts, outputPorts, self.graph, item.name)
+                inputPorts, outputPorts = PortSelectorDialog.getSelectedPorts(self.views()[0], inputPorts, outputPorts,
+                                                                              self.graph, item.name)
                 for ip in inputPorts:
                     self.graph.addDynamicInputPort(item.name, ip)
                 for op in outputPorts:

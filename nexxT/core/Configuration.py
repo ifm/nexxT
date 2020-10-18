@@ -172,6 +172,17 @@ class Configuration(QObject):
         self.setDirty(False)
         return cfg
 
+    def filename(self):
+        """
+        Get the configuration file name or None if it is not set.
+        :return:
+        """
+        try:
+            return self._propertyCollection.getProperty("CFGFILE")
+        except PropertyCollectionPropertyNotFound:
+            return None
+
+
     def propertyCollection(self):
         """
         Get the (root) property collection.

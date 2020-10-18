@@ -650,6 +650,19 @@ class MVCConfigurationBase(QObject):
         execute()
 
     @Slot(str)
+    def saveConfigAs(self, filename):
+        """
+        Call this slot to save the configuration
+        :return:
+        """
+        @handleException
+        def execute():
+            assertMainThread()
+            logger.debug("Saving config file")
+            ConfigFileLoader.save(self._configuration, filename)
+        execute()
+
+    @Slot(str)
     def newConfig(self, cfgFileName):
         """
         Call this slot to create a new configuration
