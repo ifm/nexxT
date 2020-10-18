@@ -67,6 +67,9 @@ class MethodInvoker(QObject):
         self.callback(*self.args)
 
 class ThreadToColor:
+    """
+    This class maps threads to colors. It is ment to be used with a singleton.
+    """
     singleton = None
 
     def _newColor(self):
@@ -87,6 +90,11 @@ class ThreadToColor:
         self.get("main")
 
     def get(self, thread):
+        """
+        Return the color associated with the given thread.
+        :param thread: the name of the thread given as a string instance
+        :return: a QColor instance
+        """
         if not thread in self._threadColors:
             self._threadColors[thread] = self._newColor()
         return self._threadColors[thread]

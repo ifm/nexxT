@@ -14,242 +14,286 @@ from threading import Lock
 import numpy as np
 from PySide2.QtCore import QObject, Signal, Slot, QThread, QTimer, Qt, QByteArray, QCoreApplication
 from nexxT.core.Utils import MethodInvoker
-import nexxT
 
 logger = logging.getLogger(__name__)
 
-if False and nexxT.useCImpl:
-    class ProfilingService(nexxT.cnexxT.nexxT.SrvProfiling):
+class PortProfiling:
+    """
+    Simple helper class for storing profiling time points of a single port.
+    """
+    def __init__(self):
+        self.spans = []
+        self.currentItem = None
+
+    def start(self, timeNs):
         """
-        For the c++ service, we only need to overwrite the thread_time in python.
+        Called when the corresponding item is started.
+        :param timeNs: the time point, given in nanoseconds.
+        :return:
         """
-        def thread_time(self):
-            """
-            Returns the thread specific time as int64
-            :return:
-            """
-            return time.thread_time()
+        self.currentItem = [timeNs]
 
-else:
-
-    class PortProfiling:
-        def __init__(self):
-            self.spans = []
-            self.currentItem = None
-
-        def start(self, time_ns):
-            self.currentItem = [time_ns]
-
-        def pause(self, time_ns):
-            self.currentItem.append(time_ns)
-
-        def unpause(self, time_ns):
-            self.currentItem.append(time_ns)
-
-        def stop(self, time_ns):
-            self.currentItem.append(time_ns)
-            ci = self.currentItem
-            self.spans.append( (ci[0], ci[-1]) )
-            for i in range(0, len(ci), 2):
-                self.spans.append( (ci[i], ci[i+1]) )
-            self.currentItem = None
-
-        def get_spans(self):
-            res = self.spans
-            self.spans = []
-            return res
-
-    class ThreadSpecificProfItem:
+    def pause(self, timeNs):
         """
-        This class contains all profiling items of a specific thread.
+        Called when the corresponding item is paused (another item may be started).
+        :param timeNs: the time point, given in nanoseconds.
+        :return:
         """
-        THREAD_PROFILING_PERIOD_SEC = 0.2
-        THREAD_PROFILING_TOTAL_TIME = 60
+        self.currentItem.append(timeNs)
 
-        def __init__(self):
-            self._last_thread_time = time.thread_time_ns()
-            self._last_monotonic_time = time.monotonic_ns()
-            self._first_monotonic_time = time.monotonic_ns()
-            self._portProfiling = {}
-            self._portStack = []
-            self._measurements = []
-
-        def update(self):
-            thread_time = time.thread_time_ns()
-            monotonic_time = time.monotonic_ns()
-            load = (thread_time - self._last_thread_time) / (monotonic_time - self._last_monotonic_time)
-            self._last_thread_time = thread_time
-            self._last_monotonic_time = monotonic_time
-            self._measurements.append( (1e-9*(monotonic_time - self._first_monotonic_time), load) )
-
-        def get_load(self):
-            res = self._measurements
-            self._measurements = []
-            return res
-
-        def get_spans(self):
-            res = {}
-            for p,pp in self._portProfiling.items():
-                res[p] = pp.get_spans()
-            return res
-
-        def registerPortChangeStarted(self, portname, time_ns):
-            if len(self._portStack) > 0:
-                self._portProfiling[self._portStack[-1]].pause(time_ns)
-            self._portStack.append(portname)
-            if not portname in self._portProfiling:
-                self._portProfiling[portname] = PortProfiling()
-            self._portProfiling[portname].start(time_ns)
-
-        def registerPortChangeFinished(self, portname, time_ns):
-            if self._portStack[-1] != portname:
-                return # canceled during profiling
-            self._portStack = self._portStack[:-1]
-            self._portProfiling[portname].stop(time_ns)
-            if len(self._portStack) > 0:
-                self._portProfiling[self._portStack[-1]].unpause(time_ns)
-
-        def cancel(self):
-            self._portProfiling = {}
-            self._portStack = []
-
-    class ProfilingService(QObject):
+    def unpause(self, timeNs):
         """
-        This class provides a profiling service for the nexxT framework.
+        Called when the corresponding item is unpaused.
+        :param timeNs: the time point, given in nanoseconds.
+        :return:
         """
+        self.currentItem.append(timeNs)
 
-        # this signal is emitted when there is new load data for a thread.
-        loadDataUpdated = Signal(str, QByteArray)
-        spanDataUpdated = Signal(str, str, QByteArray)
-        threadDeregistered = Signal(str)
-        stopTimers = Signal()
-        startTimers = Signal()
+    def stop(self, timeNs):
+        """
+        Called when the corresponding item is finished. The profiling information will be added to the history.
+        :param timeNs: the time point, given in nanoseconds.
+        :return:
+        """
+        self.currentItem.append(timeNs)
+        ci = self.currentItem
+        self.spans.append((ci[0], ci[-1]))
+        for i in range(0, len(ci), 2):
+            self.spans.append((ci[i], ci[i+1]))
+        self.currentItem = None
 
-        def __init__(self):
-            super().__init__()
-            self._thread_specific_profiling = {}
-            self._lock_thread_specific = Lock()
-            self._last_emit_time = time.monotonic_ns()
-            self._loadMonitoringEnabled = True
-            self._portProfilingEnabled = False
-            self._mi = None
+    def getSpans(self):
+        """
+        Returns the profiling time points in a list.
+        :return: list of tuples containing nanosecond time points.
+        """
+        res = self.spans
+        self.spans = []
+        return res
 
-        @Slot()
-        def registerThread(self):
-            """
-            This slot shall be called from each activated nexxT thread with a direct connection.
-            :return:
-            """
-            t = QThread.currentThread()
-            logger.internal("registering thread %s", t.objectName())
-            with self._lock_thread_specific:
-                if not t in self._thread_specific_profiling:
-                    self._thread_specific_profiling[t] = ThreadSpecificProfItem()
-                    self._thread_specific_profiling[t].timer = QTimer(parent=self.sender())
-                    self._thread_specific_profiling[t].timer.timeout.connect(self._generateRecord, Qt.DirectConnection)
-                    self._thread_specific_profiling[t].timer.setInterval(ThreadSpecificProfItem.THREAD_PROFILING_PERIOD_SEC*1e3)
-                    self.stopTimers.connect(self._thread_specific_profiling[t].timer.stop)
-                    self.startTimers.connect(self._thread_specific_profiling[t].timer.start)
-                    if self._loadMonitoringEnabled:
-                        self._thread_specific_profiling[t].timer.start()
+class ThreadSpecificProfItem:
+    """
+    This class contains all profiling items of a specific thread.
+    """
+    THREAD_PROFILING_PERIOD_SEC = 0.2
+    THREAD_PROFILING_TOTAL_TIME = 60
 
-                tmain = QCoreApplication.instance().thread()
-                if self._mi is None and not tmain in self._thread_specific_profiling:
-                    self._mi = MethodInvoker(dict(object=self, method="registerThread", thread=tmain), Qt.QueuedConnection)
+    def __init__(self):
+        self._lastThreadTime = time.thread_time_ns()
+        self._lastMonotonicTime = time.monotonic_ns()
+        self._firstMonotonicTime = time.monotonic_ns()
+        self._portProfiling = {}
+        self._portStack = []
+        self._measurements = []
 
-        def setLoadMonitorEnabled(self, enabled):
-            """
-            Enables / disables load monitoring
-            :param enabled: boolean
-            :return:
-            """
-            if enabled != self._loadMonitoringEnabled:
-                self._loadMonitoringEnabled = enabled
-                if enabled:
-                    self.startTimers.emit()
-                else:
-                    self.stopTimers.emit()
-            if self._portProfilingEnabled and not self._loadMonitoringEnabled:
-                logger.warning("Port profiling works only if load monitoring is enabled.")
+    def update(self):
+        """
+        Updates the load profiling.
+        :return:
+        """
+        thread_time = time.thread_time_ns()
+        monotonic_time = time.monotonic_ns()
+        load = (thread_time - self._lastThreadTime) / (monotonic_time - self._lastMonotonicTime)
+        self._lastThreadTime = thread_time
+        self._lastMonotonicTime = monotonic_time
+        self._measurements.append((1e-9*(monotonic_time - self._firstMonotonicTime), load))
 
-        def setPortProfilingEnabled(self, enabled):
-            """
-            Enables / disables port profiling
-            :param enabled: boolean
-            :return:
-            """
-            if enabled != self._portProfilingEnabled:
-                self._portProfilingEnabled = enabled
-            if self._portProfilingEnabled and not self._loadMonitoringEnabled:
-                logger.warning("Port profiling works only if load monitoring is enabled.")
+    def getLoad(self):
+        """
+        Returns the load measurements.
+        :return: list of 2-tuples (time_seconds, load_ratio)
+        """
+        res = self._measurements
+        self._measurements = []
+        return res
 
-        @Slot()
-        def deregisterThread(self):
-            """
-            This slot shall be called from each deactivated nexxT thread with a direct connection
-            :return:
-            """
-            self._mi = None
-            t = QThread.currentThread()
-            logger.info("deregistering thread %s", t.objectName())
-            with self._lock_thread_specific:
-                if t in self._thread_specific_profiling:
-                    self._thread_specific_profiling[t].timer.stop()
-                    del self._thread_specific_profiling[t]
-            self.threadDeregistered.emit(t.objectName())
+    def getSpans(self):
+        """
+        Get the current port profiling data.
+        :return: dict mapping thread names to lists of tuples with nano-second time points.
+        """
+        res = {}
+        for p, pp in self._portProfiling.items():
+            res[p] = pp.getSpans()
+        return res
 
-        @Slot()
-        def _generateRecord(self):
-            """
-            This slot is automaticall called periodically
-            :return:
-            """
-            t = QThread.currentThread()
-            with self._lock_thread_specific:
-                self._thread_specific_profiling[t].update()
-                self._emit_data()
+    def registerPortChangeStarted(self, portname, timeNs):
+        """
+        Called when starting the onPortDataChanged function.
+        :param portname: the full-qualified port name
+        :param timeNs: the time in nano-seconds
+        :return:
+        """
+        if len(self._portStack) > 0:
+            self._portProfiling[self._portStack[-1]].pause(timeNs)
+        self._portStack.append(portname)
+        if not portname in self._portProfiling:
+            self._portProfiling[portname] = PortProfiling()
+        self._portProfiling[portname].start(timeNs)
 
-        @Slot(str)
-        def beforePortDataChanged(self, portname):
-            """
-            This slot is called before calling onPortDataChanged.
-            :param portname: the fully qualified name of the port
-            :param time_ns: the timestamp
-            :return:
-            """
-            if not self._portProfilingEnabled:
-                return
-            t = QThread.currentThread()
-            time_ns = time.perf_counter_ns()
-            with self._lock_thread_specific:
-                self._thread_specific_profiling[t].registerPortChangeStarted(portname, time_ns)
+    def registerPortChangeFinished(self, portname, timeNs):
+        """
+        Called when the onPortDataChanged function has finished.
+        :param portname: the full-qualified port name
+        :param timeNs: the time in nano-seconds
+        :return:
+        """
+        if self._portStack[-1] != portname:
+            return # canceled during profiling
+        self._portStack = self._portStack[:-1]
+        self._portProfiling[portname].stop(timeNs)
+        if len(self._portStack) > 0:
+            self._portProfiling[self._portStack[-1]].unpause(timeNs)
 
-        @Slot(str)
-        def afterPortDataChanged(self, portname):
-            """
-            This slot is called after calling onPortDataChanged.
-            :param portname: the fully qualified name of the port
-            :param time_ns: the timestamp
-            :return:
-            """
-            if not self._portProfilingEnabled:
-                return
-            t = QThread.currentThread()
-            time_ns = time.perf_counter_ns()
-            with self._lock_thread_specific:
-                self._thread_specific_profiling[t].registerPortChangeFinished(portname, time_ns)
+    def cancel(self):
+        """
+        Cancel profiling on user-request and reset the corresponding data.
+        :return:
+        """
+        self._portProfiling = {}
+        self._portStack = []
 
-        def _emit_data(self):
-            t = time.monotonic_ns()
-            if t - self._last_emit_time > 1e8:
-                # emit each 100 ms
-                self._last_emit_time = t
-                for t in self._thread_specific_profiling:
-                    load = np.array(self._thread_specific_profiling[t].get_load(), dtype=np.float32)
-                    if load.size > 0:
-                        self.loadDataUpdated.emit(t.objectName(), QByteArray(load.tobytes()))
-                    port_spans = self._thread_specific_profiling[t].get_spans()
-                    for port,spans in port_spans.items():
-                        spans = np.array(spans, dtype=np.int64)
-                        if spans.size > 0:
-                            self.spanDataUpdated.emit(t.objectName(), port, QByteArray(spans.tobytes()))
+class ProfilingService(QObject):
+    """
+    This class provides a profiling service for the nexxT framework.
+    """
+
+    # this signal is emitted when there is new load data for a thread.
+    loadDataUpdated = Signal(str, QByteArray)
+    spanDataUpdated = Signal(str, str, QByteArray)
+    threadDeregistered = Signal(str)
+    stopTimers = Signal()
+    startTimers = Signal()
+
+    def __init__(self):
+        super().__init__()
+        self._threadSpecificProfiling = {}
+        self._lockThreadSpecific = Lock()
+        self._lastEmitTime = time.monotonic_ns()
+        self._loadMonitoringEnabled = True
+        self._portProfilingEnabled = False
+        self._mi = None
+
+    @Slot()
+    def registerThread(self):
+        """
+        This slot shall be called from each activated nexxT thread with a direct connection.
+        :return:
+        """
+        t = QThread.currentThread()
+        logger.internal("registering thread %s", t.objectName())
+        with self._lockThreadSpecific:
+            if not t in self._threadSpecificProfiling:
+                self._threadSpecificProfiling[t] = ThreadSpecificProfItem()
+                self._threadSpecificProfiling[t].timer = QTimer(parent=self.sender())
+                self._threadSpecificProfiling[t].timer.timeout.connect(self._generateRecord, Qt.DirectConnection)
+                self._threadSpecificProfiling[t].timer.setInterval(
+                    ThreadSpecificProfItem.THREAD_PROFILING_PERIOD_SEC*1e3)
+                self.stopTimers.connect(self._threadSpecificProfiling[t].timer.stop)
+                self.startTimers.connect(self._threadSpecificProfiling[t].timer.start)
+                if self._loadMonitoringEnabled:
+                    self._threadSpecificProfiling[t].timer.start()
+
+            tmain = QCoreApplication.instance().thread()
+            if self._mi is None and not tmain in self._threadSpecificProfiling:
+                self._mi = MethodInvoker(dict(object=self, method="registerThread", thread=tmain),
+                                         Qt.QueuedConnection)
+
+    def setLoadMonitorEnabled(self, enabled):
+        """
+        Enables / disables load monitoring
+        :param enabled: boolean
+        :return:
+        """
+        if enabled != self._loadMonitoringEnabled:
+            self._loadMonitoringEnabled = enabled
+            if enabled:
+                self.startTimers.emit()
+            else:
+                self.stopTimers.emit()
+        if self._portProfilingEnabled and not self._loadMonitoringEnabled:
+            logger.warning("Port profiling works only if load monitoring is enabled.")
+
+    def setPortProfilingEnabled(self, enabled):
+        """
+        Enables / disables port profiling
+        :param enabled: boolean
+        :return:
+        """
+        if enabled != self._portProfilingEnabled:
+            self._portProfilingEnabled = enabled
+        if self._portProfilingEnabled and not self._loadMonitoringEnabled:
+            logger.warning("Port profiling works only if load monitoring is enabled.")
+
+    @Slot()
+    def deregisterThread(self):
+        """
+        This slot shall be called from each deactivated nexxT thread with a direct connection
+        :return:
+        """
+        self._mi = None
+        t = QThread.currentThread()
+        logger.info("deregistering thread %s", t.objectName())
+        with self._lockThreadSpecific:
+            if t in self._threadSpecificProfiling:
+                self._threadSpecificProfiling[t].timer.stop()
+                del self._threadSpecificProfiling[t]
+        self.threadDeregistered.emit(t.objectName())
+
+    @Slot()
+    def _generateRecord(self):
+        """
+        This slot is automaticall called periodically
+        :return:
+        """
+        t = QThread.currentThread()
+        with self._lockThreadSpecific:
+            self._threadSpecificProfiling[t].update()
+            self._emitData()
+
+    @Slot(str)
+    def beforePortDataChanged(self, portname):
+        """
+        This slot is called before calling onPortDataChanged.
+        :param portname: the fully qualified name of the port
+        :param timeNs: the timestamp
+        :return:
+        """
+        if not self._portProfilingEnabled:
+            return
+        t = QThread.currentThread()
+        timeNs = time.perf_counter_ns()
+        with self._lockThreadSpecific:
+            if t in self._threadSpecificProfiling:
+                self._threadSpecificProfiling[t].registerPortChangeStarted(portname, timeNs)
+
+    @Slot(str)
+    def afterPortDataChanged(self, portname):
+        """
+        This slot is called after calling onPortDataChanged.
+        :param portname: the fully qualified name of the port
+        :param timeNs: the timestamp
+        :return:
+        """
+        if not self._portProfilingEnabled:
+            return
+        t = QThread.currentThread()
+        timeNs = time.perf_counter_ns()
+        with self._lockThreadSpecific:
+            if t in self._threadSpecificProfiling:
+                self._threadSpecificProfiling[t].registerPortChangeFinished(portname, timeNs)
+
+    def _emitData(self):
+        t = time.monotonic_ns()
+        if t - self._lastEmitTime > 1e8:
+            # emit each 100 ms
+            self._lastEmitTime = t
+            for t in self._threadSpecificProfiling:
+                load = np.array(self._threadSpecificProfiling[t].getLoad(), dtype=np.float32)
+                if load.size > 0:
+                    self.loadDataUpdated.emit(t.objectName(), QByteArray(load.tobytes()))
+                port_spans = self._threadSpecificProfiling[t].getSpans()
+                for port, spans in port_spans.items():
+                    spans = np.array(spans, dtype=np.int64)
+                    if spans.size > 0:
+                        self.spanDataUpdated.emit(t.objectName(), port, QByteArray(spans.tobytes()))
