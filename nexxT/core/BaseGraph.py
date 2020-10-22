@@ -40,7 +40,12 @@ class BaseGraph(QObject):
         self._nodes = OrderedDict()
         self._connections = []
 
-    def _uniqueNodeName(self, nodeName):
+    def uniqueNodeName(self, nodeName):
+        """
+        Given a suggested node name, return a unique node name based on this name.
+        :param nodeName: a node name string
+        :return: a unique node name string
+        """
         assertMainThread()
         if not nodeName in self._nodes:
             return nodeName

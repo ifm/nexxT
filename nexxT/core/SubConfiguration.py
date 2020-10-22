@@ -86,14 +86,24 @@ class SubConfiguration(QObject):
         return self._config
 
     @staticmethod
-    def _connectionStringToTuple(con):
+    def connectionStringToTuple(con):
+        """
+        Converts a connection string to a 4 tuple.
+        :param con: a string containing a connection "name1.port1 -> name2.port2"
+        :return: a 4-tuple ("name1", "port1", "name2", "port2")
+        """
         f, t = con.split("->")
         fromNode, fromPort = f.strip().split(".")
         toNode, toPort = t.strip().split(".")
         return fromNode.strip(), fromPort.strip(), toNode.strip(), toPort.strip()
 
     @staticmethod
-    def _tupleToConnectionString(connection):
+    def tupleToConnectionString(connection):
+        """
+        Converts a 4-tuple connection to a string.
+        :param connection: a 4-tuple ("name1", "port1", "name2", "port2")
+        :return: a string "name1.port1 -> name2.port2"
+        """
         return "%s.%s -> %s.%s" % connection
 
     def load(self, cfg, compositeLookup):
@@ -134,7 +144,7 @@ class SubConfiguration(QObject):
             # make sure that the filter is instantiated and the port information is updated immediately
             self._graph.getMockup(n["name"]).createFilterAndUpdate()
         for c in cfg["connections"]:
-            contuple = self._connectionStringToTuple(c)
+            contuple = self.connectionStringToTuple(c)
             self._graph.addConnection(*contuple)
 
     def save(self):
@@ -197,7 +207,7 @@ class SubConfiguration(QObject):
                 pass
             ncfg["properties"] = p.saveDict()
             cfg["nodes"].append(ncfg)
-        cfg["connections"] = [self._tupleToConnectionString(c) for c in self._graph.allConnections()]
+        cfg["connections"] = [self.tupleToConnectionString(c) for c in self._graph.allConnections()]
         return cfg
 
     @staticmethod

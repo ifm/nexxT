@@ -11,15 +11,15 @@ This module provides the Configuration GUI service of the nexxT framework.
 import logging
 import shiboken2
 from PySide2.QtCore import (Qt, QSettings, QByteArray, QDataStream, QIODevice)
-from PySide2.QtGui import QPainter
 from PySide2.QtWidgets import (QTreeView, QAction, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
-                               QHeaderView, QMenu, QDockWidget, QGraphicsView)
+                               QHeaderView, QMenu, QDockWidget)
 from nexxT.interface import Services, FilterState
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Utils import assertMainThread
 from nexxT.services.SrvConfiguration import MVCConfigurationBase, ConfigurationModel, ITEM_ROLE
 from nexxT.services.gui.PropertyDelegate import PropertyDelegate
 from nexxT.services.gui.GraphEditor import GraphScene
+from nexxT.services.gui.GraphEditorView import GraphEditorView
 
 logger = logging.getLogger(__name__)
 
@@ -190,8 +190,7 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
                                     allowedArea=Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         graphDw.setAttribute(Qt.WA_DeleteOnClose, True)
         assert isinstance(graphDw, QDockWidget)
-        graphView = QGraphicsView(graphDw)
-        graphView.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+        graphView = GraphEditorView(graphDw)
         graphView.setScene(GraphScene(subConfig.getGraph(), graphDw))
         graphDw.setWidget(graphView)
         self._graphViews.append(graphDw)

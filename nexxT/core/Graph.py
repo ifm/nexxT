@@ -86,7 +86,7 @@ class FilterGraph(BaseGraph):
         assertMainThread()
         if suggestedName is None:
             suggestedName = factoryFunction
-        name = super()._uniqueNodeName(suggestedName)
+        name = super().uniqueNodeName(suggestedName)
         try:
             propColl = self._properties.getChildCollection(name)
         except PropertyCollectionChildNotFound:

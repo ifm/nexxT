@@ -15,7 +15,7 @@ import pkg_resources
 from PySide2.QtWidgets import (QGraphicsScene, QGraphicsItemGroup, QGraphicsSimpleTextItem,
                                QGraphicsPathItem, QGraphicsItem, QMenu, QAction, QInputDialog, QMessageBox,
                                QGraphicsLineItem, QFileDialog, QDialog, QGridLayout, QCheckBox, QVBoxLayout, QGroupBox,
-                               QDialogButtonBox)
+                               QDialogButtonBox, QGraphicsView, QStyle, QStyleOptionGraphicsItem)
 from PySide2.QtGui import QBrush, QPen, QColor, QPainterPath, QImage
 from PySide2.QtCore import QPointF, Signal, QObject, QRectF, QSizeF, Qt
 from nexxT.core.BaseGraph import BaseGraph
@@ -142,6 +142,7 @@ class BaseGraphScene(QGraphicsScene): # pragma: no cover
             self.setHandlesChildEvents(False)
             self.setFlag(QGraphicsItem.ItemClipsToShape, True)
             self.setFlag(QGraphicsItem.ItemClipsChildrenToShape, True)
+            self.setFlag(QGraphicsItem.ItemIsSelectable, True)
             self.hovered = False
             self.sync()
 
@@ -281,6 +282,29 @@ class BaseGraphScene(QGraphicsScene): # pragma: no cover
             self.hovered = False
             self.setFlag(QGraphicsItem.ItemIsMovable, False)
             self.sync()
+
+        def itemChange(self, change, value):
+            """
+            overwritten from QGraphicsItem
+            :param change: the thing that has changed
+            :param value: the new value
+            :return:
+            """
+            if change in [QGraphicsItem.ItemSelectedHasChanged]:
+                self.sync()
+            return super().itemChange(change, value)
+
+        def paint(self, painter, option, widget):
+            """
+            Overwritten from base class to prevent drawing the selection rectangle
+            :param painter: a QPainter instance
+            :param option: a QStyleOptionGraphicsItem instance
+            :param widget: a QWidget instance or None
+            :return:
+            """
+            no = QStyleOptionGraphicsItem(option)
+            no.state = no.state & ~QStyle.State_Selected
+            super().paint(painter, no, widget)
 
     class PortItem:
         """
@@ -492,6 +516,7 @@ class BaseGraphScene(QGraphicsScene): # pragma: no cover
         self.connections = []
         self.itemOfContextMenu = None
         self.addingConnection = None
+        self._lastEndPortHovered = None
 
     def addNode(self, name):
         """
@@ -680,12 +705,13 @@ class BaseGraphScene(QGraphicsScene): # pragma: no cover
                 BaseGraphScene.STYLE_ROLE_PEN : QPen(QColor(10, 10, 10)),
                 BaseGraphScene.STYLE_ROLE_BRUSH : QBrush(QColor(10, 200, 10, 180)),
             }
-            NODE_STYLE_HOVERED = {
-                BaseGraphScene.STYLE_ROLE_PEN :  QPen(QColor(10, 10, 10), 3),
-            }
-            if item.hovered:
-                return NODE_STYLE_HOVERED.get(role, NODE_STYLE.get(role, DEFAULTS.get(role)))
-            return NODE_STYLE.get(role, DEFAULTS.get(role))
+            res = NODE_STYLE.get(role, DEFAULTS.get(role))
+            if item.hovered and role == BaseGraphScene.STYLE_ROLE_PEN:
+                res.setWidthF(3)
+            if item.isSelected() and role == BaseGraphScene.STYLE_ROLE_PEN:
+                res.setWidthF(max(2, res.widthF()))
+                res.setStyle(Qt.DashLine)
+            return res
         if isinstance(item, BaseGraphScene.PortItem):
             def portIdx(portItem):
                 nodeItem = portItem.nodeItem
@@ -755,7 +781,9 @@ class BaseGraphScene(QGraphicsScene): # pragma: no cover
                 self.addItem(lineItem)
                 self.addingConnection = dict(port=item, lineItem=lineItem)
                 self.update()
-                return None
+                for v in self.views():
+                    v.setDragMode(QGraphicsView.NoDrag)
+                return True
         return super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
@@ -769,8 +797,17 @@ class BaseGraphScene(QGraphicsScene): # pragma: no cover
             toPos = lineItem.mapFromScene(event.scenePos())
             lineItem.prepareGeometryChange()
             lineItem.setLine(lineItem.line().x1(), lineItem.line().y1(), toPos.x(), toPos.y())
+            item = self.graphItemAt(event.scenePos())
+            if not isinstance(item, BaseGraphScene.PortItem):
+                item = None
+            if isinstance(item, BaseGraphScene.PortItem) and item != self._lastEndPortHovered:
+                self._lastEndPortHovered = item
+                item.hoverEnter()
+            elif item != self._lastEndPortHovered and self._lastEndPortHovered is not None:
+                self._lastEndPortHovered.hoverLeave()
+                self._lastEndPortHovered = None
             self.update()
-            return None
+            return True
         return super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
@@ -780,6 +817,8 @@ class BaseGraphScene(QGraphicsScene): # pragma: no cover
         :return:
         """
         if event.button() == Qt.LeftButton and self.addingConnection is not None:
+            for v in self.views():
+                v.setDragMode(QGraphicsView.RubberBandDrag)
             portOther = self.addingConnection["port"]
             self.removeItem(self.addingConnection["lineItem"])
             self.addingConnection = None
@@ -792,7 +831,10 @@ class BaseGraphScene(QGraphicsScene): # pragma: no cover
                     portFrom = portHere
                     portTo = portOther
                 self.connectionAddRequest.emit(portFrom.nodeItem.name, portFrom.name, portTo.nodeItem.name, portTo.name)
-            return None
+            if self._lastEndPortHovered is not None:
+                self._lastEndPortHovered.hoverLeave()
+                self._lastEndPortHovered = None
+            return True
         return super().mouseReleaseEvent(event)
 
     def autoLayout(self):
