@@ -9,29 +9,30 @@
 #include "Logger.hpp"
 #include <chrono>
 
-USE_NAMESPACE
+using namespace nexxT;
 
 static constexpr double TIMESTAMP_RES_VALUE = 1e-6;
 
 const double DataSample::TIMESTAMP_RES = TIMESTAMP_RES_VALUE;
-START_NAMESPACE
+namespace nexxT
+{
     struct DataSampleD
     {
         QByteArray content;
         QString datatype;
         int64_t timestamp;
     };
-STOP_NAMESPACE
+};
 
 DataSample::DataSample(const QByteArray &content, const QString &datatype, int64_t timestamp) :
     d(new DataSampleD{content,datatype,timestamp})
 {
-    NEXT_LOG_INTERNAL("DataSample::DataSample");
+    NEXXT_LOG_INTERNAL("DataSample::DataSample");
 }
 
 DataSample::~DataSample() 
 {
-    NEXT_LOG_INTERNAL("DataSample::~DataSample");
+    NEXXT_LOG_INTERNAL("DataSample::~DataSample");
     delete d;
 }
         

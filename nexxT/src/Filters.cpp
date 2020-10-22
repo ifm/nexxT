@@ -10,7 +10,7 @@
 #include "Ports.hpp"
 #include "Logger.hpp"
 
-USE_NAMESPACE;
+using namespace nexxT;
 
 // we need these on linux for some reason
 const int FilterState::CONSTRUCTING;
@@ -49,23 +49,24 @@ QString FilterState::state2str(int state)
     }
 }
 
-START_NAMESPACE
+namespace nexxT
+{
     struct FilterD 
     {
         BaseFilterEnvironment *environment;
     };
-STOP_NAMESPACE
+};
 
 Filter::Filter(bool dynInPortsSupported, bool dynOutPortsSupported, BaseFilterEnvironment *environment)
     : d(new FilterD{environment})
 {
-    NEXT_LOG_INTERNAL("Filter::Filter");
+    NEXXT_LOG_INTERNAL("Filter::Filter");
     d->environment->setDynamicPortsSupported(dynInPortsSupported, dynOutPortsSupported);
 }
 
 Filter::~Filter()
 {
-    NEXT_LOG_INTERNAL(QString("Filter::~Filter: ") + objectName());
+    NEXXT_LOG_INTERNAL(QString("Filter::~Filter: ") + objectName());
     delete d;
 }
 

@@ -17,7 +17,7 @@ SimpleSource::SimpleSource(nexxT::BaseFilterEnvironment *env) :
     outPort(new nexxT::OutputPortInterface(false, "outPort", env)),
     counter(0)
 {
-    NEXT_LOG_DEBUG("SimpleSource::SimpleSource");
+    NEXXT_LOG_DEBUG("SimpleSource::SimpleSource");
     addStaticPort(outPort);
     propertyCollection()->defineProperty("frequency", double(1.0), "frequency of data generation [Hz]");
     connect(&timer, &QTimer::timeout, this, &SimpleSource::newDataEvent);
@@ -25,7 +25,7 @@ SimpleSource::SimpleSource(nexxT::BaseFilterEnvironment *env) :
 
 SimpleSource::~SimpleSource()
 {
-    NEXT_LOG_DEBUG("SimpleSource::~SimpleSource");
+    NEXXT_LOG_DEBUG("SimpleSource::~SimpleSource");
 }
 
 void SimpleSource::onStart()
@@ -46,7 +46,7 @@ void SimpleSource::newDataEvent()
     counter++;
     QString c = QString("Sample %1").arg(counter);
     QSharedPointer<const nexxT::DataSample> s(new nexxT::DataSample(c.toUtf8(), "text/utf8", it));
-    NEXT_LOG_INFO(QString("Transmitting %1").arg(c));
+    NEXXT_LOG_INFO(QString("Transmitting %1").arg(c));
     outPort->transmit(s);
 }
 

@@ -5,44 +5,44 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#ifndef NEXT_PLUGINS_HPP
-#define NEXT_PLUGINS_HPP
+#ifndef NEXXT_PLUGINS_HPP
+#define NEXXT_PLUGINS_HPP
 
 #include "Filters.hpp"
-#include "NexTConfig.hpp"
 #include <QtCore/QLibrary>
 
-#define NEXT_PLUGIN_DECLARE_FILTER(classname)                                           \
-    static nexxT::Filter *next_plugin_create(nexxT::BaseFilterEnvironment *env)           \
+#define NEXXT_PLUGIN_DECLARE_FILTER(classname)                                          \
+    static nexxT::Filter *nexxt_plugin_create(nexxT::BaseFilterEnvironment *env)        \
     {                                                                                   \
-        nexxT::Filter *res = new classname(env);                                         \
+        nexxT::Filter *res = new classname(env);                                        \
         return res;                                                                     \
     }
 
-#define NEXT_PLUGIN_DEFINE_START()                                                      \
+#define NEXXT_PLUGIN_DEFINE_START()                                                     \
     struct {                                                                            \
         QString name;                                                                   \
-        nexxT::PluginCreateFunc func;                                                    \
-    } next_plugin_functions[] = { {"", 0}
+        nexxT::PluginCreateFunc func;                                                   \
+    } nexxt_plugin_functions[] = { {"", 0}
 
-#define NEXT_PLUGIN_ADD_FILTER(filtertype)                                              \
-    , {#filtertype, &filtertype::next_plugin_create}
+#define NEXXT_PLUGIN_ADD_FILTER(filtertype)                                             \
+    , {#filtertype, &filtertype::nexxt_plugin_create}
 
-#define NEXT_PLUGIN_DEFINE_FINISH()                                                     \
+#define NEXXT_PLUGIN_DEFINE_FINISH()                                                    \
     };                                                                                  \
                                                                                         \
-    extern "C" FORCE_DLLEXPORT void nexT_pluginDefinition(QMap<QString, nexxT::PluginCreateFunc> &res)  \
+    extern "C" FORCE_DLLEXPORT void nexxT_pluginDefinition(QMap<QString, nexxT::PluginCreateFunc> &res)  \
     {                                                                                   \
         res.clear();                                                                    \
         for(int i = 1;                                                                  \
-            i < sizeof(next_plugin_functions)/sizeof(next_plugin_functions[0]);         \
+            i < sizeof(nexxt_plugin_functions)/sizeof(nexxt_plugin_functions[0]);       \
             i++)                                                                        \
         {                                                                               \
-            res[next_plugin_functions[i].name] = next_plugin_functions[i].func;         \
+            res[nexxt_plugin_functions[i].name] = nexxt_plugin_functions[i].func;       \
         }                                                                               \
     }
 
-START_NAMESPACE
+namespace nexxT
+{
     typedef nexxT::Filter *(*PluginCreateFunc)(nexxT::BaseFilterEnvironment *env);
     typedef void (*PluginDefinitionFunc)(QMap<QString, nexxT::PluginCreateFunc> &res);
     
@@ -64,6 +64,6 @@ START_NAMESPACE
         QStringList availableFilters(const QString &lib);
         void unloadAll();
     };
-STOP_NAMESPACE
+};
 
 #endif

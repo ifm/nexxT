@@ -5,7 +5,7 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#include "NexTPlugins.hpp"
+#include "NexxTPlugins.hpp"
 #include "Logger.hpp"
 #include <QtCore/QMap>
 
@@ -25,7 +25,7 @@ void PluginInterface::loadLib(const QString &file)
 {
     if( !d->loadedLibs.contains(file) )
     {
-        NEXT_LOG_DEBUG(QString("Loading plugin %1").arg(file));
+        NEXXT_LOG_DEBUG(QString("Loading plugin %1").arg(file));
         QSharedPointer<QLibrary> lib(new QLibrary(file));
         if(!lib->load())
         {
@@ -46,19 +46,19 @@ PluginInterface* PluginInterface::singleton()
 
 PluginInterface::PluginInterface() : d(new PluginInterfaceD())
 {
-    NEXT_LOG_INTERNAL(QString("PluginInterface::PluginInterface %1").arg((uint64_t)this, 0, 16));
+    NEXXT_LOG_INTERNAL(QString("PluginInterface::PluginInterface %1").arg(uint64_t(this), 0, 16));
 }
 
 PluginInterface::~PluginInterface()
 {
-    NEXT_LOG_INTERNAL(QString("PluginInterface::~PluginInterface %1").arg((uint64_t)this, 0, 16));
+    NEXXT_LOG_INTERNAL(QString("PluginInterface::~PluginInterface %1").arg(uint64_t(this), 0, 16));
     unloadAll();
     delete d;
 }
 
 Filter *PluginInterface::create(const QString &lib, const QString &function, BaseFilterEnvironment *env)
 {
-    PluginDefinitionFunc f = (PluginDefinitionFunc)d->loadedLibs[lib]->resolve("nexT_pluginDefinition");
+    PluginDefinitionFunc f = PluginDefinitionFunc(d->loadedLibs[lib]->resolve("nexxT_pluginDefinition"));
     if(!f)
     {
         throw std::runtime_error((QString("Cannot resolve '%1' in %2 (%3).").arg(function).arg(lib).arg(d->loadedLibs[lib]->errorString())).toStdString());
@@ -76,10 +76,10 @@ Filter *PluginInterface::create(const QString &lib, const QString &function, Bas
 QStringList PluginInterface::availableFilters(const QString &lib)
 {
     loadLib(lib);
-    PluginDefinitionFunc f = (PluginDefinitionFunc)d->loadedLibs[lib]->resolve("nexT_pluginDefinition");
+    PluginDefinitionFunc f = PluginDefinitionFunc(d->loadedLibs[lib]->resolve("nexxT_pluginDefinition"));
     if(!f)
     {
-        throw std::runtime_error((QString("Cannot resolve 'nexT_pluginDefinition' in %1 (%2).").arg(lib).arg(d->loadedLibs[lib]->errorString())).toStdString());
+        throw std::runtime_error((QString("Cannot resolve 'nexxT_pluginDefinition' in %1 (%2).").arg(lib).arg(d->loadedLibs[lib]->errorString())).toStdString());
     }
     QMap<QString, PluginCreateFunc> m;
     f(m);
@@ -90,7 +90,7 @@ void PluginInterface::unloadAll()
 {
     foreach(QSharedPointer<QLibrary> lib, d->loadedLibs)
     {
-        NEXT_LOG_DEBUG(QString("Unloading plugin %1").arg(lib->fileName()));
+        NEXXT_LOG_DEBUG(QString("Unloading plugin %1").arg(lib->fileName()));
         lib->unload();
     }
     d->loadedLibs.clear();

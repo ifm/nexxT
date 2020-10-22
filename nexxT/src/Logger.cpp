@@ -7,9 +7,10 @@
 
 #include "Logger.hpp"
 
-USE_NAMESPACE
+using namespace nexxT;
 
-START_NAMESPACE
+namespace nexxT
+{
     unsigned int Logging::loglevel;
 
     void Logging::setLogLevel(unsigned int level)
@@ -29,10 +30,10 @@ START_NAMESPACE
             }
         } else
         {
-            if( level >= NEXT_LOG_LEVEL_INFO )
+            if( level >= NEXXT_LOG_LEVEL_INFO )
             {
                 fprintf(stderr, "LOG: level=%d msg=%s file=%s line=%d\n", level, message.toStdString().c_str(), file.toStdString().c_str(), line);
             }
         }
     }
-STOP_NAMESPACE
+};

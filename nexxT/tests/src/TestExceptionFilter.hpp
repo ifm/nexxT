@@ -10,7 +10,7 @@
 
 #include "Filters.hpp"
 #include "Ports.hpp"
-#include "NexTPlugins.hpp"
+#include "NexxTPlugins.hpp"
 
 using namespace nexxT;
 
@@ -21,7 +21,7 @@ public:
     TestExceptionFilter(BaseFilterEnvironment *env);
     ~TestExceptionFilter();
 
-    NEXT_PLUGIN_DECLARE_FILTER(TestExceptionFilter)
+    NEXXT_PLUGIN_DECLARE_FILTER(TestExceptionFilter)
 
     void onInit();
     void onOpen();

@@ -8,7 +8,7 @@
 #ifndef SIMPLE_SOURCE_HPP
 #define SIMPLE_SOURCE_HPP
 
-#include "NexTPlugins.hpp"
+#include "NexxTPlugins.hpp"
 #include <QtCore/QTimer>
 #include <cstdint>
 
@@ -26,7 +26,7 @@ public:
     virtual void onStart();
     virtual void onStop();
 
-    NEXT_PLUGIN_DECLARE_FILTER(SimpleSource)
+    NEXXT_PLUGIN_DECLARE_FILTER(SimpleSource)
 
 private slots:
     virtual void newDataEvent();

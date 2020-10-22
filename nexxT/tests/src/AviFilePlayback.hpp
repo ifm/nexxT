@@ -12,7 +12,7 @@
 #include <QtMultimedia/QMediaPlayer>
 #include "Filters.hpp"
 #include "Ports.hpp"
-#include "NexTPlugins.hpp"
+#include "NexxTPlugins.hpp"
 
 
 class DummyVideoSurface;
@@ -34,7 +34,7 @@ class VideoPlaybackDevice : public Filter
     void closeVideo();
 
 public:
-    NEXT_PLUGIN_DECLARE_FILTER(VideoPlaybackDevice)
+    NEXXT_PLUGIN_DECLARE_FILTER(VideoPlaybackDevice)
 
     VideoPlaybackDevice(BaseFilterEnvironment *env);
     virtual ~VideoPlaybackDevice();

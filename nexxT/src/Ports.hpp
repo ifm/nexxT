@@ -5,17 +5,16 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#ifndef NEXT_PORTS_HPP
-#define NEXT_PORTS_HPP
+#ifndef NEXXT_PORTS_HPP
+#define NEXXT_PORTS_HPP
 
 #include <QtCore/QObject>
 #include <QtCore/QSemaphore>
-#include "NexTConfig.hpp"
-#include "NexTLinkage.hpp"
+#include "NexxTLinkage.hpp"
 #include "DataSamples.hpp"
 
-START_NAMESPACE
-
+namespace nexxT
+{
     class BaseFilterEnvironment;
     struct PortD;
     struct InputPortD;
@@ -23,9 +22,9 @@ START_NAMESPACE
     class Port;
     class InputPortInterface;
     class OutputPortInterface;
-    typedef NEXT_SHARED_PTR<Port> SharedPortPtr;
-    typedef NEXT_SHARED_PTR<OutputPortInterface> SharedOutputPortPtr;
-    typedef NEXT_SHARED_PTR<InputPortInterface> SharedInputPortPtr;
+    typedef QSharedPointer<Port> SharedPortPtr;
+    typedef QSharedPointer<OutputPortInterface> SharedOutputPortPtr;
+    typedef QSharedPointer<InputPortInterface> SharedInputPortPtr;
 
     class DLLEXPORT Port : public QObject
     {
@@ -48,17 +47,7 @@ START_NAMESPACE
 
         static SharedPortPtr make_shared(Port *port);
     };
-#if 0
-    class DLLEXPORT PortList
-    {
-        typedef QSharedPointer<Port> T;
-        QList< T > ports;
-    public:
-        void append(T p) {ports.append(p);}
-        T at(int i) {return ports[i];}
-        int size() {return ports.size();}
-    };
-#endif
+
     typedef QList<QSharedPointer<Port> > PortList;
 
     class DLLEXPORT OutputPortInterface final : public Port
@@ -113,7 +102,6 @@ START_NAMESPACE
     public slots:
         void receiveSample(const QSharedPointer<const nexxT::DataSample> &sample);
     };
-
-STOP_NAMESPACE
+};
 
 #endif

@@ -9,7 +9,7 @@
 
 #include <cstdio>
 
-USE_NAMESPACE
+using namespace nexxT;
 
 PropertyHandler::PropertyHandler()
 {

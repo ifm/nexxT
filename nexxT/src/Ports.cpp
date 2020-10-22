@@ -14,9 +14,10 @@
 #include <QtCore/QThread>
 #include <cstdio>
 
-USE_NAMESPACE
+using namespace nexxT;
 
-START_NAMESPACE
+namespace nexxT
+{
     struct PortD
     {
         bool dynamic;
@@ -39,17 +40,17 @@ START_NAMESPACE
         InterThreadConnectionD(int n) : semaphore(n) {}
     };
 
-STOP_NAMESPACE
+};
 
 Port::Port(bool dynamic, const QString &name, BaseFilterEnvironment *env)
     : d(new PortD{dynamic, name, env})
 {
-    NEXT_LOG_INTERNAL(QString("Port::Port %1").arg(uint64_t(this), 0, 16));
+    NEXXT_LOG_INTERNAL(QString("Port::Port %1").arg(uint64_t(this), 0, 16));
 }
 
 Port::~Port()
 {
-    NEXT_LOG_INTERNAL(QString("Port::~Port %1").arg(uint64_t(this), 0, 16));
+    NEXXT_LOG_INTERNAL(QString("Port::~Port %1").arg(uint64_t(this), 0, 16));
     delete d;
 }
 
@@ -238,7 +239,7 @@ void InputPortInterface::receiveAsync(const QSharedPointer<const DataSample> &sa
         addToQueue(sample);
     } catch(std::exception &e)
     {
-        NEXT_LOG_ERROR(QString("Unhandled exception in port data changed: %1").arg(e.what()));
+        NEXXT_LOG_ERROR(QString("Unhandled exception in port data changed: %1").arg(e.what()));
     }
 }
 
@@ -253,7 +254,7 @@ void InputPortInterface::receiveSync (const QSharedPointer<const DataSample> &sa
         addToQueue(sample);
     } catch(std::exception &e)
     {
-        NEXT_LOG_ERROR(QString("Unhandled exception in port data changed: %1").arg(e.what()));
+        NEXXT_LOG_ERROR(QString("Unhandled exception in port data changed: %1").arg(e.what()));
     }
 }
 

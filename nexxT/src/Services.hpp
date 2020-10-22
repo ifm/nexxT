@@ -5,18 +5,19 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#ifndef NEXT_SERVICES_HPP
-#define NEXT_SERVICES_HPP
+#ifndef NEXXT_SERVICES_HPP
+#define NEXXT_SERVICES_HPP
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 
-#include "NexTConfig.hpp"
-#include "NexTLinkage.hpp"
+#include "NexxTLinkage.hpp"
 
-START_NAMESPACE
+namespace nexxT
+{
     struct ServicesD;
 
-    typedef NEXT_SHARED_PTR<QObject> SharedQObjectPtr;
+    typedef QSharedPointer<QObject> SharedQObjectPtr;
 
     class DLLEXPORT Services
     {
@@ -39,6 +40,6 @@ START_NAMESPACE
         static void removeService(const QString &name);
         static void removeAll();
     };
-STOP_NAMESPACE
+};
 
 #endif

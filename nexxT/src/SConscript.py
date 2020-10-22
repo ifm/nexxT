@@ -40,8 +40,8 @@ if "linux" in env["target_platform"]:
 else:
     env["SHIBOKEN_INCFLAGS"] = ";".join(env["CPPPATH"])
 
-nexT_headers = env.RegisterSources(
-    [srcDir.File("NexTLinkage.hpp"),
+nexxT_headers = env.RegisterSources(
+    [srcDir.File("NexxTLinkage.hpp"),
      srcDir.File("DataSamples.hpp"),
      srcDir.File("Filters.hpp"),
      ])
@@ -53,8 +53,8 @@ apilib = env.SharedLibrary("nexxT", env.RegisterSources(Split("""
     Ports.cpp
     Services.cpp
     PropertyCollection.cpp
-    NexTPlugins.cpp
-""")), CPPDEFINES=["NEXT_LIBRARY_COMPILATION"])
+    NexxTPlugins.cpp
+""")), CPPDEFINES=["NEXXT_LIBRARY_COMPILATION"])
 env.RegisterTargets(apilib)
 
 spath = Dir("./cnexxT-shiboken")

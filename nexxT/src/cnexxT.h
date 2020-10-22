@@ -13,5 +13,5 @@
 #include "FilterEnvironment.hpp"
 #include "Services.hpp"
 #include "PropertyCollection.hpp"
-#include "NexTPlugins.hpp"
+#include "NexxTPlugins.hpp"
 #include "Logger.hpp"

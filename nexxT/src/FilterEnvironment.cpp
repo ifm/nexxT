@@ -13,9 +13,10 @@
 #include <QtCore/QThread>
 #include <QtCore/QMutex>
 
-USE_NAMESPACE
+using namespace nexxT;
 
-START_NAMESPACE
+namespace nexxT
+{
     struct BaseFilterEnvironmentD
     {
         SharedFilterPtr plugin;
@@ -25,17 +26,17 @@ START_NAMESPACE
         bool dynamicInputPortsSupported;
         bool dynamicOutputPortsSupported;
     };
-STOP_NAMESPACE
+};
 
 BaseFilterEnvironment::BaseFilterEnvironment(PropertyCollection *propertyCollection)
     : d(new BaseFilterEnvironmentD{SharedFilterPtr(), QThread::currentThread(), propertyCollection, false, false})
 {
-    NEXT_LOG_INTERNAL(QString("BaseFilterEnvironment::BaseFilterEnvironment %1").arg(uint64_t(this), 0, 16));
+    NEXXT_LOG_INTERNAL(QString("BaseFilterEnvironment::BaseFilterEnvironment %1").arg(uint64_t(this), 0, 16));
 }
 
 BaseFilterEnvironment::~BaseFilterEnvironment()
 {
-    NEXT_LOG_INTERNAL(QString("BaseFilterEnvironment::~BaseFilterEnvironment %1").arg(uint64_t(this), 0, 16));
+    NEXXT_LOG_INTERNAL(QString("BaseFilterEnvironment::~BaseFilterEnvironment %1").arg(uint64_t(this), 0, 16));
     delete d;
 }
 
@@ -93,7 +94,7 @@ void BaseFilterEnvironment::portDataChanged(const InputPortInterface &port)
         {
             throw std::runtime_error(QString("Unexpected filter state %1, expected ACTIVE or INITIALIZED.").arg(FilterState::state2str(state())).toStdString());
         }
-        NEXT_LOG_INFO("DataSample discarded because application has been stopped already.");
+        NEXXT_LOG_INFO("DataSample discarded because application has been stopped already.");
     } else
     {
         try
@@ -103,11 +104,11 @@ void BaseFilterEnvironment::portDataChanged(const InputPortInterface &port)
                 getPlugin()->onPortDataChanged(port);
             } else
             {
-                NEXT_LOG_ERROR(QString("no plugin found"));
+                NEXXT_LOG_ERROR(QString("no plugin found"));
             }
         } catch(std::exception &e)
         {
-            NEXT_LOG_ERROR(QString("Unexpected exception during onPortDataChanged from filter %1: %2").arg(d->propertyCollection->objectName()).arg(e.what()));
+            NEXXT_LOG_ERROR(QString("Unexpected exception during onPortDataChanged from filter %1: %2").arg(d->propertyCollection->objectName()).arg(e.what()));
         }
     }
 }

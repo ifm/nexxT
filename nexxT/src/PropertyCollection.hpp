@@ -5,15 +5,15 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#ifndef NEXT_PROPERTY_COLLECTION_HPP
-#define NEXT_PROPERTY_COLLECTION_HPP
+#ifndef NEXXT_PROPERTY_COLLECTION_HPP
+#define NEXXT_PROPERTY_COLLECTION_HPP
 
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
-#include "NexTLinkage.hpp"
-#include "NexTConfig.hpp"
+#include "NexxTLinkage.hpp"
 
-START_NAMESPACE
+namespace nexxT
+{
     class DLLEXPORT PropertyHandler
     {        
     public:
@@ -48,6 +48,6 @@ START_NAMESPACE
     signals:
         void propertyChanged(const PropertyCollection &sender, const QString &name);
     };
-STOP_NAMESPACE
+};
 
 #endif

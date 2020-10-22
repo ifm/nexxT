@@ -5,20 +5,19 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#ifndef NEXT_FILTERS_HPP
-#define NEXT_FILTERS_HPP
+#ifndef NEXXT_FILTERS_HPP
+#define NEXXT_FILTERS_HPP
 
 #include <cstdint>
 #include <QtCore/QString>
 #include <QtCore/QObject>
 #include <QtCore/QList>
 
-#include "NexTConfig.hpp"
-#include "NexTLinkage.hpp"
+#include "NexxTLinkage.hpp"
 #include "Ports.hpp"
 
-START_NAMESPACE
-    
+namespace nexxT
+{
     struct DLLEXPORT FilterState
     {
         static const int CONSTRUCTING = 0;
@@ -43,7 +42,7 @@ START_NAMESPACE
     class BaseFilterEnvironment;
     class PropertyCollection;
 
-    typedef NEXT_SHARED_PTR<Filter> SharedFilterPtr;
+    typedef QSharedPointer<Filter> SharedFilterPtr;
 
     class DLLEXPORT Filter : public QObject
     {
@@ -78,7 +77,6 @@ START_NAMESPACE
 
         static SharedFilterPtr make_shared(Filter *filter);
     };
-
-STOP_NAMESPACE
+};
 
 #endif

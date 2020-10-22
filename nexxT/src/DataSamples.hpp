@@ -5,25 +5,21 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#ifndef NEXT_DATA_SAMPLES_HPP
-#define NEXT_DATA_SAMPLES_HPP
+#ifndef NEXXT_DATA_SAMPLES_HPP
+#define NEXXT_DATA_SAMPLES_HPP
 
 #include <cstdint>
 #include <QtCore/QByteArray>
 #include <QtCore/QString>
+#include <QtCore/QSharedPointer>
 
-#include "NexTConfig.hpp"
-#include "NexTLinkage.hpp"
+#include "NexxTLinkage.hpp"
 
-START_NAMESPACE
-
+namespace nexxT
+{
     struct DataSampleD;
     class DataSample;
-#if 1
-    typedef NEXT_SHARED_PTR<const DataSample> SharedDataSamplePtr;
-#else
-# define SharedDataSamplePtr NEXT_SHARED_PTR<const DataSample>
-#endif
+    typedef QSharedPointer<const DataSample> SharedDataSamplePtr;
 
     class DLLEXPORT DataSample
     {
@@ -43,8 +39,7 @@ START_NAMESPACE
         static void registerMetaType();
         static int64_t currentTime();
     };
-
-STOP_NAMESPACE
+};
 
 Q_DECLARE_METATYPE(QSharedPointer<const nexxT::DataSample>);
 

@@ -5,17 +5,17 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#ifndef NEXT_FILTER_ENVIRONMENT_HPP
-#define NEXT_FILTER_ENVIRONMENT_HPP
+#ifndef NEXXT_FILTER_ENVIRONMENT_HPP
+#define NEXXT_FILTER_ENVIRONMENT_HPP
 
 #include <QtCore/QObject>
 
 #include "Ports.hpp"
 #include "Filters.hpp"
-#include "NexTConfig.hpp"
-#include "NexTLinkage.hpp"
+#include "NexxTLinkage.hpp"
 
-START_NAMESPACE
+namespace nexxT
+{
     struct BaseFilterEnvironmentD;
     class PropertyCollection;
 
@@ -67,6 +67,6 @@ START_NAMESPACE
     protected:
         void assertMyThread();
     };
-STOP_NAMESPACE
+};
 
 #endif

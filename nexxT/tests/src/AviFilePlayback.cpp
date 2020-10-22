@@ -36,7 +36,7 @@ public:
 
     QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
     {
-        NEXT_LOG_DEBUG("QVideoSurfaceFormat::supportedPixelFormats called");
+        NEXXT_LOG_DEBUG("QVideoSurfaceFormat::supportedPixelFormats called");
 
         Q_UNUSED(handleType);
         return QList<QVideoFrame::PixelFormat>()
@@ -76,7 +76,7 @@ public:
 
     bool isFormatSupported(const QVideoSurfaceFormat &format) const
     {
-        NEXT_LOG_DEBUG("QVideoSurfaceFormat::isFormatSupported called");
+        NEXXT_LOG_DEBUG("QVideoSurfaceFormat::isFormatSupported called");
 
         const QImage::Format imageFormat = QVideoFrame::imageFormatFromPixelFormat(format.pixelFormat());
         const QSize size = format.frameSize();
@@ -88,7 +88,7 @@ public:
 
     bool start(const QVideoSurfaceFormat &format)
     {
-        NEXT_LOG_DEBUG("QVideoSurfaceFormat::start called");
+        NEXXT_LOG_DEBUG("QVideoSurfaceFormat::start called");
 
         QAbstractVideoSurface::start(format);
         return true;
@@ -96,7 +96,7 @@ public:
 
     void stop()
     {
-        NEXT_LOG_DEBUG("QVideoSurfaceFormat::stop called");
+        NEXXT_LOG_DEBUG("QVideoSurfaceFormat::stop called");
         QAbstractVideoSurface::stop();
     }
 
@@ -121,7 +121,7 @@ void VideoPlaybackDevice::openVideo()
     {
         throw std::runtime_error("unexpected thread.");
     }
-    NEXT_LOG_DEBUG("entering openVideo");
+    NEXXT_LOG_DEBUG("entering openVideo");
     pauseOnStream = QString();
     player = new QMediaPlayer(this, QMediaPlayer::VideoSurface);
     player->setMuted(true);
@@ -144,12 +144,12 @@ void VideoPlaybackDevice::openVideo()
     player->setVideoOutput(videoSurface);
     player->setPlaybackRate(playbackRate);
     player->pause();
-    NEXT_LOG_DEBUG("leaving openVideo");
+    NEXXT_LOG_DEBUG("leaving openVideo");
 }
 
 void VideoPlaybackDevice::closeVideo()
 {
-    NEXT_LOG_DEBUG("entering closeVideo");
+    NEXXT_LOG_DEBUG("entering closeVideo");
     if(player)
     {
         delete player;
@@ -160,9 +160,9 @@ void VideoPlaybackDevice::closeVideo()
         delete videoSurface;
         videoSurface = nullptr;
     }
-    NEXT_LOG_INFO("emitting playback paused.");
+    NEXXT_LOG_INFO("emitting playback paused.");
     emit playbackPaused();
-    NEXT_LOG_DEBUG("leaving closeVideo");
+    NEXXT_LOG_DEBUG("leaving closeVideo");
 }
 
 VideoPlaybackDevice::VideoPlaybackDevice(BaseFilterEnvironment *env) :
@@ -196,7 +196,7 @@ void VideoPlaybackDevice::newImage(const QImage &img)
         w.setDevice(&b);
         if( !w.write(img) )
         {
-            NEXT_LOG_ERROR(QString("Can't serialize image, %1").arg(w.errorString()));
+            NEXXT_LOG_ERROR(QString("Can't serialize image, %1").arg(w.errorString()));
         }
     }
     SharedDataSamplePtr newSample(new DataSample(a, "qimage", QDateTime::currentDateTime().toMSecsSinceEpoch()));
@@ -205,7 +205,7 @@ void VideoPlaybackDevice::newImage(const QImage &img)
 
 void VideoPlaybackDevice::mediaPlayerError(QMediaPlayer::Error)
 {
-    if(player) NEXT_LOG_WARN(QString("error from QMediaPlayer: %1").arg(player->errorString()));
+    if(player) NEXXT_LOG_WARN(QString("error from QMediaPlayer: %1").arg(player->errorString()));
 }
 
 void VideoPlaybackDevice::mediaPlayerStateChanged(QMediaPlayer::State newState)
@@ -215,7 +215,7 @@ void VideoPlaybackDevice::mediaPlayerStateChanged(QMediaPlayer::State newState)
         emit playbackStarted();
     } else
     {
-        NEXT_LOG_INFO("emitting playback paused.");
+        NEXXT_LOG_INFO("emitting playback paused.");
         emit playbackPaused();
     }
 }
@@ -228,7 +228,7 @@ void VideoPlaybackDevice::mediaPlayerPlaybackRateChanged(qreal newRate)
 
 void VideoPlaybackDevice::newDuration(qint64 duration)
 {
-    NEXT_LOG_DEBUG(QString("newDuration %1").arg(duration));
+    NEXXT_LOG_DEBUG(QString("newDuration %1").arg(duration));
     emit sequenceOpened(filename,
                         QDateTime::fromMSecsSinceEpoch(0, Qt::UTC),
                         QDateTime::fromMSecsSinceEpoch(duration, Qt::UTC),
@@ -242,53 +242,53 @@ void VideoPlaybackDevice::newPosition(qint64 position)
 
 void VideoPlaybackDevice::currentMediaChanged(const QMediaContent &)
 {
-    NEXT_LOG_DEBUG("currentMediaChanged called");
+    NEXXT_LOG_DEBUG("currentMediaChanged called");
 }
 
 void VideoPlaybackDevice::startPlayback()
 {
-    NEXT_LOG_DEBUG("startPlayback called");
+    NEXXT_LOG_DEBUG("startPlayback called");
     if(player) player->play();
 }
 
 void VideoPlaybackDevice::pausePlayback()
 {
-    NEXT_LOG_DEBUG("pausePlayback called");
+    NEXXT_LOG_DEBUG("pausePlayback called");
     if(player) player->pause();
 }
 
 void VideoPlaybackDevice::stepForward(const QString &stream)
 {
-    NEXT_LOG_DEBUG(QString("stepForward(%1) called").arg(stream));
+    NEXXT_LOG_DEBUG(QString("stepForward(%1) called").arg(stream));
     pauseOnStream = "video";
     if( player && player->state() != QMediaPlayer::PlayingState )
     {
-        NEXT_LOG_DEBUG("calling play");
+        NEXXT_LOG_DEBUG("calling play");
         if(player) player->play();
     }
 }
 
 void VideoPlaybackDevice::seekBeginning()
 {
-    NEXT_LOG_DEBUG("seekBeginning called");
+    NEXXT_LOG_DEBUG("seekBeginning called");
     if(player) player->setPosition(0);
 }
 
 void VideoPlaybackDevice::seekEnd()
 {
-    NEXT_LOG_DEBUG("seekEnd called");
+    NEXXT_LOG_DEBUG("seekEnd called");
     if(player) player->setPosition(player->duration()-1);
 }
 
 void VideoPlaybackDevice::seekTime(const QDateTime &pos)
 {
-    NEXT_LOG_DEBUG("seekTime called");
+    NEXXT_LOG_DEBUG("seekTime called");
     if(player) player->setPosition(pos.toMSecsSinceEpoch());
 }
 
 void VideoPlaybackDevice::setSequence(const QString &_filename)
 {
-    NEXT_LOG_DEBUG("setSequence called");
+    NEXXT_LOG_DEBUG("setSequence called");
     closeVideo();
     filename = _filename;
     openVideo();
@@ -296,7 +296,7 @@ void VideoPlaybackDevice::setSequence(const QString &_filename)
 
 void VideoPlaybackDevice::setTimeFactor(double factor)
 {
-    NEXT_LOG_DEBUG("setTimeFactor called");
+    NEXXT_LOG_DEBUG("setTimeFactor called");
     if(player) player->setPlaybackRate(factor);
 }
 
