@@ -124,9 +124,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         self.fileSystemModel = QFileSystemModel()
         self.fileSystemModel.setNameFilterDisables(False)
         self.fileSystemModel.setRootPath("/")
-        self.nameFiltersChanged.connect(lambda nameFilt: (getattr(self, "fileSystemModel").setNameFilters(nameFilt),
-                                                          self.refreshBrowser()
-                                                          ), Qt.QueuedConnection)
+        self.nameFiltersChanged.connect(self._onNameFiltersChanged, Qt.QueuedConnection)
 
         self.browser = QTreeView(parent=self.dockWidgetContents)
         self.useProxy = True
@@ -152,8 +150,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         self.actShowAllFiles = QAction("Show all files")
         self.actShowAllFiles.setCheckable(True)
         self.actShowAllFiles.setChecked(False)
-        self.actShowAllFiles.toggled.connect(lambda on: (getattr(self, "fileSystemModel").setNameFilterDisables(on),
-                                                         self.refreshBrowser()))
+        self.actShowAllFiles.toggled.connect(self._onShowAllFiles)
         self.actRefreshBrowser = QAction("Refresh browser")
         self.actRefreshBrowser.triggered.connect(self.refreshBrowser)
         playbackMenu.addSeparator()
@@ -177,7 +174,15 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         self._supportedFeaturesChanged(set(), set())
 
     def __del__(self):
-        logger.debug("deleting playback control")
+        logger.internal("deleting playback control")
+
+    def _onNameFiltersChanged(self, nameFilt):
+        self.fileSystemModel.setNameFilters(nameFilt)
+        self.refreshBrowser()
+
+    def _onShowAllFiles(self, enabled):
+        self.fileSystemModel.setNameFilterDisables(enabled)
+        self.refreshBrowser()
 
     def _supportedFeaturesChanged(self, featureset, nameFilters):
         """
@@ -186,6 +191,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         :param featureset: the current featureset
         :return:
         """
+        assertMainThread()
         self.featureset = featureset
         self.actStepFwd.setEnabled("stepForward" in featureset)
         self.actStepBwd.setEnabled("stepBackward" in featureset)
@@ -225,12 +231,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         if self.useProxy:
             currentIdx = self.proxyFileSystemModel.mapToSource(currentIdx)
         currentFile = self.fileSystemModel.filePath(currentIdx)
-        logger.debug("got current file: %s", currentFile)
-        if self.useProxy:
-            self.proxyFileSystemModel.setSourceModel(newModel)
-        oldModel = self.fileSystemModel
-        self.fileSystemModel = newModel
-        oldModel.deleteLater()
+        self.fileSystemModel.resetInternalData()
         idx = self.fileSystemModel.index(currentFile)
         if self.useProxy:
             idx = self.proxyFileSystemModel.mapFromSource(idx)
@@ -357,11 +358,12 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         Called when the user clicks on a recent sequence.
         :return:
         """
+        assertMainThread()
         action = self.sender()
         index = self.fileSystemModel.index(action.data(), 0)
         if self.useProxy:
             index = self.proxyFileSystemModel.mapFromSource(index)
-            self.browser.setCurrentIndex(index)
+        self.browser.setCurrentIndex(index)
 
     def browserCurrentChanged(self, current):
         """

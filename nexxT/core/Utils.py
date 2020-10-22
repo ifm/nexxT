@@ -272,6 +272,7 @@ class FileSystemModelSortProxy(QSortFilterProxyModel):
     See also https://stackoverflow.com/questions/10789284/qfilesystemmodel-sorting-dirsfirst
     """
     def lessThan(self, left, right):
+        assertMainThread()
         if self.sortColumn() == 0:
             asc = self.sortOrder() == Qt.SortOrder.AscendingOrder
             left_fi = self.sourceModel().fileInfo(left)
@@ -296,7 +297,7 @@ class FileSystemModelSortProxy(QSortFilterProxyModel):
                     right_fi.isAbsolute() and len(right_fp) == 3 and right_fp[1:] == ":/"):
                 res = (asc and left_fp < right_fp) or ((not asc) and right_fp < left_fp)
                 return res
-        return QSortFilterProxyModel.lessThan(self, left, right)
+        return super().lessThan(left, right)
 
 class QByteArrayBuffer(io.IOBase):
     """

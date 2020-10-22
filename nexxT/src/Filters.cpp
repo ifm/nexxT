@@ -65,7 +65,7 @@ Filter::Filter(bool dynInPortsSupported, bool dynOutPortsSupported, BaseFilterEn
 
 Filter::~Filter()
 {
-    NEXT_LOG_INTERNAL("Filter::~Filter");
+    NEXT_LOG_INTERNAL(QString("Filter::~Filter: ") + objectName());
     delete d;
 }
 

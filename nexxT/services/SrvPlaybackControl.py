@@ -103,8 +103,7 @@ class MVCPlaybackControlBase(QObject):
                     logger.debug("setSequence %s", filename)
                     if Application.activeApplication.getState() == FilterState.ACTIVE:
                         Application.activeApplication.stop()
-                    setSequenceWrapper.invoke = MethodInvoker(dict(object=playbackDevice, method="setSequence"),
-                                                              Qt.QueuedConnection, filename)
+                    MethodInvoker(dict(object=playbackDevice, method="setSequence"), Qt.QueuedConnection, filename)
                     Application.activeApplication.start()
                     logger.debug("setSequence done")
                 else:
@@ -153,6 +152,7 @@ class MVCPlaybackControlBase(QObject):
                 MethodInvoker(dict(object=self, method="_updateFeatureSet", thread=mainThread()), Qt.QueuedConnection)
 
     def _updateFeatureSet(self):
+        assertMainThread()
         featureset = set()
         nameFilters = set()
         featureCount = {}
