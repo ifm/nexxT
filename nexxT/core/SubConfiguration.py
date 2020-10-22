@@ -231,4 +231,4 @@ class SubConfiguration(QObject):
             for n in g.allNodes():
                 res = res.union(SubConfiguration.getThreadSet(g.getMockup(n)))
             return res
-
+        raise RuntimeError("Don't know how to handle instances of this type.")
