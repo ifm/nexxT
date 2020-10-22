@@ -81,7 +81,6 @@ class ThreadSpecificProfItem:
     def __init__(self):
         self._lastThreadTime = time.thread_time_ns()
         self._lastMonotonicTime = time.monotonic_ns()
-        self._firstMonotonicTime = time.monotonic_ns()
         self._portProfiling = {}
         self._portStack = []
         self._measurements = []
@@ -96,12 +95,12 @@ class ThreadSpecificProfItem:
         load = (thread_time - self._lastThreadTime) / (monotonic_time - self._lastMonotonicTime)
         self._lastThreadTime = thread_time
         self._lastMonotonicTime = monotonic_time
-        self._measurements.append((1e-9*(monotonic_time - self._firstMonotonicTime), load))
+        self._measurements.append((monotonic_time, load))
 
     def getLoad(self):
         """
         Returns the load measurements.
-        :return: list of 2-tuples (time_seconds, load_ratio)
+        :return: list of 2-tuples (time_nano_seconds, load_ratio)
         """
         res = self._measurements
         self._measurements = []
@@ -159,7 +158,7 @@ class ProfilingService(QObject):
     """
 
     # this signal is emitted when there is new load data for a thread.
-    loadDataUpdated = Signal(str, QByteArray)
+    loadDataUpdated = Signal(str, QByteArray, QByteArray)
     spanDataUpdated = Signal(str, str, QByteArray)
     threadDeregistered = Signal(str)
     stopTimers = Signal()
@@ -289,9 +288,12 @@ class ProfilingService(QObject):
             # emit each 100 ms
             self._lastEmitTime = t
             for t in self._threadSpecificProfiling:
-                load = np.array(self._threadSpecificProfiling[t].getLoad(), dtype=np.float32)
-                if load.size > 0:
-                    self.loadDataUpdated.emit(t.objectName(), QByteArray(load.tobytes()))
+                load = self._threadSpecificProfiling[t].getLoad()
+                atimstamps = np.array([l[0] for l in load], dtype=np.int64)
+                aload = np.array([l[1] for l in load], dtype=np.float32)
+                if aload.size > 0:
+                    self.loadDataUpdated.emit(t.objectName(), QByteArray(atimstamps.tobytes()),
+                                              QByteArray(aload.tobytes()))
                 port_spans = self._threadSpecificProfiling[t].getSpans()
                 for port, spans in port_spans.items():
                     spans = np.array(spans, dtype=np.int64)

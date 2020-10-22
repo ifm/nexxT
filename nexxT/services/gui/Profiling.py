@@ -23,6 +23,8 @@ class LoadDisplayWidget(QWidget):
     """
     This widget displays the thread-specific load.
     """
+    baseTimestamp = None
+
     def __init__(self, parent):
         super().__init__(parent=parent)
         self._loadData = {}
@@ -30,19 +32,22 @@ class LoadDisplayWidget(QWidget):
         self.setAutoFillBackground(True)
 
     @Slot(str, QByteArray)
-    def newLoadData(self, threadName, loadData):
+    def newLoadData(self, threadName, timestamps, load):
         """
         Slot called when new load data is available
         :param threadName: the name of the thread given as string
         :param loadData: the load data, given as the QByteArray of a n x 2 np.float32 array
         :return:
         """
-        loadData = np.reshape(np.frombuffer(memoryview(loadData), dtype=np.float32), (-1, 2))
+        atimestamps = np.frombuffer(memoryview(timestamps), dtype=np.int64)
+        aload = np.frombuffer(memoryview(load), dtype=np.float32)
+        if LoadDisplayWidget.baseTimestamp is None:
+            LoadDisplayWidget.baseTimestamp = np.min(atimestamps)
         if threadName not in self._loadData:
             self._loadData[threadName] = QPolygonF()
         p = self._loadData[threadName]
-        for i in range(loadData.shape[0]):
-            p.append(QPointF(loadData[i, 0], loadData[i, 1]))
+        for i in range(aload.shape[0]):
+            p.append(QPointF(1e-9*(atimestamps[i] - self.baseTimestamp), aload[i]))
         if p[p.count()-1].x() - p[0].x() > 60:
             for i in range(p.count()):
                 if p[p.count()-1].x() - p[i].x() <= 60:
