@@ -14,7 +14,7 @@ from PySide2.QtCore import QObject, Signal, Slot, QDateTime, Qt, QDir, QMutex, Q
 from nexxT.interface import FilterState
 from nexxT.core.Exceptions import NexTRuntimeError
 from nexxT.core.Application import Application
-from nexxT.core.Utils import assertMainThread, MethodInvoker, handleException
+from nexxT.core.Utils import assertMainThread, MethodInvoker, handleException, mainThread
 
 logger = logging.getLogger(__name__)
 
