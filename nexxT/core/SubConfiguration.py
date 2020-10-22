@@ -199,3 +199,36 @@ class SubConfiguration(QObject):
             cfg["nodes"].append(ncfg)
         cfg["connections"] = [self._tupleToConnectionString(c) for c in self._graph.allConnections()]
         return cfg
+
+    @staticmethod
+    def getThreadSet(item):
+        """
+        Returns all threads (as strings) used by the given filter mockup. Usually this is only one, but
+        for composite filters, this function performs a recursive lookup.
+        :param mockup:
+        :return: set of strings
+        """
+        # avoid recursive import
+        from nexxT.core.CompositeFilter import CompositeFilter
+        from nexxT.core.FilterMockup import FilterMockup
+        if isinstance(item, FilterMockup):
+            mockup = item
+            if (issubclass(mockup.getPluginClass(), CompositeFilter.CompositeInputNode) or
+                    issubclass(mockup.getPluginClass(), CompositeFilter.CompositeOutputNode)):
+                return set()
+            if not issubclass(mockup.getPluginClass(), CompositeFilter.CompositeNode):
+                pc = mockup.propertyCollection().getChildCollection("_nexxT")
+                thread = pc.getProperty("thread")
+                return set([thread])
+            g = mockup.getLibrary().getGraph()
+            res = set()
+            for n in g.allNodes():
+                res = res.union(SubConfiguration.getThreadSet(g.getMockup(n)))
+            return res
+        if isinstance(item, SubConfiguration):
+            g = item.getGraph()
+            res = set()
+            for n in g.allNodes():
+                res = res.union(SubConfiguration.getThreadSet(g.getMockup(n)))
+            return res
+

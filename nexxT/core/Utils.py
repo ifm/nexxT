@@ -32,6 +32,8 @@ class MethodInvoker(QObject):
 
     signal = Signal() # 10 arguments
 
+    methodscalled = set()
+
     IDLE_TASK = "IDLE_TASK"
 
     def __init__(self, callback, connectiontype, *args):
@@ -52,6 +54,7 @@ class MethodInvoker(QObject):
                 logger.warning("Using old style API, wrong thread might be used!")
         if not thread is None:
             self.moveToThread(thread)
+        self.methodscalled.add(self)
         if connectiontype is self.IDLE_TASK:
             QTimer.singleShot(0, self.callbackWrapper)
         else:
@@ -65,6 +68,7 @@ class MethodInvoker(QObject):
         :return: None
         """
         self.callback(*self.args)
+        self.methodscalled.remove(self)
 
 class ThreadToColor:
     """
@@ -159,12 +163,19 @@ class Barrier:
             self.condition.wakeAll()
         self.mutex.unlock()
 
+def mainThread():
+    """
+    return the applications main thread
+    :return:
+    """
+    return QCoreApplication.instance().thread()
+
 def isMainThread():
     """
     check whether current thread is main thread or not
     :return: boolean
     """
-    return not QCoreApplication.instance() or QThread.currentThread() == QCoreApplication.instance().thread()
+    return not QCoreApplication.instance() or QThread.currentThread() == mainThread()
 
 def assertMainThread():
     """

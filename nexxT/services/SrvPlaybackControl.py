@@ -127,7 +127,7 @@ class MVCPlaybackControlBase(QObject):
                                                            nameFilters=nameFilters,
                                                            connections=connections)
             self._deviceId += 1
-            self._updateFeatureSet()
+            MethodInvoker(dict(object=self, method="_updateFeatureSet", thread=mainThread()), Qt.QueuedConnection)
 
     @Slot(QObject)
     def removeConnections(self, playbackDevice):
@@ -150,7 +150,7 @@ class MVCPlaybackControlBase(QObject):
                     del self._registeredDevices[devid]
                 logger.debug("disconnected connections of playback device. number of devices left: %d",
                              len(self._registeredDevices))
-                self._updateFeatureSet()
+                MethodInvoker(dict(object=self, method="_updateFeatureSet", thread=mainThread()), Qt.QueuedConnection)
 
     def _updateFeatureSet(self):
         featureset = set()

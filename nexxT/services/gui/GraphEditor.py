@@ -20,6 +20,7 @@ from PySide2.QtGui import QBrush, QPen, QColor, QPainterPath, QImage
 from PySide2.QtCore import QPointF, Signal, QObject, QRectF, QSizeF, Qt
 from nexxT.core.BaseGraph import BaseGraph
 from nexxT.core.Graph import FilterGraph
+from nexxT.core.SubConfiguration import SubConfiguration
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.PluginManager import PluginManager
 from nexxT.core.Utils import checkIdentifier, handleException, ThreadToColor, assertMainThread
@@ -991,7 +992,7 @@ class GraphScene(BaseGraphScene): # pragma: no cover
         if isinstance(item, BaseGraphScene.NodeItem) and isinstance(self.graph, FilterGraph):
             if role == BaseGraphScene.STYLE_ROLE_BRUSH:
                 mockup = self.graph.getMockup(item.name)
-                threads = tuple(sorted(CompositeFilter.getThreadSet(mockup)))
+                threads = tuple(sorted(SubConfiguration.getThreadSet(mockup)))
                 for t in threads:
                     if not t in self._threadBrushes:
                         self._threadBrushes[t] = QBrush(ThreadToColor.singleton.get(t))
@@ -1008,7 +1009,7 @@ class GraphScene(BaseGraphScene): # pragma: no cover
                 return self._threadBrushes[threads]
             if role == BaseGraphScene.STYLE_ROLE_TEXT_BRUSH:
                 mockup = self.graph.getMockup(item.name)
-                threads = tuple(sorted(CompositeFilter.getThreadSet(mockup)))
+                threads = tuple(sorted(SubConfiguration.getThreadSet(mockup)))
                 if len(threads) > 1:
                     return QBrush(QColor(255, 255, 255, 200))
                 return QBrush(QColor(255, 255, 255, 100))
@@ -1171,8 +1172,10 @@ class GraphScene(BaseGraphScene): # pragma: no cover
         :return:
         """
         item = self.itemOfContextMenu
-        newThread, ok = QInputDialog.getText(self.views()[0], self.sender().text(),
-                                             "Enter name of new thread of " + item.name)
+        threads = SubConfiguration.getThreadSet(self.graph.getSubConfig())
+        newThread, ok = QInputDialog.getItem(self.views()[0], self.sender().text(),
+                                             "Enter name of new thread of " + item.name,
+                                             list(sorted(threads)), editable=True)
         if not ok or newThread is None or newThread == "":
             return
         mockup = self.graph.getMockup(item.name)

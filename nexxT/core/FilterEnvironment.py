@@ -40,6 +40,7 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
             plugin = PluginManager.singleton().create(library, factoryFunction, self)
             if plugin is not None:
                 self.setPlugin(plugin)
+                plugin.setObjectName(str(library) + "_" + str(factoryFunction))
             self._state = FilterState.CONSTRUCTED
 
     if useCImpl:

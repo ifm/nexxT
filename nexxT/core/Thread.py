@@ -75,6 +75,8 @@ class NexTThread(QObject):
         self._name = name
         try:
             self._profsrv = Services.getService("Profiling")
+            if hasattr(self._profsrv, "data") and self._profsrv.data() is None:
+                self._profsrv = None
         except KeyError:
             self._profsrv = None
         if not self.thread() is QCoreApplication.instance().thread():
@@ -190,10 +192,10 @@ class NexTThread(QObject):
                     op = getattr(self._filters[name], operation)
                     op()
                 if operation == "start":
-                    if self._profsrv is not None and self._profsrv.data() is not None:
+                    if self._profsrv is not None:
                         self._profsrv.registerThread()
                 elif operation == "stop":
-                    if self._profsrv is not None and self._profsrv.data() is not None:
+                    if self._profsrv is not None:
                         self._profsrv.deregisterThread()
             except Exception: # pylint: disable=broad-except
                 # catching a general exception is exactly what is wanted here

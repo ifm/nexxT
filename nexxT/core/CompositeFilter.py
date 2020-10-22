@@ -21,27 +21,6 @@ class CompositeFilter(SubConfiguration):
     SubGraphs (which behave like a filter).
     """
 
-    @staticmethod
-    def getThreadSet(mockup):
-        """
-        Returns all threads (as strings) used by the given filter mockup. Usually this is only one, but
-        for composite filters, this function performs a recursive lookup.
-        :param mockup:
-        :return: set of strings
-        """
-        if (issubclass(mockup.getPluginClass(), CompositeFilter.CompositeInputNode) or
-                issubclass(mockup.getPluginClass(), CompositeFilter.CompositeOutputNode)):
-            return set()
-        if not issubclass(mockup.getPluginClass(), CompositeFilter.CompositeNode):
-            pc = mockup.propertyCollection().getChildCollection("_nexxT")
-            thread = pc.getProperty("thread")
-            return set([thread])
-        g = mockup.getLibrary().getGraph()
-        res = set()
-        for n in g.allNodes():
-            res = res.union(CompositeFilter.getThreadSet(g.getMockup(n)))
-        return res
-
     class CompositeInputNode(Filter):
         """
         This filter acts as a dummy filter inside the composite subgraph; because it represents
