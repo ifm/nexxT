@@ -142,7 +142,7 @@ if build_required:
     os.chdir(str(cwd))    
     
 setup(name='nexxT',
-      install_requires=["PySide2==5.14.2.2", "shiboken2==5.14.2.2", "jsonschema>=3.2.0", "h5py>=2.10.0", "setuptools>=41.0.0"], 
+      install_requires=["PySide2==5.14.2.3", "shiboken2==5.14.2.3", "jsonschema>=3.2.0", "h5py>=2.10.0", "setuptools>=41.0.0"], 
       version=os.environ.get("NEXXT_VERSION", "0.0.0"),
       description='An extensible framework.',
       author='Christoph Wiedemann',
