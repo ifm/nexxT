@@ -232,7 +232,7 @@ class ProfilingService(QObject):
         """
         self._mi = None
         t = QThread.currentThread()
-        logger.info("deregistering thread %s", t.objectName())
+        logger.debug("deregistering thread %s", t.objectName())
         with self._lockThreadSpecific:
             if t in self._threadSpecificProfiling:
                 self._threadSpecificProfiling[t].timer.stop()

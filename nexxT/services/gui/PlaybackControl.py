@@ -210,7 +210,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
             self.actStart.setEnabled(False)
         if "pausePlayback" not in featureset:
             self.actPause.setEnabled(False)
-        logger.info("current feature set: %s", featureset)
+        logger.debug("current feature set: %s", featureset)
         logger.debug("Setting name filters of browser: %s", list(nameFilters))
         self.nameFiltersChanged.emit(list(nameFilters))
 
