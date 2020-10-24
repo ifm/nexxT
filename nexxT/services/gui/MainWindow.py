@@ -7,12 +7,16 @@
 """
 This module provides a MainWindow GUI service for the nexxT framework.
 """
-
+import csv
 import logging
 import re
+import subprocess
+import sys
 import shiboken2
-from PySide2.QtWidgets import QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QAction, QWidget, QGridLayout
+from PySide2.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QAction, QWidget, QGridLayout,
+                               QMenuBar, QMessageBox)
 from PySide2.QtCore import QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings
+import nexxT
 from nexxT.interface import Filter
 from nexxT.core.Application import Application
 
@@ -161,6 +165,22 @@ class MainWindow(QMainWindow): # pragma: no cover
         self.mdi.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setCentralWidget(self.mdi)
         self.menu = self.menuBar().addMenu("Windows")
+        self.aboutMenu = QMenuBar(self)
+        self.menuBar().setCornerWidget(self.aboutMenu)
+        m = self.aboutMenu.addMenu("About")
+        self.aboutNexxT = QAction("About nexxT ...")
+        self.aboutQt = QAction("About Qt ...")
+        self.aboutPython = QAction("About Python ...")
+        m.addActions([self.aboutNexxT, self.aboutQt, self.aboutPython])
+        self.aboutNexxT.triggered.connect(lambda: QMessageBox.about(self, "About nexxT", """\
+This program uses <b>nexxT</b> %(version)s, a generic hybrid python/c++ framework for developing computer vision 
+algorithms.<br><br>
+
+nexxT is available under the <a href='https://github.com/ifm/nexxT/blob/master/LICENSE'>Apache 2.0 License</a> together 
+with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>. 
+""" % dict(version=nexxT.__version__)))
+        self.aboutQt.triggered.connect(lambda: QMessageBox.aboutQt(self))
+        self.aboutPython.triggered.connect(self._aboutPython)
         self.toolbar = None
         self.managedMdiWindows = []
         self.managedSubplots = {}
@@ -409,3 +429,13 @@ class MainWindow(QMainWindow): # pragma: no cover
             app.aboutToClose.connect(self.saveMdiState, Qt.UniqueConnection)
         else:
             self.activeApp = None
+
+    def _aboutPython(self):
+        piplic = subprocess.check_output([sys.executable, "-m", "piplicenses", "--format=plain"],
+                                          encoding="utf-8").replace("\n", "<br>").replace(" ", "&nbsp;")
+        QMessageBox.about(self, "About python", """\
+This program uses <b>python</b> %(version)s and the following installed python packages.<br><br>
+<p style="font-family: monospace;">
+%(table)s
+</p>
+""" % dict(version=sys.version, table=piplic))

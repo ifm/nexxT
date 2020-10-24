@@ -9,6 +9,11 @@ Setup the logging here until we have a better place.
 """
 
 def setup():
+    try:
+        from importlib import metadata
+    except ImportError:
+        # Running on pre-3.8 Python; use importlib-metadata package
+        import importlib_metadata as metadata
     import logging
     from pathlib import Path
     import os
@@ -30,6 +35,9 @@ def setup():
     logger.addHandler(console)
     logger.info("configured logger")
     logger.setLevel(logging.INFO)
+
+    global __version__
+    __version__ = metadata.version("nexxT")
 
     global useCImpl
     useCImpl = not bool(int(os.environ.get("NEXXT_DISABLE_CIMPL", "0")))

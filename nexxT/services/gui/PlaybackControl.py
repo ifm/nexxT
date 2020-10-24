@@ -9,14 +9,15 @@ This module provides the nexxT GUI service PlaybackControl
 """
 import functools
 import logging
-import os
+from pathlib import Path
 from PySide2.QtCore import Signal, QDateTime, Qt, QTimer
 from PySide2.QtWidgets import (QWidget, QGridLayout, QLabel, QBoxLayout, QSlider, QToolBar, QAction, QApplication,
-                               QStyle, QLineEdit, QFileSystemModel, QTreeView, QHeaderView, QActionGroup)
+                               QStyle, QActionGroup)
 from nexxT.interface import Services
 from nexxT.core.Exceptions import PropertyCollectionPropertyNotFound
-from nexxT.core.Utils import FileSystemModelSortProxy, assertMainThread
+from nexxT.core.Utils import assertMainThread
 from nexxT.services.SrvPlaybackControl import PlaybackControlConsole
+from nexxT.services.gui.BrowserWidget import BrowserWidget
 
 logger = logging.getLogger(__name__)
 
@@ -111,51 +112,23 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         contentsLayout.addWidget(self.currentLabel, 0, 1, alignment=Qt.AlignHCenter)
         contentsLayout.addWidget(self.endLabel, 0, 2, alignment=Qt.AlignRight)
         contentsLayout.addWidget(self.positionSlider, 1, 0, 1, 3)
-        self.filenameLabel = QLineEdit(parent=self.dockWidgetContents)
-        self.filenameLabel.setReadOnly(True)
-        self.filenameLabel.setFrame(False)
-        self.filenameLabel.setStyleSheet("* { background-color: rgba(0, 0, 0, 0); }")
-        contentsLayout.addWidget(self.filenameLabel, 2, 0, 1, 3)
         self.positionSlider.setTracking(False)
         self.positionSlider.valueChanged.connect(self.onSliderValueChanged, Qt.DirectConnection)
         self.positionSlider.sliderMoved.connect(self.displayPosition)
 
         # file browser
-        self.fileSystemModel = QFileSystemModel()
-        self.fileSystemModel.setNameFilterDisables(False)
-        self.fileSystemModel.setRootPath("/")
+        self.browser = BrowserWidget(self.dockWidget)
         self.nameFiltersChanged.connect(self._onNameFiltersChanged, Qt.QueuedConnection)
-
-        self.browser = QTreeView(parent=self.dockWidgetContents)
-        self.useProxy = True
-        if self.useProxy:
-            self.proxyFileSystemModel = FileSystemModelSortProxy(self)
-            self.proxyFileSystemModel.setSourceModel(self.fileSystemModel)
-            self.browser.setModel(self.proxyFileSystemModel)
-        else:
-            self.browser.setModel(self.fileSystemModel)
-        self.browser.setSortingEnabled(True)
-        self.browser.sortByColumn(0, Qt.SortOrder.AscendingOrder)
-        self.browser.setUniformRowHeights(True)
-        self.browser.header().setSectionResizeMode(0, QHeaderView.Interactive)
-        self.browser.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.browser.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.browser.header().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self.browser.header().resizeSection(0, 500)
         contentsLayout.addWidget(self.browser, 3, 0, 1, 3)
         contentsLayout.setRowStretch(3, 100)
-        self.browser.doubleClicked.connect(self.browserCurrentChanged)
-        self.browser.selectionModel().currentChanged.connect(self.browserCurrentChanged)
+        self.browser.activated.connect(self.browserActivated)
 
         self.actShowAllFiles = QAction("Show all files")
         self.actShowAllFiles.setCheckable(True)
         self.actShowAllFiles.setChecked(False)
         self.actShowAllFiles.toggled.connect(self._onShowAllFiles)
-        self.actRefreshBrowser = QAction("Refresh browser")
-        self.actRefreshBrowser.triggered.connect(self.refreshBrowser)
         playbackMenu.addSeparator()
         playbackMenu.addAction(self.actShowAllFiles)
-        playbackMenu.addAction(self.actRefreshBrowser)
 
         self.actGroupStream = QActionGroup(self)
         self.actGroupStream.setExclusionPolicy(QActionGroup.ExclusionPolicy.ExclusiveOptional)
@@ -177,12 +150,10 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         logger.internal("deleting playback control")
 
     def _onNameFiltersChanged(self, nameFilt):
-        self.fileSystemModel.setNameFilters(nameFilt)
-        self.refreshBrowser()
+        self.browser.setFilter(nameFilt)
 
     def _onShowAllFiles(self, enabled):
         self.fileSystemModel.setNameFilterDisables(enabled)
-        self.refreshBrowser()
 
     def _supportedFeaturesChanged(self, featureset, nameFilters):
         """
@@ -214,40 +185,15 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         logger.debug("Setting name filters of browser: %s", list(nameFilters))
         self.nameFiltersChanged.emit(list(nameFilters))
 
-    def refreshBrowser(self):
-        """
-        It looks like QFileSystemModel is rather broken when it comes to automatically refresh
-        This is a workaround...
-        :return:
-        """
-        assertMainThread()
-        newModel = QFileSystemModel()
-        newModel.setRootPath("/")
-        logger.debug("setNameFilterDisables %d", self.fileSystemModel.nameFilterDisables())
-        newModel.setNameFilterDisables(self.fileSystemModel.nameFilterDisables())
-        logger.debug("setNameFilters %s", self.fileSystemModel.nameFilters())
-        newModel.setNameFilters(self.fileSystemModel.nameFilters())
-        currentIdx = self.browser.currentIndex()
-        if self.useProxy:
-            currentIdx = self.proxyFileSystemModel.mapToSource(currentIdx)
-        currentFile = self.fileSystemModel.filePath(currentIdx)
-        self.fileSystemModel.resetInternalData()
-        idx = self.fileSystemModel.index(currentFile)
-        if self.useProxy:
-            idx = self.proxyFileSystemModel.mapFromSource(idx)
-        self.browser.setCurrentIndex(idx)
-        self.browser.scrollTo(idx)
-        QTimer.singleShot(250, self.scrollToCurrent)
-
     def scrollToCurrent(self):
         """
         Scrolls to the current item in the browser
         :return:
         """
         assertMainThread()
-        idx = self.browser.currentIndex()
-        if idx.isValid():
-            self.browser.scrollTo(idx)
+        c = self.browser.current()
+        if c is not None:
+            self.browser.scrollTo(c)
 
     def _sequenceOpened(self, filename, begin, end, streams):
         """
@@ -266,12 +212,12 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         self.beginLabel.setText(begin.toString("hh:mm:ss.zzz"))
         self.endLabel.setText(end.toString("hh:mm:ss.zzz"))
         self._currentTimestampChanged(begin)
-        self.filenameLabel.setText(filename)
-        idx = self.fileSystemModel.index(filename)
-        if self.useProxy:
-            idx = self.proxyFileSystemModel.mapFromSource(idx)
-        self.browser.setCurrentIndex(idx)
-        self.browser.scrollTo(idx)
+        try:
+            self.browser.blockSignals(True)
+            self.browser.setActive(filename)
+            self.browser.scrollTo(filename)
+        finally:
+            self.browser.blockSignals(False)
         self._selectedStream = None
         for a in self.actGroupStream.actions():
             logger.debug("Remove stream group action: %s", a.data())
@@ -360,22 +306,16 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         """
         assertMainThread()
         action = self.sender()
-        index = self.fileSystemModel.index(action.data(), 0)
-        if self.useProxy:
-            index = self.proxyFileSystemModel.mapFromSource(index)
-        self.browser.setCurrentIndex(index)
+        self.browser.setActive(action.data())
 
-    def browserCurrentChanged(self, current):
+    def browserActivated(self, filename):
         """
-        Called when the current item of the file browser changed.
-        :param current: the proxyFileSystemModel model index
+        Called when the user activated a file.
+        :param filename: the new filename
         :return:
         """
         assertMainThread()
-        if self.useProxy:
-            current = self.proxyFileSystemModel.mapToSource(current)
-        if self.fileSystemModel.flags(current) & Qt.ItemIsEnabled and self.fileSystemModel.fileInfo(current).isFile():
-            filename = self.fileSystemModel.filePath(current)
+        if filename is not None and Path(filename).is_file():
             foundIdx = None
             for i, a in enumerate(self.recentSeqs):
                 if a.data() == filename:
@@ -430,16 +370,11 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         assertMainThread()
         propertyCollection = self.config.guiState()
         showAllFiles = self.actShowAllFiles.isChecked()
-        current = self.browser.currentIndex()
-        if self.useProxy:
-            current = self.proxyFileSystemModel.mapToSource(current)
-        if self.fileSystemModel.flags(current) & Qt.ItemIsEnabled and self.fileSystemModel.fileInfo(current).isFile():
-            filename = self.fileSystemModel.filePath(current)
-        else:
-            filename = ""
+        folder = self.browser.folder()
+        logger.debug("Storing current folder: %s", folder)
         try:
             propertyCollection.setProperty("PlaybackControl_showAllFiles", int(showAllFiles))
-            propertyCollection.setProperty("PlaybackControl_filename", filename)
+            propertyCollection.setProperty("PlaybackControl_folder", folder)
             recentFiles = [a.data() for a in self.recentSeqs if a.data() is not None]
             propertyCollection.setProperty("PlaybackControl_recent", "|".join(recentFiles))
         except PropertyCollectionPropertyNotFound:
@@ -456,13 +391,10 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         propertyCollection.defineProperty("PlaybackControl_showAllFiles", 0, "show all files setting")
         showAllFiles = propertyCollection.getProperty("PlaybackControl_showAllFiles")
         self.actShowAllFiles.setChecked(bool(showAllFiles))
-        propertyCollection.defineProperty("PlaybackControl_filename", "", "current file name")
-        filename = propertyCollection.getProperty("PlaybackControl_filename")
-        index = self.fileSystemModel.index(os.path.split(filename)[0])
-        if self.useProxy:
-            index = self.proxyFileSystemModel.mapFromSource(index)
-        self.browser.setExpanded(index, True)
-        self.browser.scrollTo(index)
+        propertyCollection.defineProperty("PlaybackControl_folder", "", "current folder name")
+        folder = propertyCollection.getProperty("PlaybackControl_folder")
+        logger.debug("Setting current file: %s", folder)
+        self.browser.setFolder(folder)
         propertyCollection.defineProperty("PlaybackControl_recent", "", "recent opened sequences")
         recentFiles = propertyCollection.getProperty("PlaybackControl_recent")
         idx = 0

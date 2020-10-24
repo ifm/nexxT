@@ -13,12 +13,11 @@ import re
 import sys
 import logging
 import datetime
-import platform
 import os.path
 import sqlite3
 import time
 from PySide2.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
-                            QMutexLocker, QRecursiveMutex, QTimer, QSortFilterProxyModel, Qt)
+                            QMutexLocker, QRecursiveMutex, QTimer, Qt)
 from PySide2.QtGui import QColor
 from nexxT.core.Exceptions import NexTInternalError, InvalidIdentifierException
 
@@ -266,39 +265,6 @@ class SQLiteHandler(logging.Handler):
         else:
             db.commit()
 
-class FileSystemModelSortProxy(QSortFilterProxyModel):
-    """
-    Proxy model for sorting a file system models with "directories first" strategy.
-    See also https://stackoverflow.com/questions/10789284/qfilesystemmodel-sorting-dirsfirst
-    """
-    def lessThan(self, left, right):
-        assertMainThread()
-        if self.sortColumn() == 0:
-            asc = self.sortOrder() == Qt.SortOrder.AscendingOrder
-            left_fi = self.sourceModel().fileInfo(left)
-            right_fi = self.sourceModel().fileInfo(right)
-            if self.sourceModel().data(left) == "..":
-                return asc
-            if self.sourceModel().data(right) == "..":
-                return not asc
-
-            if not left_fi.isDir() and right_fi.isDir():
-                return not asc
-            if left_fi.isDir() and not right_fi.isDir():
-                return asc
-            left_fp = left_fi.filePath()
-            right_fp = right_fi.filePath()
-            # pylint: disable=too-many-boolean-expressions
-            # check if we are actually comparing two drive letters like (C:/)
-            # in this case the default sorting is broken and we want to provide
-            # a better sorting using the drive letter instead of the volume name
-            if (platform.system() == "Windows" and
-                    left_fi.isAbsolute() and len(left_fp) == 3 and left_fp[1:] == ":/" and
-                    right_fi.isAbsolute() and len(right_fp) == 3 and right_fp[1:] == ":/"):
-                res = (asc and left_fp < right_fp) or ((not asc) and right_fp < left_fp)
-                return res
-        return super().lessThan(left, right)
-
 class QByteArrayBuffer(io.IOBase):
     """
     Efficient IOBase wrapper around QByteArray for pythonic access, for memoryview doesn't seem
@@ -306,6 +272,8 @@ class QByteArrayBuffer(io.IOBase):
     """
     def __init__(self, qByteArray):
         super().__init__()
+        logger.warning("Using deprecated class QByteArrayBuffer. Since PySide2 5.14.2 you can cast QByteArrays directly"
+                       "to memoryview and this class is not needed anymore.")
         self._ba = qByteArray
         self._ptr = 0
 
