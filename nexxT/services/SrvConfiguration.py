@@ -10,7 +10,7 @@ This module provides the basic Configuration services of the nexxT framework.
 
 import logging
 from PySide2.QtCore import (QObject, Slot, Qt, QAbstractItemModel, QModelIndex, QMimeData)
-from PySide2.QtGui import QFont
+from PySide2.QtGui import QFont, QIcon
 from PySide2.QtWidgets import QStyle, QApplication
 from nexxT.core.Exceptions import NexTRuntimeError
 from nexxT.core.ConfigFiles import ConfigFileLoader
@@ -450,14 +450,14 @@ class ConfigurationModel(QAbstractItemModel):
                 return None
             if isinstance(item, str):
                 if not index.parent().isValid():
-                    return QApplication.style().standardIcon(QStyle.SP_DriveHDIcon)
+                    return QIcon.fromTheme("drive-harddisk", QApplication.style().standardIcon(QStyle.SP_DriveHDIcon))
             if isinstance(item, self.SubConfigContent):
                 if Configuration.configType(item.subConfig) == Configuration.CONFIG_TYPE_COMPOSITE:
-                    return QApplication.style().standardIcon(QStyle.SP_DirLinkIcon)
+                    return QIcon.fromTheme("repository", QApplication.style().standardIcon(QStyle.SP_DirLinkIcon))
                 if Configuration.configType(item.subConfig) == Configuration.CONFIG_TYPE_APPLICATION:
-                    return QApplication.style().standardIcon(QStyle.SP_DirIcon)
+                    return QIcon.fromTheme("folder", QApplication.style().standardIcon(QStyle.SP_DirIcon))
             if isinstance(item, self.NodeContent):
-                return QApplication.style().standardIcon(QStyle.SP_FileIcon)
+                return QIcon.fromTheme("unknown", QApplication.style().standardIcon(QStyle.SP_FileIcon))
             if isinstance(item, self.PropertyContent):
                 return None
             logger.warning("Unknown item %s", repr(item))

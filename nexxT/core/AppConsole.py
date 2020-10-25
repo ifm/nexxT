@@ -13,12 +13,15 @@ import logging
 import signal
 import sys
 from PySide2.QtCore import QCoreApplication, QLocale
+from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QApplication
 
 from nexxT.core.Utils import SQLiteHandler, MethodInvoker, waitForSignal
 from nexxT.core.ConfigFiles import ConfigFileLoader
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
+# this import is needed for initializing the nexxT qt resources
+import nexxT.core.qrc_resources # pylint: disable=unused-import
 from nexxT.interface import Services, FilterState
 
 from nexxT.services.ConsoleLogger import ConsoleLogger
@@ -75,6 +78,7 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
     QLocale.setDefault(lcl)
     if withGui:
         app = QApplication()
+        app.setWindowIcon(QIcon(":icons/nexxT.svg"))
         app.setOrganizationName("nexxT")
         app.setApplicationName("nexxT")
         setupGuiServices(config)

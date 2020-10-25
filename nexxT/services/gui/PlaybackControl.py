@@ -11,6 +11,7 @@ import functools
 import logging
 from pathlib import Path
 from PySide2.QtCore import Signal, QDateTime, Qt, QTimer
+from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (QWidget, QGridLayout, QLabel, QBoxLayout, QSlider, QToolBar, QAction, QApplication,
                                QStyle, QActionGroup)
 from nexxT.interface import Services
@@ -43,13 +44,24 @@ class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
         self.config = config
         playbackMenu = srv.menuBar().addMenu("&Playback")
 
-        self.actStart = QAction(QApplication.style().standardIcon(QStyle.SP_MediaPlay), "Start Playback", self)
-        self.actPause = QAction(QApplication.style().standardIcon(QStyle.SP_MediaPause), "Pause Playback", self)
+        style = QApplication.style()
+        self.actStart = QAction(QIcon.fromTheme("media-playback-start", style.standardIcon(QStyle.SP_MediaPlay)),
+                                "Start Playback", self)
+        self.actPause = QAction(QIcon.fromTheme("media-playback-pause", style.standardIcon(QStyle.SP_MediaPause)),
+                                "Pause Playback", self)
         self.actPause.setEnabled(False)
-        self.actStepFwd = QAction(QApplication.style().standardIcon(QStyle.SP_MediaSeekForward), "Step Forward", self)
-        self.actStepBwd = QAction(QApplication.style().standardIcon(QStyle.SP_MediaSeekBackward), "Step Backward", self)
-        self.actSeekEnd = QAction(QApplication.style().standardIcon(QStyle.SP_MediaSkipForward), "Seek End", self)
-        self.actSeekBegin = QAction(QApplication.style().standardIcon(QStyle.SP_MediaSkipBackward), "Seek Begin", self)
+        self.actStepFwd = QAction(QIcon.fromTheme("media-seek-forward",
+                                                  style.standardIcon(QStyle.SP_MediaSeekForward)),
+                                  "Step Forward", self)
+        self.actStepBwd = QAction(QIcon.fromTheme("media-seek-backward",
+                                                  style.standardIcon(QStyle.SP_MediaSeekBackward)),
+                                  "Step Backward", self)
+        self.actSeekEnd = QAction(QIcon.fromTheme("media-skip-forward",
+                                                  style.standardIcon(QStyle.SP_MediaSkipForward)),
+                                  "Seek End", self)
+        self.actSeekBegin = QAction(QIcon.fromTheme("media-skip-backward",
+                                                    style.standardIcon(QStyle.SP_MediaSkipBackward)),
+                                    "Seek Begin", self)
         self.actSetTimeFactor = {r : QAction("x 1/%d" % (1/r), self) if r < 1 else QAction("x %d" % r, self)
                                  for r in (1/8, 1/4, 1/2, 1, 2, 4, 8)}
 

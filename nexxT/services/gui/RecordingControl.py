@@ -12,6 +12,7 @@ import logging
 from datetime import timedelta
 from pathlib import Path
 from PySide2.QtCore import Qt
+from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (QAction, QApplication, QStyle, QWidget, QBoxLayout, QToolBar, QLabel, QLineEdit,
                                QFileDialog)
 from nexxT.core.Utils import assertMainThread
@@ -39,10 +40,13 @@ class MVCRecordingControlGUI(MVCRecordingControlBase): # pragma: no cover
         config.configAboutToSave.connect(self._saveState)
         self._config = config
         recMenu = srv.menuBar().addMenu("&Recording")
-
-        self.actStart = QAction(QApplication.style().standardIcon(QStyle.SP_MediaPlay), "Start Recording", self)
-        self.actStop = QAction(QApplication.style().standardIcon(QStyle.SP_MediaStop), "Stop Recording", self)
-        self.actSetDir = QAction(QApplication.style().standardIcon(QStyle.SP_DirIcon), "Choose directory ...", self)
+        style = QApplication.style()
+        self.actStart = QAction(QIcon.fromTheme("media-record", QIcon(":icons/media-record.svg")),
+                                "Start Recording", self)
+        self.actStop = QAction(QIcon.fromTheme("media-playback-stop", style.standardIcon(QStyle.SP_MediaStop)),
+                               "Stop Recording", self)
+        self.actSetDir = QAction(QIcon.fromTheme("document-open-folder", style.standardIcon(QStyle.SP_DirIcon)),
+                                 "Choose directory ...", self)
         self.actStart.setEnabled(False)
         self.actStop.setEnabled(False)
         self.actSetDir.setEnabled(False)

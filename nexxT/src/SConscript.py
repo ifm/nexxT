@@ -115,3 +115,7 @@ Depends(dummy, apilib)
 env.RegisterTargets(env.Install(srcDir.Dir("..").Dir("binary").Dir(env.subst("$deploy_platform")).Dir(env.subst("$variant")).abspath, pyext+apilib))
 if env["variant"] == "release":
     env.RegisterTargets(env.Install(srcDir.Dir("..").Dir("include").abspath, Glob(srcDir.abspath + "/*.hpp")))
+    qrcsrc = srcDir.File('../../workspace/resources/nexxT.qrc')
+    rccout = env.Qrc5('qrc_resources.py', qrcsrc.abspath, QT5_QRCFLAGS=Split("-g python"))
+    iout = env.Install(srcDir.Dir("..").Dir("core").abspath, rccout)
+    env.RegisterTargets(iout)

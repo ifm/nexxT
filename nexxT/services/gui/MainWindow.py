@@ -7,7 +7,6 @@
 """
 This module provides a MainWindow GUI service for the nexxT framework.
 """
-import csv
 import logging
 import re
 import subprocess
@@ -432,7 +431,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
 
     def _aboutPython(self):
         piplic = subprocess.check_output([sys.executable, "-m", "piplicenses", "--format=plain"],
-                                          encoding="utf-8").replace("\n", "<br>").replace(" ", "&nbsp;")
+                                         encoding="utf-8").replace("\n", "<br>").replace(" ", "&nbsp;")
         QMessageBox.about(self, "About python", """\
 This program uses <b>python</b> %(version)s and the following installed python packages.<br><br>
 <p style="font-family: monospace;">

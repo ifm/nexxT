@@ -11,6 +11,7 @@ This module provides the Configuration GUI service of the nexxT framework.
 import logging
 import shiboken2
 from PySide2.QtCore import (Qt, QSettings, QByteArray, QDataStream, QIODevice)
+from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (QTreeView, QAction, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
                                QHeaderView, QMenu, QDockWidget)
 from nexxT.interface import Services, FilterState
@@ -39,16 +40,22 @@ class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
         configuration.configNameChanged.connect(self._configNameChanged)
         configuration.dirtyChanged.connect(self._dirtyChanged)
 
-        self.actLoad = QAction(QApplication.style().standardIcon(QStyle.SP_DialogOpenButton), "Open config", self)
+        style = QApplication.style()
+        self.actLoad = QAction(QIcon.fromTheme("document-open", style.standardIcon(QStyle.SP_DialogOpenButton)),
+                               "Open config", self)
         self.actLoad.triggered.connect(self._execLoad)
-        self.actSave = QAction(QApplication.style().standardIcon(QStyle.SP_DialogSaveButton), "Save config", self)
+        self.actSave = QAction(QIcon.fromTheme("document-save", style.standardIcon(QStyle.SP_DialogSaveButton)),
+                               "Save config", self)
         self.actSave.triggered.connect(self._execSaveConfig)
-        self.actNew = QAction(QApplication.style().standardIcon(QStyle.SP_FileIcon), "New config", self)
+        self.actNew = QAction(QIcon.fromTheme("document-new", style.standardIcon(QStyle.SP_FileIcon)),
+                              "New config", self)
         self.actNew.triggered.connect(self._execNew)
 
-        self.actActivate = QAction(QApplication.style().standardIcon(QStyle.SP_ArrowUp), "Initialize", self)
+        self.actActivate = QAction(QIcon.fromTheme("arrow-up", style.standardIcon(QStyle.SP_ArrowUp)),
+                                   "Initialize", self)
         self.actActivate.triggered.connect(self.activate)
-        self.actDeactivate = QAction(QApplication.style().standardIcon(QStyle.SP_ArrowDown), "Deinitialize", self)
+        self.actDeactivate = QAction(QIcon.fromTheme("arrow-down", style.standardIcon(QStyle.SP_ArrowDown)),
+                                     "Deinitialize", self)
         self.actDeactivate.triggered.connect(self.deactivate)
 
         confMenu.addAction(self.actLoad)
