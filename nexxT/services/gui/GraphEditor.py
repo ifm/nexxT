@@ -30,7 +30,7 @@ from nexxT.services.gui import GraphLayering
 
 logger = logging.getLogger(__name__)
 
-class MyGraphicsPathItem(QGraphicsPathItem, QObject): # pragma: no cover
+class MyGraphicsPathItem(QGraphicsPathItem, QObject):
     """
     Little subclass for receiving hover events and scene position changes outside the items
     """
@@ -72,7 +72,7 @@ class MyGraphicsPathItem(QGraphicsPathItem, QObject): # pragma: no cover
             self.scenePosChanged.emit(value)
         return super().itemChange(change, value)
 
-class MySimpleTextItem(QGraphicsSimpleTextItem): # pragma: no cover
+class MySimpleTextItem(QGraphicsSimpleTextItem):
     """
     QGraphicsSimpleTextItem with a background brush
     """
@@ -105,7 +105,7 @@ class MySimpleTextItem(QGraphicsSimpleTextItem): # pragma: no cover
         painter.setPen(p)
         super().paint(painter, option, widget)
 
-class BaseGraphScene(QGraphicsScene): # pragma: no cover
+class BaseGraphScene(QGraphicsScene):
     """
     Basic graph display and manipulation scene. Generic base class intended to be overwritten.
     """
@@ -941,7 +941,7 @@ class PortSelectorDialog(QDialog):
             return d.selectedInputPorts, d.selectedOutputPorts
         return [], []
 
-class GraphScene(BaseGraphScene): # pragma: no cover
+class GraphScene(BaseGraphScene):
     """
     Concrete class interacting with a BaseGraph or FilterGraph instance
     """

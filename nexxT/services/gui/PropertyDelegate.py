@@ -11,7 +11,7 @@ This module provides a delegate for use in the Configuration GUI service to edit
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QStyledItemDelegate
 
-class PropertyDelegate(QStyledItemDelegate): # pragma: no cover
+class PropertyDelegate(QStyledItemDelegate):
     """
     This class provides a delegate for providing editor widgets for the nexxT gui service Configuration.
     """
@@ -42,6 +42,7 @@ class PropertyDelegate(QStyledItemDelegate): # pragma: no cover
             p = d.property.getPropertyDetails(d.name)
             res = p.handler.createEditor(parent)
             if res is not None:
+                res.setObjectName("PropertyDelegateEditor")
                 return res
         return super().createEditor(parent, option, index)
 

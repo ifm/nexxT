@@ -14,7 +14,7 @@ from nexxT.interface import InputPortInterface, OutputPortInterface
 from nexxT.core.FilterMockup import FilterMockup
 from nexxT.core.BaseGraph import BaseGraph
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
-from nexxT.core.Utils import assertMainThread
+from nexxT.core.Utils import assertMainThread, handleException
 from nexxT.core.Exceptions import NexTRuntimeError, PropertyCollectionChildNotFound, CompositeRecursion
 
 logger = logging.getLogger(__name__)
@@ -245,13 +245,18 @@ class FilterGraph(BaseGraph):
         :param oldOut: OutputPort instances with old output ports
         :return:
         """
+        self._portInformationUpdated(oldIn, oldOut)
+
+    @handleException
+    def _portInformationUpdated(self, oldIn, oldOut):
         # pylint: disable=too-many-locals
         # cleaning up seems not to be an easy option here
         assertMainThread()
         def _nodeName():
             fe = self.sender()
             name = [k for k in self._filters if self._filters[k] is fe]
-            assert len(name) == 1
+            if len(name) != 1:
+                raise RuntimeError("Unexpected list length of matched filters: %s" % (name))
             return name[0]
 
         name = _nodeName()

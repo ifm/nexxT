@@ -7,6 +7,9 @@
 """
 This module defines the Services class of the nexxT framework.
 """
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Services:
     """
@@ -24,7 +27,7 @@ class Services:
         :return: None
         """
         if name in Services.services:
-            raise RuntimeError("Service %s already exists" % name)
+            logger.warning("Service %s already existing, automatically replacing it with the new variant.")
         Services.services[name] = service
 
     @staticmethod

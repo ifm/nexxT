@@ -330,7 +330,7 @@ class BrowserWidget(QWidget):
         else:
             self._model.setFolder(c)
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no-cover
     def main():
         """
         Test function

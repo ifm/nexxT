@@ -22,7 +22,7 @@ from nexxT.services.gui.BrowserWidget import BrowserWidget
 
 logger = logging.getLogger(__name__)
 
-class MVCPlaybackControlGUI(PlaybackControlConsole): # pragma: no cover
+class MVCPlaybackControlGUI(PlaybackControlConsole):
     """
     GUI implementation of MVCPlaybackControlBase
     """

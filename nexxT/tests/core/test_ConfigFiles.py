@@ -23,9 +23,11 @@ def expect_exception(f, *args, **kw):
         ok = True
     assert ok
 
-app = QCoreApplication.instance()
-if app is None:
-    app = QCoreApplication()
+def setup():
+    global app
+    app = QCoreApplication.instance()
+    if app is None:
+        app = QCoreApplication()
 
 def simple_setup(activeTime_s):
     t = QTimer()

@@ -5,6 +5,7 @@
 #
 
 from PySide2.QtCore import QCoreApplication
+from nexxT.interface import Services
 from nexxT.core.Graph import FilterGraph
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 import os
@@ -17,9 +18,11 @@ def expect_exception(f, *args, **kw):
         ok = True
     assert ok
 
-app = QCoreApplication.instance()
-if app is None:
-    app = QCoreApplication()
+def setup():
+    global app
+    app = QCoreApplication.instance()
+    if app is None:
+        app = QCoreApplication()
 
 def test_smoke():
     class DummySubConfig(object):
@@ -29,6 +32,7 @@ def test_smoke():
         def getPropertyCollection(self):
             return self.pc
 
+    Services.addService("Profiling", None)
     fg = FilterGraph(DummySubConfig())
     n1 = fg.addNode("pyfile://" + os.path.dirname(__file__) + "/../interface/SimpleStaticFilter.py", "SimpleStaticFilter")
     n2 = fg.addNode("pyfile://" + os.path.dirname(__file__) + "/../interface/SimpleDynamicFilter.py", "SimpleDynInFilter")

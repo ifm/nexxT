@@ -13,9 +13,11 @@ import time
 import pprint
 from PySide2.QtCore import QCoreApplication, QTimer
 
-app = QCoreApplication.instance()
-if app is None:
-    app = QCoreApplication()
+def setup():
+    global app
+    app = QCoreApplication.instance()
+    if app is None:
+        app = QCoreApplication()
 
 def simple_setup(multithread, sourceFreq, sinkTime, activeTime_s, dynamicFilter):
     t = QTimer()

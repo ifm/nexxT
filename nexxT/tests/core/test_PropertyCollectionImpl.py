@@ -31,10 +31,12 @@ def expect_exception(f, etype, *args, **kw):
         ok = True
     assert ok
 
-# we need a QCoreApplication for the child events
-app = QCoreApplication.instance()
-if app is None:
-    app = QCoreApplication()
+def setup():
+    global app
+    # we need a QCoreApplication for the child events
+    app = QCoreApplication.instance()
+    if app is None:
+        app = QCoreApplication()
 
 def test_smoke():
     signals_received = []

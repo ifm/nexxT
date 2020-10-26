@@ -24,7 +24,7 @@ from nexxT.services.gui.GraphEditorView import GraphEditorView
 
 logger = logging.getLogger(__name__)
 
-class MVCConfigurationGUI(MVCConfigurationBase): # pragma: no cover
+class MVCConfigurationGUI(MVCConfigurationBase):
     """
     GUI implementation of MVCConfigurationBase
     """

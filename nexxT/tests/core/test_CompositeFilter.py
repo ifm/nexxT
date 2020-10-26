@@ -15,9 +15,11 @@ from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.Exceptions import CompositeRecursion
 from nexxT.core.Configuration import Configuration
 
-app = QCoreApplication.instance()
-if app is None:
-    app = QCoreApplication()
+def setup():
+    global app
+    app = QCoreApplication.instance()
+    if app is None:
+        app = QCoreApplication()
 
 def expect_exception(excClass, f, *args, **kw):
     ok = False

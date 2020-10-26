@@ -77,13 +77,13 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
     lcl.setNumberOptions(QLocale.c().numberOptions())
     QLocale.setDefault(lcl)
     if withGui:
-        app = QApplication()
+        app = QApplication() if QApplication.instance() is None else QApplication.instance()
         app.setWindowIcon(QIcon(":icons/nexxT.svg"))
         app.setOrganizationName("nexxT")
         app.setApplicationName("nexxT")
         setupGuiServices(config)
     else:
-        app = QCoreApplication()
+        app = QCoreApplication() if QCoreApplication.instance() is None else QCoreApplication.instance()
         app.setOrganizationName("nexxT")
         app.setApplicationName("nexxT")
         setupConsoleServices(config)

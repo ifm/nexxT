@@ -11,6 +11,7 @@ import datetime
 from queue import Queue
 import traceback
 import logging
+import shiboken2
 from PySide2.QtCore import Qt, QTimer, QAbstractItemModel, QModelIndex
 from PySide2.QtWidgets import QTableView, QHeaderView, QAction, QActionGroup
 from PySide2.QtGui import QColor
@@ -18,7 +19,7 @@ from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.interface import Services
 from nexxT.core.Utils import assertMainThread
 
-class LogHandler(logging.Handler): # pragma: no cover
+class LogHandler(logging.Handler):
     """
     Python logging handler which passes python log records to the gui.
     """
@@ -43,7 +44,7 @@ class LogHandler(logging.Handler): # pragma: no cover
                  record.name, record.filename, str(record.lineno))
         self.logView.addLogRecord(items)
 
-class LogView(QTableView): # pragma: no cover
+class LogView(QTableView):
     """
     Class implementing the GUI log display.
     """
@@ -286,6 +287,8 @@ class LogView(QTableView): # pragma: no cover
         :return:None
         """
         assertMainThread()
+        if not shiboken2.isValid(self): # pylint: disable=no-member
+            return
         if not self.queue.empty():
             self._model.update(self.queue)
             if self.follow:
@@ -306,7 +309,7 @@ class LogView(QTableView): # pragma: no cover
         """
         self._model.clear()
 
-class GuiLogger(ConsoleLogger): # pragma: no cover
+class GuiLogger(ConsoleLogger):
     """
     Logging service in GUI mode.
     """

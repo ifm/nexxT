@@ -8,6 +8,7 @@ import json
 import logging
 from pathlib import Path
 import pytest
+import pytestqt
 from PySide2.QtCore import QCoreApplication, QTimer
 from nexxT.interface import FilterState, Services
 from nexxT.core.ConfigFiles import ConfigFileLoader
@@ -15,9 +16,11 @@ from nexxT.core.Application import Application
 from nexxT.core.Configuration import Configuration
 import nexxT
 
-app = QCoreApplication.instance()
-if app is None:
-    app = QCoreApplication()
+def setup():
+    global app
+    app = QCoreApplication.instance()
+    if app is None:
+        app = QCoreApplication()
 
 def exception_setup(python, thread, where, activeTime_s):
     logging.getLogger(__name__).info("------------------------------------------------------")
@@ -31,6 +34,8 @@ def exception_setup(python, thread, where, activeTime_s):
             self.logs = []
         def emit(self, record):
             self.logs.append(record)
+    # avoid warning flood about service profiling not found
+    Services.addService("Profiling", None)
     collector = LogCollector()
     logging.getLogger().addHandler(collector)
     try:
@@ -103,6 +108,7 @@ def exception_setup(python, thread, where, activeTime_s):
         Services.removeAll()
     return collector.logs
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_main_none():
     logs = exception_setup(True, "main", "nowhere", 2)
 
@@ -110,24 +116,28 @@ def test_exception_python_main_none():
 # port exceptions
 # ---------------
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_main_port():
     logs = exception_setup(True, "main", "port", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert len(errors) > 0
     assert all(e == "Uncaught exception" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_source_port():
     logs = exception_setup(True, "thread-source", "port", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert len(errors) > 0
     assert all(e == "Uncaught exception" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_compute_port():
     logs = exception_setup(True, "compute", "port", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert len(errors) > 0
     assert all(e == "Uncaught exception" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_main_port():
     logs = exception_setup(False, "main", "port", 2)
@@ -135,6 +145,7 @@ def test_exception_c_main_port():
     assert len(errors) > 0
     assert all(e == "Unexpected exception during onPortDataChanged from filter filter: exception in port" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_source_port():
     logs = exception_setup(False, "thread-source", "port", 2)
@@ -142,6 +153,7 @@ def test_exception_c_source_port():
     assert len(errors) > 0
     assert all(e == "Unexpected exception during onPortDataChanged from filter filter: exception in port" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_compute_port():
     logs = exception_setup(False, "compute", "port", 2)
@@ -153,24 +165,28 @@ def test_exception_c_compute_port():
 # init exceptions
 # ---------------
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_main_init():
     logs = exception_setup(True, "main", "init", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert 1 <= len(errors) <= 3
     assert all(e == "Exception while executing operation INITIALIZING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_source_init():
     logs = exception_setup(True, "thread-source", "init", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert 1 <= len(errors) <= 3
     assert all(e == "Exception while executing operation INITIALIZING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_compute_init():
     logs = exception_setup(True, "compute", "init", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert 1 <= len(errors) <= 3
     assert all(e == "Exception while executing operation INITIALIZING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_main_init():
     logs = exception_setup(False, "main", "init", 2)
@@ -178,6 +194,7 @@ def test_exception_c_main_init():
     assert 1 <= len(errors) <= 3
     assert all(e == "Exception while executing operation INITIALIZING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_source_init():
     logs = exception_setup(False, "thread-source", "init", 2)
@@ -185,6 +202,7 @@ def test_exception_c_source_init():
     assert 1 <= len(errors) <= 3
     assert all(e == "Exception while executing operation INITIALIZING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_compute_init():
     logs = exception_setup(False, "compute", "init", 2)
@@ -196,24 +214,28 @@ def test_exception_c_compute_init():
 # start exceptions
 # ---------------
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_main_start():
     logs = exception_setup(True, "main", "start", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert len(errors) == 1
     assert all(e == "Exception while executing operation STARTING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_source_start():
     logs = exception_setup(True, "thread-source", "start", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert len(errors) == 1
     assert all(e == "Exception while executing operation STARTING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_compute_start():
     logs = exception_setup(True, "compute", "start", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert len(errors) == 1
     assert all(e == "Exception while executing operation STARTING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_main_start():
     logs = exception_setup(False, "main", "start", 2)
@@ -221,6 +243,7 @@ def test_exception_c_main_start():
     assert len(errors) == 1
     assert all(e == "Exception while executing operation STARTING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_source_start():
     logs = exception_setup(False, "thread-source", "start", 2)
@@ -228,6 +251,7 @@ def test_exception_c_source_start():
     assert len(errors) == 1
     assert all(e == "Exception while executing operation STARTING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_compute_start():
     logs = exception_setup(False, "compute", "start", 2)
@@ -239,24 +263,28 @@ def test_exception_c_compute_start():
 # stop exceptions
 # ---------------
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_main_stop():
     logs = exception_setup(True, "main", "stop", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert len(errors) == 1
     assert all(e == "Exception while executing operation STOPPING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_source_stop():
     logs = exception_setup(True, "thread-source", "stop", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert len(errors) == 1
     assert all(e == "Exception while executing operation STOPPING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_compute_stop():
     logs = exception_setup(True, "compute", "stop", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert len(errors) == 1
     assert all(e == "Exception while executing operation STOPPING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_main_stop():
     logs = exception_setup(False, "main", "stop", 2)
@@ -264,6 +292,7 @@ def test_exception_c_main_stop():
     assert len(errors) == 1
     assert all(e == "Exception while executing operation STOPPING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_source_stop():
     logs = exception_setup(False, "thread-source", "stop", 2)
@@ -271,6 +300,7 @@ def test_exception_c_source_stop():
     assert len(errors) == 1
     assert all(e == "Exception while executing operation STOPPING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_compute_stop():
     logs = exception_setup(False, "compute", "stop", 2)
@@ -282,24 +312,28 @@ def test_exception_c_compute_stop():
 # deinit exceptions
 # ---------------
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_main_deinit():
     logs = exception_setup(True, "main", "deinit", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert 1 <= len(errors) <= 3
     assert all(e == "Exception while executing operation DEINITIALIZING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_source_deinit():
     logs = exception_setup(True, "thread-source", "deinit", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert 1 <= len(errors) <= 3
     assert all(e == "Exception while executing operation DEINITIALIZING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_compute_deinit():
     logs = exception_setup(True, "compute", "deinit", 2)
     errors = [r.message for r in logs if r.levelno >= logging.ERROR]
     assert 1 <= len(errors) <= 3
     assert all(e == "Exception while executing operation DEINITIALIZING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_main_deinit():
     logs = exception_setup(False, "main", "deinit", 2)
@@ -307,6 +341,7 @@ def test_exception_c_main_deinit():
     assert 1 <= len(errors) <= 3
     assert all(e == "Exception while executing operation DEINITIALIZING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_source_deinit():
     logs = exception_setup(False, "thread-source", "deinit", 2)
@@ -314,6 +349,7 @@ def test_exception_c_source_deinit():
     assert 1 <= len(errors) <= 3
     assert all(e == "Exception while executing operation DEINITIALIZING of filter filter" for e in errors)
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_compute_deinit():
     logs = exception_setup(False, "compute", "deinit", 2)
@@ -325,6 +361,7 @@ def test_exception_c_compute_deinit():
 # constructor exceptions
 # ---------------
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_main_constr():
     try:
         logs = exception_setup(True, "main", "constructor", 2)
@@ -333,6 +370,7 @@ def test_exception_python_main_constr():
         exception = True
     assert exception
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_source_constr():
     try:
         logs = exception_setup(True, "thread-source", "constructor", 2)
@@ -341,6 +379,7 @@ def test_exception_python_source_constr():
         exception = True
     assert exception
 
+@pytest.mark.qt_no_exception_capture
 def test_exception_python_compute_constr():
     try:
         logs = exception_setup(True, "compute", "constructor", 2)
@@ -349,6 +388,7 @@ def test_exception_python_compute_constr():
         exception = True
     assert exception
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_main_constr():
     try:
@@ -358,6 +398,7 @@ def test_exception_c_main_constr():
         exception = True
     assert exception
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_source_constr():
     try:
@@ -367,6 +408,7 @@ def test_exception_c_source_constr():
         exception = True
     assert exception
 
+@pytest.mark.qt_no_exception_capture
 @pytest.mark.skipif(not nexxT.useCImpl, reason="python only test")
 def test_exception_c_compute_constr():
     try:
@@ -377,4 +419,4 @@ def test_exception_c_compute_constr():
     assert exception
 
 if __name__ == "__main__":
-    test_exception_c_source_init()
+    test_exception_python_compute_constr()
