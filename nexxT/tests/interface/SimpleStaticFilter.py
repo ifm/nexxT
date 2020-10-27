@@ -6,8 +6,9 @@
 
 import logging
 import time
-from nexxT.interface import Filter, InputPort, InputPortInterface, OutputPort, DataSample
-from PySide2.QtCore import QTimer, Slot
+from PySide2.QtWidgets import QLabel
+from nexxT.interface import Filter, InputPort, OutputPort, DataSample, Services
+from PySide2.QtCore import QTimer
 
 class SimpleStaticFilter(Filter):
 
@@ -104,6 +105,30 @@ class SimpleSource(Filter):
     def afterTransmit(self):
         pass
 
+class SimpleView(Filter):
+    def __init__(self, env):
+        super().__init__(False, False, env)
+        self.inputPort = InputPort(False, "in", env)
+        self.addStaticPort(self.inputPort)
+        self.propertyCollection().defineProperty("caption", "view", "Caption of view window.")
+        self.label = None
+
+    def onOpen(self):
+        caption = self.propertyCollection().getProperty("caption")
+        mw = Services.getService("MainWindow")
+        self.label = QLabel()
+        self.label.setMinimumSize(100, 20)
+        mw.subplot(caption, self, self.label)
+
+    def onPortDataChanged(self, inputPort):
+        dataSample = inputPort.getData()
+        if dataSample.getDatatype() == "text/utf8":
+            self.label.setText(dataSample.getContent().data().decode("utf8"))
+
+    def onClose(self):
+        mw = Services.getService("MainWindow")
+        mw.releaseSubplot(self.label)
+        self.label = None
 
 def test_create():
     class EnvironmentMockup(object):

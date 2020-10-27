@@ -78,23 +78,30 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             ev.setScenePos(pos)
             ev.setPos(QPoint(0,0)) # item position
             ev.setScreenPos(graphView.viewport().mapToGlobal(graphView.mapFromScene(pos)))
-            print("scenePos=", ev.scenePos(), ", pos=", ev.pos(), ", screenPos=", ev.screenPos())
+            #print("scenePos=", ev.scenePos(), ", pos=", ev.pos(), ", screenPos=", ev.screenPos())
             qtbot.mouseMove(graphView.viewport(), graphView.mapFromScene(ev.scenePos()))
             graphView.scene().contextMenuEvent(ev)
 
         def addNodeToGraphEditor(graphEditView, scenePos, *contextMenuIndices):
             oldNodes = set(graphEditView.scene().nodes.keys())
-            print("delay=", delay)
-            if isinstance(contextMenuIndices[-1], int):
-                QTimer.singleShot(delay, lambda: activateContextMenu(*contextMenuIndices))
-            else:
-                QTimer.singleShot(delay, lambda: activateContextMenu(*contextMenuIndices[:-1]))
-                QTimer.singleShot(delay*2, lambda: enterText(contextMenuIndices[-1]))
+            try:
+                intIdx = max([i for i in range(-1,-len(contextMenuIndices)-1,-1) if isinstance(contextMenuIndices[i], int)])
+                intIdx += len(contextMenuIndices)
+            except ValueError:
+                intIdx = -1
+            cmIdx = contextMenuIndices[:intIdx+1]
+            texts = contextMenuIndices[intIdx+1:]
+            QTimer.singleShot(delay, lambda: activateContextMenu(*cmIdx))
+            for i,t in enumerate(texts):
+                print(i, t)
+                QTimer.singleShot(delay*(i+2), lambda text=t: enterText(text))
             with qtbot.waitSignal(graphEditView.scene().changed):
                 gsContextMenu(graphEditView, scenePos)
             res = None
+            assert len(graphEditView.scene().nodes) == len(oldNodes) + 1
             for n in graphEditView.scene().nodes:
                 if n not in oldNodes:
+                    assert res is None
                     res = graphEditView.scene().nodes[n]
             assert res is not None
             # hover this item
@@ -123,6 +130,36 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
                 qtbot.mouseMove(graphEditView.viewport(), (pos1*(1-w)+pos2*w), delay=(delay+15)//30)
             qtbot.mouseMove(graphEditView.viewport(), pos2, delay=delay)
             qtbot.mouseRelease(graphEditView.viewport(), Qt.LeftButton, pos=pos2, delay=delay)
+
+        def setFilterProperty(conf, subConfig, filterName, propName, propVal):
+            idxapp = conf.model.indexOfSubConfig(subConfig)
+            for r in range(conf.model.rowCount(idxapp)):
+                idxFilter = conf.model.index(r, 0, idxapp)
+                name = conf.model.data(idxFilter, Qt.DisplayRole)
+                if name == filterName:
+                    break
+                else:
+                    idxFilter = None
+            assert idxFilter is not None
+            for r in range(conf.model.rowCount(idxFilter)):
+                idxProp = conf.model.index(r, 0, idxFilter)
+                name = conf.model.data(idxProp, Qt.DisplayRole)
+                print(name)
+                if name == propName:
+                    break
+                else:
+                    idxProp = None
+            assert idxProp is not None
+            idxPropVal = conf.model.index(r, 1, idxFilter)
+            conf.treeView.scrollTo(idxPropVal)
+            region = conf.treeView.visualRegionForSelection(QItemSelection(idxPropVal, idxPropVal))
+            qtbot.mouseMove(conf.treeView.viewport(), pos=region.boundingRect().center(), delay=delay)
+            qtbot.mouseClick(conf.treeView.viewport(), Qt.LeftButton, pos=region.boundingRect().center(), delay=delay)
+            qtbot.keyClick(conf.treeView.viewport(), Qt.Key_F2, delay=delay)
+            aw()
+            enterText(propVal, mw.findChild(QWidget, "PropertyDelegateEditor"))
+            qtbot.wait(delay)
+            assert conf.model.data(idxPropVal, Qt.DisplayRole) == propVal
 
         def getLastLogFrameIdx(log):
             qtbot.wait(1000) # log may be delayed
@@ -174,6 +211,7 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
 
         try:
             mw = Services.getService("MainWindow")
+            mw.resize(1980,1080)
             conf = Services.getService("Configuration")
             rec = Services.getService("RecordingControl")
             playback = Services.getService("PlaybackControl")
@@ -205,9 +243,28 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             n1 = addNodeToGraphEditor(gev, QPoint(20,20), 3,2,0,0)
             n2 = addNodeToGraphEditor(gev, QPoint(20,80), 3,2,0,5)
             n3 = addNodeToGraphEditor(gev, QPoint(20,140), 3,1,1)
+            n4 = addNodeToGraphEditor(gev, QPoint(-120,-60), 2, "nexxT.tests.interface.SimpleStaticFilter", "SimpleView")
+            n5 = addNodeToGraphEditor(gev, QPoint(-120, 140), 2, "nexxT.tests.interface.SimpleStaticFilter", "SimpleView")
+            n6 = addNodeToGraphEditor(gev, QPoint(20, -60), 2, "nexxT.tests.interface.SimpleStaticFilter", "SimpleView")
             # auto layout
             QTimer.singleShot(delay, lambda: activateContextMenu(4))
-            gsContextMenu(gev, QPoint(1,1))
+            gsContextMenu(gev, QPoint(-120,40))
+            qtbot.wait(delay)
+            # rename n4
+            QTimer.singleShot(delay, lambda: activateContextMenu(1))
+            QTimer.singleShot(delay*2, lambda: enterText("view_source"))
+            print(n4, n4.nodeGrItem.sceneBoundingRect().center())
+            gsContextMenu(gev, n4.nodeGrItem.sceneBoundingRect().center())
+            # rename n5
+            QTimer.singleShot(delay, lambda: activateContextMenu(1))
+            QTimer.singleShot(delay*2, lambda: enterText("view_filter"))
+            print(n5, n5.nodeGrItem.sceneBoundingRect().center())
+            gsContextMenu(gev, n5.nodeGrItem.sceneBoundingRect().center())
+            # rename n6
+            QTimer.singleShot(delay, lambda: activateContextMenu(1))
+            QTimer.singleShot(delay*2, lambda: enterText("view_filter2"))
+            print(n6, n6.nodeGrItem.sceneBoundingRect().center())
+            gsContextMenu(gev, n6.nodeGrItem.sceneBoundingRect().center())
             # setup dynamic input port of HDF5Writer
             n3p = n3.nodeGrItem.sceneBoundingRect().center()
             QTimer.singleShot(delay, lambda: activateContextMenu(3))
@@ -241,22 +298,7 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             addConnectionToGraphEditor(gev, n1.outPortItems[0], n2.inPortItems[0])
             addConnectionToGraphEditor(gev, n3.inPortItems[0], n1.outPortItems[0])
             # set frequency to 10
-            idxapp = conf.model.indexOfSubConfig(app)
-            idxsource = conf.model.index(0, 0, idxapp)
-            assert conf.model.data(idxsource, Qt.DisplayRole) == "CSimpleSource"
-            idxprop = conf.model.index(0, 0, idxsource)
-            idxpropval = conf.model.index(0, 1, idxsource)
-            assert conf.model.data(idxprop, Qt.DisplayRole) == "frequency"
-            conf.treeView.expand(idxsource)
-            conf.treeView.scrollTo(idxpropval)
-            region = conf.treeView.visualRegionForSelection(QItemSelection(idxpropval, idxpropval))
-            qtbot.mouseMove(conf.treeView.viewport(), pos=region.boundingRect().center(), delay=delay)
-            qtbot.mouseClick(conf.treeView.viewport(), Qt.LeftButton, pos=region.boundingRect().center(), delay=delay)
-            qtbot.keyClick(conf.treeView.viewport(), Qt.Key_F2, delay=delay)
-            aw()
-            enterText("10.0", mw.findChild(QWidget, "PropertyDelegateEditor"))
-            qtbot.wait(delay)
-            assert conf.model.data(idxpropval, Qt.DisplayRole) == "10.0"
+            setFilterProperty(conf, app, "CSimpleSource", "frequency", "10.0")
             # copy a part of the app to a composite filter
             select(gev, [n1,n2])
             qtbot.keyClick(gev.viewport(), Qt.Key_X, Qt.ControlModifier, delay=delay)
@@ -295,8 +337,22 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             addConnectionToGraphEditor(gevc, gevc_out.inPortItems[1], n2.outPortItems[0])
             # add composite filter to gev
             comp = addNodeToGraphEditor(gev, QPoint(20,20), 3, "composite")
+            shiboken2.delete(gevc.parent())
+            gevc = None
+            qtbot.wait(delay)
+            # auto layout
+            QTimer.singleShot(delay, lambda: activateContextMenu(5))
+            gsContextMenu(gev, QPoint(-120,40))
+            qtbot.wait(delay)
             addConnectionToGraphEditor(gev, comp.outPortItems[0], n3.inPortItems[0])
-
+            # add visualization filters
+            addConnectionToGraphEditor(gev, comp.outPortItems[0], n4.inPortItems[0])
+            addConnectionToGraphEditor(gev, comp.outPortItems[1], n5.inPortItems[0])
+            addConnectionToGraphEditor(gev, comp.outPortItems[1], n6.inPortItems[0])
+            # set captions
+            setFilterProperty(conf, app, "view_source", "caption", "view[0,0]")
+            setFilterProperty(conf, app, "view_filter", "caption", "view[1,0]")
+            setFilterProperty(conf, app, "view_filter2", "caption", "filter2")
             # activate and initialize the application
             with qtbot.waitSignal(conf.configuration().appActivated):
                 conf.configuration().activate("application")
@@ -335,13 +391,14 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             h5file = h5file[0]
             QTimer.singleShot(delay, lambda: enterText(str(prjfile)))
             conf.actSave.trigger()
-            removeNodeFromGraph(gevc, n2)
-            removeNodeFromGraph(gevc, n1)
+            gevc = startGraphEditor(conf, mw, "composite", True)
+            removeNodeFromGraph(gevc, gevc.scene().nodes["PySimpleStaticFilter"])
             # load the confiugration file
             assert conf.configuration().dirty()
             QTimer.singleShot(delay, lambda: clickDiscardChanges())
             QTimer.singleShot(2*delay, lambda: enterText(str(prjfile)))
             conf.actLoad.trigger()
+
             # add another application for offline use
             conf.configuration().addNewApplication()
             app = conf.configuration().applicationByName("application_2")
@@ -396,6 +453,19 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             for i in range(2):
                 qtbot.keyClick(None, Qt.Key_Up, delay=delay)
             qtbot.keyClick(None, Qt.Key_Return, delay=delay)
+            # turn off load monitoring
+            qtbot.keyClick(aw(), Qt.Key_O, Qt.AltModifier, delay=delay)
+            qtbot.keyClick(None, Qt.Key_Return, delay=delay)
+            qtbot.wait(delay)
+            # turn on load monitoring
+            qtbot.keyClick(aw(), Qt.Key_O, Qt.AltModifier, delay=delay)
+            qtbot.keyClick(None, Qt.Key_Return, delay=delay)
+            qtbot.wait(delay)
+            # turn on port profiling
+            qtbot.keyClick(aw(), Qt.Key_O, Qt.AltModifier, delay=delay)
+            qtbot.keyClick(None, Qt.Key_Down, delay=delay)
+            qtbot.keyClick(None, Qt.Key_Return, delay=delay)
+            qtbot.wait(delay)
             # select file in browser
             playback.dockWidget.raise_()
             qtbot.keyClick(playback.browser._lineedit, Qt.Key_A, Qt.ControlModifier)

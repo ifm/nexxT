@@ -14,7 +14,8 @@ import sys
 import shiboken2
 from PySide2.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QAction, QWidget, QGridLayout,
                                QMenuBar, QMessageBox)
-from PySide2.QtCore import QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings
+from PySide2.QtCore import (QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings,
+                            QTimer)
 import nexxT
 from nexxT.interface import Filter
 from nexxT.core.Application import Application
@@ -323,31 +324,68 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         """
         logger.internal("subplot '%s'", windowId)
         title, row, col = self.parseWindowId(windowId)
+        if title == "":
+            title = "(view)"
+        if title in self.managedSubplots and (row, col) in self.managedSubplots[title]["plots"]:
+            logger.warning("subplot %s[%d,%d] is already registered. Creating a new window for the plot.",
+                           title, row, col)
+            i = 2
+            while "%s(%d)" % (title, i) in self.managedSubplots:
+                i += 1
+            title = "%s(%d)" % (title, i)
+            row = 0
+            col = 0
         if not title in self.managedSubplots:
             subWindow = self._newMdiSubWindow(theFilter, title)
             swwidget = QWidget()
             subWindow.setWidget(swwidget)
             layout = QGridLayout(swwidget)
+            swwidget.setLayout(layout)
             self.managedSubplots[title] = dict(mdiSubWindow=subWindow, layout=layout, swwidget=swwidget, plots={})
         self.managedSubplots[title]["layout"].addWidget(widget, row, col)
+        self.managedSubplots[title]["mdiSubWindow"].updateGeometry()
         widget.setParent(self.managedSubplots[title]["swwidget"])
+        QTimer.singleShot(0, lambda: (
+            self.managedSubplots[title]["mdiSubWindow"].adjustSize() if
+            widget.parent().size().height() < widget.minimumSizeHint().height() or
+            widget.parent().size().height() < widget.minimumSize().height() else None
+        ))
         self.managedSubplots[title]["plots"][row, col] = widget
 
+    @Slot(QWidget)
     @Slot(str)
-    def releaseSubplot(self, windowId):
+    def releaseSubplot(self, arg):
         """
         This needs to be called to release the previously allocated subplot called windowId.
         The managed widget is deleted as a consequence of this function.
 
-        :param windowId: see subplot(...) for details.
+        :param arg: the widget as passed to subplot. Passing the windowId is also supported, but deprecated.
         :return:
         """
-        logger.internal("releaseSubplot '%s'", windowId)
-        title, row, col = self.parseWindowId(windowId)
-        if title not in self.managedSubplots or (row, col) not in self.managedSubplots[title]["plots"]:
-            logger.warning("releasSubplot: cannot find %s", windowId)
-            return
-        self.managedSubplots[title]["layout"].removeWidget(self.managedSubplots[title]["plots"][row, col])
+        if isinstance(arg, str):
+            windowId = arg
+            logger.warning("Using deprecated API to release a subplot. Please pass the widget instead of the windowId.")
+            logger.internal("releaseSubplot '%s'", windowId)
+            title, row, col = self.parseWindowId(windowId)
+            if title not in self.managedSubplots or (row, col) not in self.managedSubplots[title]["plots"]:
+                logger.warning("releasSubplot: cannot find %s", windowId)
+                return
+            widget = self.managedSubplots[title]["plots"][row, col]
+        elif isinstance(arg, QWidget):
+            widget = arg
+            found = False
+            for title in self.managedSubplots:
+                for row, col in self.managedSubplots[title]["plots"]:
+                    if self.managedSubplots[title]["plots"][row, col] is widget:
+                        found = True
+                        break
+                if found:
+                    break
+            if not found:
+                raise RuntimeError("cannot find widget given for releaseSubplot.")
+        else:
+            raise RuntimeError("arg of releaseSubplot must be either a string or a QWidget instance.")
+        self.managedSubplots[title]["layout"].removeWidget(widget)
         self.managedSubplots[title]["plots"][row, col].deleteLater()
         del self.managedSubplots[title]["plots"][row, col]
         if len(self.managedSubplots[title]["plots"]) == 0:

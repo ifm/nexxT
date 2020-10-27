@@ -274,7 +274,7 @@ class Profiling(ProfilingService):
     def __init__(self):
         super().__init__()
         srv = Services.getService("MainWindow")
-        profMenu = srv.menuBar().addMenu("&Profiling")
+        profMenu = srv.menuBar().addMenu("Pr&ofiling")
 
         self.loadDockWidget = srv.newDockWidget("Load", None, Qt.BottomDockWidgetArea)
         self.loadDisplay = LoadDisplayWidget(self.loadDockWidget)
