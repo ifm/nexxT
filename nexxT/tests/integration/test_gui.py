@@ -16,13 +16,12 @@ import os
 import logging
 from pathlib import Path
 import pytest
-import time
 import pytestqt
 import pytest_xvfb
 import shiboken2
-from PySide2.QtCore import QItemSelection, Qt, QTimer, QSize, QPoint, QModelIndex, QEvent
-from PySide2.QtGui import QKeyEvent
-from PySide2.QtWidgets import QGraphicsSceneContextMenuEvent, QWidget, QApplication
+from PySide2.QtCore import QItemSelection, Qt, QTimer, QSize, QPoint, QModelIndex
+from PySide2.QtGui import QContextMenuEvent
+from PySide2.QtWidgets import QGraphicsSceneContextMenuEvent, QWidget, QApplication, QTreeView
 from nexxT.core.AppConsole import startNexT
 from nexxT.interface import Services
 from nexxT.services.gui.Configuration import MVCConfigurationGUI
@@ -38,176 +37,203 @@ def keep_open(request):
     return request.config.getoption("--keep-open")
 
 @pytest.mark.gui
-@pytest.mark.parametrize("delay", [600])
+@pytest.mark.parametrize("delay", [300])
 def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
     if xvfb is not None:
         os.environ["HOME"] = str(tmpdir)
         print("dims = ",xvfb.width, xvfb.height)
         print("DISPLAY=",xvfb.display)
-    def do_test():
 
-        def activateContextMenu(*idx):
-            try:
-                # activate context menu index idx
-                for j in range(len(idx)):
-                    for i in range(idx[j]):
-                        qtbot.keyClick(None, Qt.Key_Down, delay=delay)
-                    if j < len(idx) - 1:
-                        qtbot.keyClick(None, Qt.Key_Right, delay=delay)
-                qtbot.keyClick(None, Qt.Key_Return, delay=delay)
-            except Exception:
-                logger.exception("exception while activating context menu")
-
-        def aw(w=None):
-            # on xvfb, the main window sometimes looses focus leading to a crash of the qtbot's keyClick(s) function
-            # this function avoids this
-            if w is None:
-                w = QApplication.activeWindow()
-                if w is None:
-                    QApplication.setActiveWindow(mw.data())
-                    w = QApplication.activeWindow()
-            return w
-
-        def enterText(text, w=None):
-            if text != "":
-                qtbot.keyClicks(w, text)
-            qtbot.keyClick(w, Qt.Key_Return)
-
-        def gsContextMenu(graphView, pos):
-            ev = QGraphicsSceneContextMenuEvent()
-            ev.setScenePos(pos)
-            ev.setPos(QPoint(0,0)) # item position
-            ev.setScreenPos(graphView.viewport().mapToGlobal(graphView.mapFromScene(pos)))
-            #print("scenePos=", ev.scenePos(), ", pos=", ev.pos(), ", screenPos=", ev.screenPos())
-            qtbot.mouseMove(graphView.viewport(), graphView.mapFromScene(ev.scenePos()))
-            graphView.scene().contextMenuEvent(ev)
-
-        def addNodeToGraphEditor(graphEditView, scenePos, *contextMenuIndices):
-            oldNodes = set(graphEditView.scene().nodes.keys())
-            try:
-                intIdx = max([i for i in range(-1,-len(contextMenuIndices)-1,-1) if isinstance(contextMenuIndices[i], int)])
-                intIdx += len(contextMenuIndices)
-            except ValueError:
-                intIdx = -1
-            cmIdx = contextMenuIndices[:intIdx+1]
-            texts = contextMenuIndices[intIdx+1:]
-            QTimer.singleShot(delay, lambda: activateContextMenu(*cmIdx))
-            for i,t in enumerate(texts):
-                print(i, t)
-                QTimer.singleShot(delay*(i+2), lambda text=t: enterText(text))
-            with qtbot.waitSignal(graphEditView.scene().changed):
-                gsContextMenu(graphEditView, scenePos)
-            res = None
-            assert len(graphEditView.scene().nodes) == len(oldNodes) + 1
-            for n in graphEditView.scene().nodes:
-                if n not in oldNodes:
-                    assert res is None
-                    res = graphEditView.scene().nodes[n]
-            assert res is not None
-            # hover this item
-            scenePos = res.nodeGrItem.sceneBoundingRect().center()
-            qtbot.mouseMove(graphEditView.viewport(), QPoint(0,0), delay=delay)
-            qtbot.mouseMove(graphEditView.viewport(), graphEditView.mapFromScene(scenePos), delay=delay)
-            # set item selected and deselected again
-            qtbot.mouseClick(graphEditView.viewport(), Qt.LeftButton, pos=graphEditView.mapFromScene(scenePos), delay=delay)
-            qtbot.mouseClick(graphEditView.viewport(), Qt.LeftButton, pos=graphEditView.mapFromScene(scenePos), delay=delay)
-            return res
-
-        def removeNodeFromGraph(graphEditView, node):
-            pos = node.nodeGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(2))
-            QTimer.singleShot(2*delay, lambda: enterText(""))
-            gsContextMenu(graphEditView, pos)
-
-        def addConnectionToGraphEditor(graphEditView, p1, p2):
-            pos1 = graphEditView.mapFromScene(p1.portGrItem.sceneBoundingRect().center())
-            pos2 = graphEditView.mapFromScene(p2.portGrItem.sceneBoundingRect().center())
-            qtbot.mouseMove(graphEditView.viewport(), pos1, delay=delay)
-            qtbot.mousePress(graphEditView.viewport(), Qt.LeftButton, pos=pos1, delay=delay)
-            # mouse move event will not be triggered (yet?), see https://bugreports.qt.io/browse/QTBUG-5232
-            for i in range(30):
-                w = i/29
-                qtbot.mouseMove(graphEditView.viewport(), (pos1*(1-w)+pos2*w), delay=(delay+15)//30)
-            qtbot.mouseMove(graphEditView.viewport(), pos2, delay=delay)
-            qtbot.mouseRelease(graphEditView.viewport(), Qt.LeftButton, pos=pos2, delay=delay)
-
-        def setFilterProperty(conf, subConfig, filterName, propName, propVal):
-            idxapp = conf.model.indexOfSubConfig(subConfig)
-            for r in range(conf.model.rowCount(idxapp)):
-                idxFilter = conf.model.index(r, 0, idxapp)
-                name = conf.model.data(idxFilter, Qt.DisplayRole)
-                if name == filterName:
-                    break
-                else:
-                    idxFilter = None
-            assert idxFilter is not None
-            for r in range(conf.model.rowCount(idxFilter)):
-                idxProp = conf.model.index(r, 0, idxFilter)
-                name = conf.model.data(idxProp, Qt.DisplayRole)
-                print(name)
-                if name == propName:
-                    break
-                else:
-                    idxProp = None
-            assert idxProp is not None
-            idxPropVal = conf.model.index(r, 1, idxFilter)
-            conf.treeView.scrollTo(idxPropVal)
-            region = conf.treeView.visualRegionForSelection(QItemSelection(idxPropVal, idxPropVal))
-            qtbot.mouseMove(conf.treeView.viewport(), pos=region.boundingRect().center(), delay=delay)
-            qtbot.mouseClick(conf.treeView.viewport(), Qt.LeftButton, pos=region.boundingRect().center(), delay=delay)
-            qtbot.keyClick(conf.treeView.viewport(), Qt.Key_F2, delay=delay)
-            aw()
-            enterText(propVal, mw.findChild(QWidget, "PropertyDelegateEditor"))
-            qtbot.wait(delay)
-            assert conf.model.data(idxPropVal, Qt.DisplayRole) == propVal
-
-        def getLastLogFrameIdx(log):
-            qtbot.wait(1000) # log may be delayed
-            lidx = log.logWidget.model().index(log.logWidget.model().rowCount(QModelIndex())-1, 2, QModelIndex())
-            lastmsg = log.logWidget.model().data(lidx, Qt.DisplayRole)
-            assert "received: Sample" in lastmsg
-            return int(lastmsg.strip().split(" ")[-1])
-
-        def getCurrentFrameIdx(log):
-            numRows = log.logWidget.model().rowCount(QModelIndex())
-            for row in range(numRows-1,0,-1):
-                lidx = log.logWidget.model().index(row, 2, QModelIndex())
-                lastmsg = log.logWidget.model().data(lidx, Qt.DisplayRole)
-                if "received: Sample" in lastmsg:
-                    return int(lastmsg.strip().split(" ")[-1])
-
-        def clickDiscardChanges():
-            qtbot.keyClick(None, Qt.Key_Tab, delay=delay)
+    def activateContextMenu(*idx):
+        try:
+            # activate context menu index idx
+            for j in range(len(idx)):
+                for i in range(idx[j]):
+                    qtbot.keyClick(None, Qt.Key_Down, delay=delay)
+                if j < len(idx) - 1:
+                    qtbot.keyClick(None, Qt.Key_Right, delay=delay)
             qtbot.keyClick(None, Qt.Key_Return, delay=delay)
+        except Exception:
+            logger.exception("exception while activating context menu")
 
-        def startGraphEditor(conf, mw, appName, isComposite=False):
-            oldChildren = mw.findChildren(GraphEditorView, None)
-            if isComposite:
-                app = conf.configuration().compositeFilterByName(appName)
+    def aw(w=None):
+        # on xvfb, the main window sometimes looses focus leading to a crash of the qtbot's keyClick(s) function
+        # this function avoids this
+        if w is None:
+            w = QApplication.activeWindow()
+            if w is None:
+                QApplication.setActiveWindow(Services.getService("MainWindow").data())
+                w = QApplication.activeWindow()
+        return w
+
+    def enterText(text, w=None):
+        if text != "":
+            qtbot.keyClicks(w, text)
+        qtbot.keyClick(w, Qt.Key_Return)
+
+    def gsContextMenu(graphView, pos):
+        ev = QGraphicsSceneContextMenuEvent()
+        ev.setScenePos(pos)
+        ev.setPos(QPoint(0,0)) # item position
+        ev.setScreenPos(graphView.viewport().mapToGlobal(graphView.mapFromScene(pos)))
+        #print("scenePos=", ev.scenePos(), ", pos=", ev.pos(), ", screenPos=", ev.screenPos())
+        qtbot.mouseMove(graphView.viewport(), graphView.mapFromScene(ev.scenePos()))
+        graphView.scene().contextMenuEvent(ev)
+
+    def cmContextMenu(conf, idx, *contextMenuIndices):
+        treeView = conf.treeView
+        assert isinstance(treeView, QTreeView)
+        treeView.scrollTo(idx)
+        qtbot.wait(1000)
+        pos = treeView.visualRegionForSelection(QItemSelection(idx, idx)).boundingRect().center()
+        qtbot.mouseMove(treeView.viewport(), pos=pos, delay=delay)
+        ev = QContextMenuEvent(QContextMenuEvent.Mouse, pos, treeView.viewport().mapToGlobal(pos))
+        try:
+            intIdx = max([i for i in range(-1,-len(contextMenuIndices)-1,-1) if isinstance(contextMenuIndices[i], int)])
+            intIdx += len(contextMenuIndices)
+        except ValueError:
+            intIdx = -1
+        cmIdx = contextMenuIndices[:intIdx+1]
+        texts = contextMenuIndices[intIdx+1:]
+        QTimer.singleShot(delay, lambda: activateContextMenu(*cmIdx))
+        for i,t in enumerate(texts):
+            QTimer.singleShot(delay*(i+2), lambda text=t: enterText(text))
+        conf._execTreeViewContextMenu(pos)
+        #conf.contextMenuEvent(ev)
+
+    def addNodeToGraphEditor(graphEditView, scenePos, *contextMenuIndices):
+        oldNodes = set(graphEditView.scene().nodes.keys())
+        try:
+            intIdx = max([i for i in range(-1,-len(contextMenuIndices)-1,-1) if isinstance(contextMenuIndices[i], int)])
+            intIdx += len(contextMenuIndices)
+        except ValueError:
+            intIdx = -1
+        cmIdx = contextMenuIndices[:intIdx+1]
+        texts = contextMenuIndices[intIdx+1:]
+        QTimer.singleShot(delay, lambda: activateContextMenu(*cmIdx))
+        for i,t in enumerate(texts):
+            QTimer.singleShot(delay*(i+2), lambda text=t: enterText(text))
+        with qtbot.waitSignal(graphEditView.scene().changed):
+            gsContextMenu(graphEditView, scenePos)
+        res = None
+        assert len(graphEditView.scene().nodes) == len(oldNodes) + 1
+        for n in graphEditView.scene().nodes:
+            if n not in oldNodes:
+                assert res is None
+                res = graphEditView.scene().nodes[n]
+        assert res is not None
+        # hover this item
+        scenePos = res.nodeGrItem.sceneBoundingRect().center()
+        qtbot.mouseMove(graphEditView.viewport(), QPoint(0,0), delay=delay)
+        qtbot.mouseMove(graphEditView.viewport(), graphEditView.mapFromScene(scenePos), delay=delay)
+        # set item selected and deselected again
+        qtbot.mouseClick(graphEditView.viewport(), Qt.LeftButton, pos=graphEditView.mapFromScene(scenePos), delay=delay)
+        qtbot.mouseClick(graphEditView.viewport(), Qt.LeftButton, pos=graphEditView.mapFromScene(scenePos), delay=delay)
+        return res
+
+    def removeNodeFromGraph(graphEditView, node):
+        pos = node.nodeGrItem.sceneBoundingRect().center()
+        QTimer.singleShot(delay, lambda: activateContextMenu(2))
+        QTimer.singleShot(2*delay, lambda: enterText(""))
+        gsContextMenu(graphEditView, pos)
+
+    def addConnectionToGraphEditor(graphEditView, p1, p2):
+        pos1 = graphEditView.mapFromScene(p1.portGrItem.sceneBoundingRect().center())
+        pos2 = graphEditView.mapFromScene(p2.portGrItem.sceneBoundingRect().center())
+        qtbot.mouseMove(graphEditView.viewport(), pos1, delay=delay)
+        qtbot.mousePress(graphEditView.viewport(), Qt.LeftButton, pos=pos1, delay=delay)
+        # mouse move event will not be triggered (yet?), see https://bugreports.qt.io/browse/QTBUG-5232
+        for i in range(30):
+            w = i/29
+            qtbot.mouseMove(graphEditView.viewport(), (pos1*(1-w)+pos2*w), delay=(delay+15)//30)
+        qtbot.mouseMove(graphEditView.viewport(), pos2, delay=delay)
+        qtbot.mouseRelease(graphEditView.viewport(), Qt.LeftButton, pos=pos2, delay=delay)
+
+    def setFilterProperty(conf, subConfig, filterName, propName, propVal):
+        idxapp = conf.model.indexOfSubConfig(subConfig)
+        for r in range(conf.model.rowCount(idxapp)):
+            idxFilter = conf.model.index(r, 0, idxapp)
+            name = conf.model.data(idxFilter, Qt.DisplayRole)
+            if name == filterName:
+                break
             else:
-                app = conf.configuration().applicationByName(appName)
-            # start graph editor
-            idxapp = conf.model.indexOfSubConfig(app)
-            conf.treeView.scrollTo(idxapp)
-            qtbot.wait(delay)
-            region = conf.treeView.visualRegionForSelection(QItemSelection(idxapp, idxapp))
-            qtbot.mouseMove(conf.treeView.viewport(), region.boundingRect().center(), delay=delay)
-            QTimer.singleShot(delay, lambda: activateContextMenu(1))
-            conf._execTreeViewContextMenu(region.boundingRect().center())
-            newChildren = mw.findChildren(GraphEditorView, None)
-            gev = None
-            for w in newChildren:
-                if w not in oldChildren:
-                    gev = w
-            gev.setMinimumSize(QSize(400, 400))
-            return gev
+                idxFilter = None
+        assert idxFilter is not None
+        for r in range(conf.model.rowCount(idxFilter)):
+            idxProp = conf.model.index(r, 0, idxFilter)
+            name = conf.model.data(idxProp, Qt.DisplayRole)
+            print(name)
+            if name == propName:
+                break
+            else:
+                idxProp = None
+        assert idxProp is not None
+        idxPropVal = conf.model.index(r, 1, idxFilter)
+        conf.treeView.scrollTo(idxPropVal)
+        region = conf.treeView.visualRegionForSelection(QItemSelection(idxPropVal, idxPropVal))
+        qtbot.mouseMove(conf.treeView.viewport(), pos=region.boundingRect().center(), delay=delay)
+        qtbot.mouseClick(conf.treeView.viewport(), Qt.LeftButton, pos=region.boundingRect().center(), delay=delay)
+        qtbot.keyClick(conf.treeView.viewport(), Qt.Key_F2, delay=delay)
+        aw()
+        mw = Services.getService("MainWindow")
+        enterText(propVal, mw.findChild(QWidget, "PropertyDelegateEditor"))
+        qtbot.wait(delay)
+        assert conf.model.data(idxPropVal, Qt.DisplayRole) == propVal
 
-        def select(graphEditView, nodes):
-            pos = nodes[0].nodeGrItem.sceneBoundingRect().center()
-            qtbot.mouseClick(graphEditView.viewport(), Qt.LeftButton, pos=graphEditView.mapFromScene(pos),
-                             delay=delay)
-            for node in nodes[1:]:
-                node.nodeGrItem.setSelected(True)
+    def getLastLogFrameIdx(log):
+        qtbot.wait(1000) # log may be delayed
+        lidx = log.logWidget.model().index(log.logWidget.model().rowCount(QModelIndex())-1, 2, QModelIndex())
+        lastmsg = log.logWidget.model().data(lidx, Qt.DisplayRole)
+        assert "received: Sample" in lastmsg
+        return int(lastmsg.strip().split(" ")[-1])
+
+    def getCurrentFrameIdx(log):
+        numRows = log.logWidget.model().rowCount(QModelIndex())
+        for row in range(numRows-1,0,-1):
+            lidx = log.logWidget.model().index(row, 2, QModelIndex())
+            lastmsg = log.logWidget.model().data(lidx, Qt.DisplayRole)
+            if "received: Sample" in lastmsg:
+                return int(lastmsg.strip().split(" ")[-1])
+
+    def noWarningsInLog(log):
+        model = log.logWidget.model()
+        numRows = model.rowCount(QModelIndex())
+        for row in range(numRows-1,0,-1):
+            level = model.data(model.index(row, 1, QModelIndex()), Qt.DisplayRole)
+            if level not in ["INFO", "DEBUG", "INTERNAL"]:
+                msg = model.data(model.index(row, 2, QModelIndex()), Qt.DisplayRole)
+                raise RuntimeError("Warnings or errors found in log: %s(%s)", level, msg)
+
+    def clickDiscardChanges():
+        qtbot.keyClick(None, Qt.Key_Tab, delay=delay)
+        qtbot.keyClick(None, Qt.Key_Return, delay=delay)
+
+    def startGraphEditor(conf, mw, appName, isComposite=False):
+        oldChildren = mw.findChildren(GraphEditorView, None)
+        if isComposite:
+            app = conf.configuration().compositeFilterByName(appName)
+        else:
+            app = conf.configuration().applicationByName(appName)
+        # start graph editor
+        cmContextMenu(conf, conf.model.indexOfSubConfig(app), 1)
+        newChildren = mw.findChildren(GraphEditorView, None)
+        gev = None
+        for w in newChildren:
+            if w not in oldChildren:
+                gev = w
+        gev.setMinimumSize(QSize(400, 350))
+        return gev
+
+    def select(graphEditView, nodes):
+        pos = nodes[0].nodeGrItem.sceneBoundingRect().center()
+        qtbot.mouseClick(graphEditView.viewport(), Qt.LeftButton, pos=graphEditView.mapFromScene(pos),
+                         delay=delay)
+        for node in nodes[1:]:
+            node.nodeGrItem.setSelected(True)
+
+
+
+    def do_test():
 
         try:
             mw = Services.getService("MainWindow")
@@ -438,7 +464,7 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             n1p = n1.nodeGrItem.sceneBoundingRect().center()
             QTimer.singleShot(delay, lambda: activateContextMenu(4))
             QTimer.singleShot(delay*2, lambda: enterText(str(h5file)))
-            QTimer.singleShot(delay*3, lambda: enterText(""))
+            QTimer.singleShot(delay*4, lambda: enterText(""))
             gsContextMenu(gev, n1p)
             # set thread of HDF5Writer
             QTimer.singleShot(delay, lambda: activateContextMenu(5))
@@ -497,7 +523,9 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             for i in range(2):
                 qtbot.keyClick(None, Qt.Key_Up, delay=delay)
             qtbot.keyClick(None, Qt.Key_Return, delay=delay)
+            conf.actSave.trigger()
             qtbot.wait(1000)
+            noWarningsInLog(log)
         finally:
             if not keep_open:
                 if conf.configuration().dirty():
@@ -505,4 +533,54 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
                 mw.close()
 
     QTimer.singleShot(delay, do_test)
+    startNexT(None, None, [], [], True)
+
+    def do_reopen_test():
+        try:
+            # load last config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            rec = Services.getService("RecordingControl")
+            playback = Services.getService("PlaybackControl")
+            log = Services.getService("Logging")
+            if 0:
+                assert isinstance(conf, MVCConfigurationGUI)
+                assert isinstance(rec, MVCRecordingControlGUI)
+                assert isinstance(playback, MVCPlaybackControlGUI)
+                assert isinstance(log, GuiLogger)
+            # load recent config
+            qtbot.keyClick(aw(), Qt.Key_R, Qt.ControlModifier, delay=delay)
+            # this is the offline config
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application_2"))
+            cmContextMenu(conf, appidx, 3)
+            qtbot.wait(1000)
+            assert not playback.actPause.isEnabled()
+            cmContextMenu(conf, appidx, 4, 0)
+            qtbot.wait(1000)
+            assert not playback.actPause.isEnabled()
+            playback.actStepFwd.trigger()
+            qtbot.wait(1000)
+            firstFrame = getLastLogFrameIdx(log)
+            cmContextMenu(conf, appidx, 5, 0)
+            qtbot.wait(1000)
+            qtbot.waitUntil(playback.actStart.isEnabled, timeout=10000)
+            lastFrame = getLastLogFrameIdx(log)
+            assert lastFrame >= firstFrame + 10
+            # this is the online config
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            cmContextMenu(conf, appidx, 3)
+            qtbot.wait(2000)
+            cmContextMenu(conf, appidx, 4, 0)
+            qtbot.wait(2000)
+            cmContextMenu(conf, appidx, 5, 0)
+            qtbot.wait(2000)
+            noWarningsInLog(log)
+        finally:
+            if not keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(delay, clickDiscardChanges)
+                mw.close()
+
+
+    QTimer.singleShot(delay, do_reopen_test)
     startNexT(None, None, [], [], True)
