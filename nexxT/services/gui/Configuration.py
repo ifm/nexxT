@@ -7,16 +7,16 @@
 """
 This module provides the Configuration GUI service of the nexxT framework.
 """
-
 import logging
 import shiboken2
-from PySide2.QtCore import (Qt, QSettings, QByteArray, QDataStream, QIODevice)
-from PySide2.QtGui import QIcon
+from PySide2.QtCore import (Qt, QSettings, QByteArray, QDataStream, QIODevice, QTimer)
+from PySide2.QtGui import QIcon, QKeySequence
 from PySide2.QtWidgets import (QTreeView, QAction, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
                                QHeaderView, QMenu, QDockWidget)
 from nexxT.interface import Services, FilterState
 from nexxT.core.Configuration import Configuration
-from nexxT.core.Utils import assertMainThread
+from nexxT.core.Application import Application
+from nexxT.core.Utils import assertMainThread, MethodInvoker
 from nexxT.services.SrvConfiguration import MVCConfigurationBase, ConfigurationModel, ITEM_ROLE
 from nexxT.services.gui.PropertyDelegate import PropertyDelegate
 from nexxT.services.gui.GraphEditor import GraphScene
@@ -70,6 +70,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         toolBar.addAction(self.actDeactivate)
 
         self.recentConfigs = [QAction() for i in range(10)]
+        self.recentConfigs[0].setShortcut(QKeySequence(Qt.CTRL + Qt.Key_R))
         confMenu.addSeparator()
         recentMenu = confMenu.addMenu("Recent")
         for a in self.recentConfigs:
@@ -105,6 +106,8 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self._graphViews = []
         # make sure that the graph views are closed when the config is closed
         self._configuration.subConfigRemoved.connect(self._subConfigRemoved)
+        self._waitForActivated = None
+        self._waitForOpenState = None
 
     def _execLoad(self):
         assertMainThread()
@@ -225,15 +228,41 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         item = self.model.data(index, ITEM_ROLE)
         if isinstance(item, ConfigurationModel.SubConfigContent):
             m = QMenu()
-            a = QAction("Edit graph ...")
-            m.addAction(a)
-            a = m.exec_(self.treeView.mapToGlobal(point))
-            if a is not None:
-                self._addGraphView(item.subConfig)
+            a1 = QAction("Edit graph")
+            m.addAction(a1)
+            a1.triggered.connect(lambda: self._addGraphView(item.subConfig))
+            if self.model.isApplication(index):
+                a2 = QAction("Select Application")
+                a2.triggered.connect(lambda: self.changeActiveApp(self.model.data(index, Qt.DisplayRole)))
+                a3 = QAction("Init Application")
+                a3.triggered.connect(lambda: self._changeActiveAppAndInit(self.model.data(index, Qt.DisplayRole)))
+                m.addActions([a2, a3])
+                pbsrv = Services.getService("PlaybackControl")
+                m2 = m.addMenu("Init and load sequence")
+                m3 = m.addMenu("Init, load and play")
+                s1 = []
+                s2 = []
+                for a in pbsrv.recentSeqs:
+                    assert isinstance(a, QAction)
+                    if a.isVisible():
+                        # pylint: disable=cell-var-from-loop
+                        # the below statements are tested and work
+                        aseq = QAction(a.text())
+                        aseq.triggered.connect(lambda arg1=a.data(), seq=a.data(): self._changeActiveAppInitAndLoad(
+                            self.model.data(index, Qt.DisplayRole), seq, False))
+                        s1.append(aseq)
+                        aseq = QAction(a.text())
+                        aseq.triggered.connect(lambda arg1=a.data(), seq=a.data(): self._changeActiveAppInitAndLoad(
+                            self.model.data(index, Qt.DisplayRole), seq, True))
+                        # pylint: enable=cell-var-from-loop
+                        s2.append(aseq)
+                m2.addActions(s1)
+                m3.addActions(s2)
+            m.exec_(self.treeView.mapToGlobal(point))
             return
         if self.model.isSubConfigParent(index) == Configuration.CONFIG_TYPE_APPLICATION:
             m = QMenu()
-            a = QAction("Add application ...")
+            a = QAction("Add application")
             m.addAction(a)
             a = m.exec_(self.treeView.mapToGlobal(point))
             if a is not None:
@@ -241,7 +270,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
             return
         if self.model.isSubConfigParent(index) == Configuration.CONFIG_TYPE_COMPOSITE:
             m = QMenu()
-            a = QAction("Add composite filter ...")
+            a = QAction("Add composite filter")
             m.addAction(a)
             a = m.exec_(self.treeView.mapToGlobal(point))
             if a is not None:
@@ -285,6 +314,25 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         else:
             self.treeView.edit(index)
 
+    def _changeActiveAppAndInit(self, app):
+        """
+        Call this slot to activate and init an application
+        :param app: can be either an Application instance or the name of an application
+        :return:
+        """
+        assertMainThread()
+        if isinstance(app, str):
+            app = self.configuration().applicationByName(app)
+        currentApp = Application.activeApplication
+        if currentApp is not None:
+            currentApp = currentApp.getApplication()
+        self._waitForActivated = app
+        self.changeActiveApp(app.getName())
+
+    def _changeActiveAppInitAndLoad(self, app, sequence, startPlay):
+        self._waitForOpenState = (app, sequence, startPlay)
+        self._changeActiveAppAndInit(app)
+
     def appActivated(self, name, app): # pylint: disable=unused-argument
         """
         Called when the application is activated.
@@ -296,9 +344,27 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         if app is not None:
             self.activeAppStateChange(app.getState())
             app.stateChanged.connect(self.activeAppStateChange)
+            if self._waitForActivated == app.getApplication():
+                MethodInvoker(self.activate, Qt.QueuedConnection)
         else:
             self.actActivate.setEnabled(False)
             self.actDeactivate.setEnabled(False)
+        self._waitForActivated = None
+
+    def _disconnectSingleShotPlay(self):
+        assertMainThread()
+        pbsrv = Services.getService("PlaybackControl")
+        try:
+            pbsrv.playbackPaused.disconnect(self._singleShotPlay)
+        except RuntimeError:
+            # we are already disconnected.
+            pass
+
+    def _singleShotPlay(self):
+        assertMainThread()
+        pbsrv = Services.getService("PlaybackControl")
+        MethodInvoker(pbsrv.startPlayback, Qt.QueuedConnection)
+        self._disconnectSingleShotPlay()
 
     def activeAppStateChange(self, newState):
         """
@@ -312,6 +378,15 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         else:
             self.actActivate.setEnabled(False)
         if newState == FilterState.ACTIVE:
+            if self._waitForOpenState is not None:
+                app, pbfile, startPlay = self._waitForOpenState
+                self._waitForOpenState = None
+                if app == Application.activeApplication.getApplication().getName():
+                    pbsrv = Services.getService("PlaybackControl")
+                    if startPlay:
+                        pbsrv.playbackPaused.connect(self._singleShotPlay)
+                        QTimer.singleShot(2000, self._disconnectSingleShotPlay)
+                    MethodInvoker(pbsrv.setSequence, Qt.QueuedConnection, pbfile)
             self.actDeactivate.setEnabled(True)
         else:
             self.actDeactivate.setEnabled(False)

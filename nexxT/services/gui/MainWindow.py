@@ -335,7 +335,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
             title = "%s(%d)" % (title, i)
             row = 0
             col = 0
-        if not title in self.managedSubplots:
+        if title not in self.managedSubplots:
             subWindow = self._newMdiSubWindow(theFilter, title)
             swwidget = QWidget()
             subWindow.setWidget(swwidget)

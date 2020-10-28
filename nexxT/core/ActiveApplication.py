@@ -130,7 +130,7 @@ class ActiveApplication(QObject):
         if self._state == FilterState.CONSTRUCTED:
             self.destruct()
         if not self._state == FilterState.DESTRUCTED:
-            raise NexTInternalError("Unexpected state after shutdown.")
+            raise NexTInternalError("Unexpected state '%s' after shutdown." % FilterState.state2str(self._state))
 
     def stopThreads(self):
         """

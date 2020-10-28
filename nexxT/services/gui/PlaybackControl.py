@@ -196,6 +196,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         logger.debug("current feature set: %s", featureset)
         logger.debug("Setting name filters of browser: %s", list(nameFilters))
         self.nameFiltersChanged.emit(list(nameFilters))
+        super()._supportedFeaturesChanged(featureset, nameFilters)
 
     def scrollToCurrent(self):
         """
@@ -242,6 +243,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
             logger.debug("Add stream group action: %s", act.data())
             self.actGroupStreamMenu.addAction(act)
         QTimer.singleShot(250, self.scrollToCurrent)
+        super()._sequenceOpened(filename, begin, end, streams)
 
     def _currentTimestampChanged(self, currentTime):
         """
@@ -260,6 +262,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
             self.positionSlider.blockSignals(False)
             self.currentLabel.setEnabled(True)
             self.currentLabel.setText(currentTime.toString("hh:mm:ss.zzz"))
+        super()._currentTimestampChanged(currentTime)
 
     def onSliderValueChanged(self, value):
         """
@@ -299,6 +302,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         self.actStart.setEnabled(False)
         if "pausePlayback" in self.featureset:
             self.actPause.setEnabled(True)
+        super()._playbackStarted()
 
     def _playbackPaused(self):
         """
@@ -310,6 +314,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         if "startPlayback" in self.featureset:
             self.actStart.setEnabled(True)
         self.actPause.setEnabled(False)
+        super()._playbackPaused()
 
     def openRecent(self):
         """
@@ -339,7 +344,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
                 self.recentSeqs[i].setData(self.recentSeqs[i-1].data())
                 logger.debug("%d data: %s", i, self.recentSeqs[i-1].data())
                 self.recentSeqs[i].setVisible(self.recentSeqs[i-1].data() is not None)
-            self.recentSeqs[0].setText(filename)
+            self.recentSeqs[0].setText(self.compressFileName(filename))
             self.recentSeqs[0].setData(filename)
             self.recentSeqs[0].setVisible(True)
             self._setSequence.emit(filename)
@@ -358,6 +363,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
                 self.timeRatioLabel.setText(("x 1/%d"%(1/r)) if r < 1 else ("x %d"%r))
                 return
         self.timeRatioLabel.setText("%.2f" % newRatio)
+        super()._timeRatioChanged(newRatio)
 
     def selectedStream(self):
         """
@@ -413,7 +419,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         for f in recentFiles.split("|"):
             if f != "":
                 self.recentSeqs[idx].setData(f)
-                self.recentSeqs[idx].setText(f)
+                self.recentSeqs[idx].setText(self.compressFileName(f))
                 self.recentSeqs[idx].setVisible(True)
                 idx += 1
                 if idx >= len(self.recentSeqs):
@@ -422,3 +428,16 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
             a.setData(None)
             a.setText("")
             a.setVisible(False)
+
+    @staticmethod
+    def compressFileName(filename):
+        """
+        Compresses long path names with an ellipsis (...)
+        :param filename: the original path name as a Path or string instance
+        :return: the compressed path name as a string instance
+        """
+        p = Path(filename)
+        parts = tuple(p.parts)
+        if len(parts) >= 6:
+            p = Path(*parts[:2]) / "..." /  Path(*parts[-2:])
+        return str(p)
