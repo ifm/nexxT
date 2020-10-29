@@ -41,7 +41,7 @@ class ImageHeader(ct.Structure):
                 ("height", ct.c_uint32),   # the height in pixels
                 ("lineInc", ct.c_uint32),  # the number of bytes per line (including padding for alignment)
                 ("format", ct.c_char*32),  # the image format as a c string. See above ImageFormats for a list.
-    ]
+               ]
 
 def byteArrayToNumpy(qByteArray):
     """
@@ -70,7 +70,7 @@ def byteArrayToNumpy(qByteArray):
         # reshape to 2D with with lineInc as width
         tmp = np.reshape(tmp, (-1, hdr.lineInc))
         # crop the non-aligned padding bytes from the image,
-        tmp = tmp[:,:(hdr.lineInc//bpp)*bpp]
+        tmp = tmp[:, :(hdr.lineInc//bpp)*bpp]
         # we have to create a copy here (the frombuffer call does not work on memoryview(tmp))
         mv = bytes(tmp)
     # create the target array
@@ -87,14 +87,14 @@ def numpyToByteArray(img):
     # make sure that img is a contiguous array
     img = np.ascontiguousarray(img)
     # allocate the result
-    res = QByteArray(img.nbytes + ct.sizeof(ImageHeader),0)
+    res = QByteArray(img.nbytes + ct.sizeof(ImageHeader), 0)
     # create a memory view
     mv = memoryview(res)
     # map the header into this view
     hdr = ImageHeader.from_buffer(mv)
     hdr.width = img.shape[1]
     hdr.height = img.shape[0]
-    hdr.lineInc = img[0,...].nbytes
+    hdr.lineInc = img[0, ...].nbytes
     # select the format
     if img.dtype is np.dtype(np.uint8):
         hdr.format = b"intensity_u8" if len(img.shape) < 3 else b"rgb_u8"

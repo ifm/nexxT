@@ -25,7 +25,7 @@ class ImageBlur(Filter):
         self.outPort = self.addStaticOutputPort("video_out")
         # define the kernelSize property
         pc = self.propertyCollection()
-        pc.defineProperty("kernelSize", 3, "Kernel size of a simple blurring kernel", options=dict(min=1,max=99))
+        pc.defineProperty("kernelSize", 3, "Kernel size of a simple blurring kernel", options=dict(min=1, max=99))
 
     def onPortDataChanged(self, port):
         """
@@ -43,7 +43,7 @@ class ImageBlur(Filter):
                 # efficient (zero-copy) conversion
                 in_img = byteArrayToNumpy(port.getData().getContent())
                 # apply the filter
-                res = box_filter(in_img, ks)
+                res = boxFilter(in_img, ks)
                 # create a DataSample instance to be transferred over the port
                 sample = DataSample(numpyToByteArray(res), "example/image", port.getData().getTimestamp())
             else:
@@ -52,27 +52,27 @@ class ImageBlur(Filter):
             # finally transmit the result
             self.outPort.transmit(sample)
 
-def box_filter(img, kernel_size):
+def boxFilter(img, kernelSize):
     """
     2D box filter operating on single or multichannel input images
     :param img: the image as a numpy array
     :param kernel_size: the size of the filter (must be odd)
     :return: the filtered image (same type as input image)
     """
-    kernel = np.ones(kernel_size, np.float32)/kernel_size
-    kd2 = kernel_size//2
+    kernel = np.ones(kernelSize, np.float32)/kernelSize
+    kd2 = kernelSize//2
     res = np.zeros(img.shape, np.float32)
-    h, w = res.shape[:2]
+    h, w = res.shape[:2] # pylint: disable=unsubscriptable-object
     # filter in y direction
-    res[kd2:h-kd2,...] = (img[kd2:h-kd2,...]*kernel[kd2])
+    res[kd2:h-kd2, ...] = (img[kd2:h-kd2, ...]*kernel[kd2])
     for y in range(1, kd2+1):
-        res[kd2:h-kd2,...] += (img[kd2-y:h-kd2-y,...]*kernel[kd2-y]) + (img[kd2+y:h-kd2+y,...]*kernel[kd2+y])
+        res[kd2:h-kd2, ...] += img[kd2-y:h-kd2-y, ...]*kernel[kd2-y] + img[kd2+y:h-kd2+y, ...]*kernel[kd2+y]
     # result becomes input now
     img = res.astype(img.dtype)
     res = np.zeros(img.shape, np.float32)
     # filter in x direction
-    res[:,kd2:w-kd2,...] = (img[:,kd2:w-kd2,...]*kernel[kd2])
+    res[:, kd2:w-kd2, ...] = (img[:, kd2:w-kd2, ...]*kernel[kd2])
     for x in range(1, kd2+1):
-        res[:,kd2:w-kd2,...] += (img[:,kd2-x:w-kd2-x,...]*kernel[kd2-x]) + (img[:,kd2+x:w-kd2+x,...]*kernel[kd2+x])
+        res[:, kd2:w-kd2, ...] += img[:, kd2-x:w-kd2-x, ...]*kernel[kd2-x] + img[:, kd2+x:w-kd2+x, ...]*kernel[kd2+x]
     res = res.astype(img.dtype)
     return res

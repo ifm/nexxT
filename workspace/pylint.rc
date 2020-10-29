@@ -270,7 +270,7 @@ module-naming-style=PascalCase
 
 # Regular expression matching correct module names. Overrides module-naming-
 # style.
-module-rgx=([A-Z_][a-zA-Z0-9]+)|(core)|(interface)|(gui)|(services)$
+module-rgx=([A-Z_][a-zA-Z0-9]+)|(core)|(interface)|(gui)|(services)|(filters)|(hdf5)|(examples)|(framework)$
 
 # Colon-delimited sets of names that determine each other's naming style when
 # the name regexes allow several styles.

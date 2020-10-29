@@ -14,7 +14,7 @@ import logging
 import numpy as np
 from PySide2.QtGui import QPainter, QImage
 from PySide2.QtWidgets import QWidget
-from nexxT.interface import Filter, InputPort, Services
+from nexxT.interface import Filter, Services
 from nexxT.examples.framework.ImageData import byteArrayToNumpy
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class ImageView(Filter):
         # we use the propertyChanged signal to synchronize the scale factor.
         pc.propertyChanged.connect(self.propChanged)
 
-    def propChanged(self, pc, name):
+    def propChanged(self, propColl, name):
         """
         Slot called whenever a property of this filter has changed.
         :param pc: the PropertyCollection instance of this filter
@@ -48,7 +48,7 @@ class ImageView(Filter):
         :return:
         """
         if name == "scale" and self._widget is not None:
-            self._widget.setScale(pc.getProperty("scale"))
+            self._widget.setScale(propColl.getProperty("scale"))
 
     def onOpen(self):
         """
@@ -158,7 +158,7 @@ class DisplayWidget(QWidget):
             self.setMinimumSize(size)
             self.parent().parent().adjustSize()
 
-    def paintEvent(self, paintEvent):
+    def paintEvent(self, paintEvent): # pylint: disable=unused-argument
         """
         The paint event actually drawing the image
         :param paintEvent: a QPaintEvent instance
@@ -167,4 +167,3 @@ class DisplayWidget(QWidget):
         p = QPainter(self)
         p.scale(self._scale, self._scale)
         p.drawImage(0, 0, self._img)
-
