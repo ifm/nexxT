@@ -11,7 +11,10 @@ from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.PluginManager import PluginManager
 import nexxT
 
-cfilters = set(["examples.videoplayback.AviReader", "tests.nexxT.CSimpleSource", "tests.nexxT.CTestExceptionFilter"])
+cfilters = set(["examples.videoplayback.AviReader",
+                "examples.framework.CameraGrabber",
+                "tests.nexxT.CSimpleSource",
+                "tests.nexxT.CTestExceptionFilter"])
 
 @pytest.mark.parametrize("ep",
                          [pytest.param(e.name, marks=pytest.mark.skipif(not nexxT.useCImpl and e.name in cfilters,

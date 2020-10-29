@@ -1,0 +1,113 @@
+{
+  "_guiState": {
+    "PlaybackControl_folder": "/spaces/mirror/wd-netcenter-unclassified/backups/FREE/sa",
+    "PlaybackControl_recent": "/spaces/mirror/wd-netcenter-unclassified/backups/FREE/BrookeSky/load/007/BrookeSkye-brooke07_pool-High.wmv|/spaces/mirror/wd-netcenter-unclassified/backups/FREE/sa/Approaching_SexArt-720p.mp4|/spaces/mirror/wd-netcenter-unclassified/backups/FREE/SapphicErotica/sapphic-Leanna_and_Ginger_Glass_Affair.wmv|/spaces/mirror/wd-netcenter-unclassified/backups/FREE/sa/Be-My-Slave-III_SexArt-720p.mp4|/spaces/mirror/wd-netcenter-unclassified/backups/FREE/sa/Blind-Date_SexArt-720p.mp4|/spaces/mirror/wd-netcenter-unclassified/backups/FREE/sa/Alone_SexArt-720p.mp4",
+    "PlaybackControl_showAllFiles": 0,
+    "RecordingControl_directory": "/home/wiedeman/development/nexxT"
+  },
+  "composite_filters": [],
+  "applications": [
+    {
+      "name": "live",
+      "_guiState": {
+        "filters__ImageView": {
+          "MainWindow_MDI_view_geom": "AdnQywABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABRoAAAAAAAAELgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFGgAAAAAAAAQuAAAAAAAAAAA=",
+          "MainWindow_MDI_view_visible": 1
+        },
+        "filters__ImageView2": {
+          "MainWindow_MDI_view_2__geom": "AdnQywABAAAAAAAAAAAAjgAAAAAAAAA/AAAAAAAAApoAAAAAAAACLgAAAAAAAACOAAAAAAAAAD8AAAAAAAACmgAAAAAAAAIuAAAAAAAAAAA=",
+          "MainWindow_MDI_view_2__visible": 1
+        }
+      },
+      "nodes": [
+        {
+          "name": "CameraGrabber",
+          "library": "entry_point://examples.framework.CameraGrabber",
+          "factoryFunction": "CameraGrabber",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "video_out"
+          ],
+          "thread": "grabber",
+          "properties": {}
+        },
+        {
+          "name": "ImageView",
+          "library": "pymod://nexxT.examples.framework.ImageView",
+          "factoryFunction": "ImageView",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "video_in"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "caption": "view",
+            "scale": 0.5
+          }
+        },
+        {
+          "name": "ImageBlur",
+          "library": "pymod://nexxT.examples.framework.ImageBlur",
+          "factoryFunction": "ImageBlur",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "video_in"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "video_out"
+          ],
+          "thread": "compute",
+          "properties": {
+            "kernelSize": 1
+          }
+        },
+        {
+          "name": "ImageView2",
+          "library": "pymod://nexxT.examples.framework.ImageView",
+          "factoryFunction": "ImageView",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "video_in"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "caption": "view",
+            "scale": 0.5
+          }
+        },
+        {
+          "name": "HDF5Writer",
+          "library": "entry_point://harddisk.HDF5Writer",
+          "factoryFunction": "HDF5Writer",
+          "dynamicInputPorts": [
+            "video"
+          ],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "writer",
+          "properties": {
+            "buffer_period": 1.0,
+            "buffer_samples": 0,
+            "filename": "${DATE}_${TIME}_${FILTER_NAME}.h5",
+            "silent_overwrite": false,
+            "use_receive_timestamps": true
+          }
+        }
+      ],
+      "connections": [
+        "CameraGrabber.video_out -> ImageView.video_in",
+        "CameraGrabber.video_out -> ImageBlur.video_in",
+        "ImageBlur.video_out -> ImageView2.video_in",
+        "CameraGrabber.video_out -> HDF5Writer.video"
+      ]
+    }
+  ]
+}
