@@ -4,6 +4,10 @@
 # THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
 #
 
+"""
+define FilterSurrogates for binary filters.
+"""
+
 from pathlib import Path
 from PySide2 import QtMultimedia # needed to load corresponding DLL before loading the nexxT plugin
 from nexxT.interface import FilterSurrogate
