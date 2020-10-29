@@ -8,12 +8,15 @@
 #include "DataSamples.hpp"
 #include "Logger.hpp"
 #include <chrono>
+#include <atomic>
 
 using namespace nexxT;
 
 static constexpr double TIMESTAMP_RES_VALUE = 1e-6;
-
 const double DataSample::TIMESTAMP_RES = TIMESTAMP_RES_VALUE;
+static std::atomic_uint32_t instanceCounter(0);
+static std::atomic_size_t memoryHeld(0);
+
 namespace nexxT
 {
     struct DataSampleD
@@ -27,12 +30,16 @@ namespace nexxT
 DataSample::DataSample(const QByteArray &content, const QString &datatype, int64_t timestamp) :
     d(new DataSampleD{content,datatype,timestamp})
 {
-    NEXXT_LOG_INTERNAL("DataSample::DataSample");
+    instanceCounter++;
+    memoryHeld += d->content.size();
+    NEXXT_LOG_INTERNAL(QString("DataSample::DataSample (numInstances=%1, memory=%2 MB)").arg(instanceCounter).arg(memoryHeld/(1024*1024)));
 }
 
 DataSample::~DataSample() 
 {
-    NEXXT_LOG_INTERNAL("DataSample::~DataSample");
+    instanceCounter--;
+    memoryHeld -= d->content.size();
+    NEXXT_LOG_INTERNAL(QString("DataSample::~DataSample (numInstances=%1, memory=%2 MB)").arg(instanceCounter).arg(memoryHeld/(1024*1024)));
     delete d;
 }
         
