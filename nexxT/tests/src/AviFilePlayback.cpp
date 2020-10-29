@@ -13,107 +13,8 @@
 #include <QtCore/QThread>
 #include <QtCore/QBuffer>
 #include <QtGui/QImageWriter>
-#include <QtMultimedia/QAbstractVideoSurface>
-#include <QtMultimedia/QVideoSurfaceFormat>
 
 using namespace nexxT;
-
-QImage qt_imageFromVideoFrame( const QVideoFrame& f );
-
-class DummyVideoSurface : public QAbstractVideoSurface
-{
-    Q_OBJECT
-
-signals:
-    void newImage(const QImage &);
-public:
-    DummyVideoSurface(QObject *parent) : QAbstractVideoSurface(parent) {}
-    virtual ~DummyVideoSurface()
-    {
-        qDebug("DummyVideoSurface::~DummyVideoSurface (qt message)");
-    }
-
-
-    QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const
-    {
-        NEXXT_LOG_DEBUG("QVideoSurfaceFormat::supportedPixelFormats called");
-
-        Q_UNUSED(handleType);
-        return QList<QVideoFrame::PixelFormat>()
-            << QVideoFrame::Format_ARGB32
-            << QVideoFrame::Format_ARGB32_Premultiplied
-            << QVideoFrame::Format_RGB32
-            << QVideoFrame::Format_RGB24
-            << QVideoFrame::Format_RGB565
-            << QVideoFrame::Format_RGB555
-            << QVideoFrame::Format_ARGB8565_Premultiplied
-            << QVideoFrame::Format_BGRA32
-            << QVideoFrame::Format_BGRA32_Premultiplied
-            << QVideoFrame::Format_BGR32
-            << QVideoFrame::Format_BGR24
-            << QVideoFrame::Format_BGR565
-            << QVideoFrame::Format_BGR555
-            << QVideoFrame::Format_BGRA5658_Premultiplied
-            << QVideoFrame::Format_AYUV444
-            << QVideoFrame::Format_AYUV444_Premultiplied
-            << QVideoFrame::Format_YUV444
-            << QVideoFrame::Format_YUV420P
-            << QVideoFrame::Format_YV12
-            << QVideoFrame::Format_UYVY
-            << QVideoFrame::Format_YUYV
-            << QVideoFrame::Format_NV12
-            << QVideoFrame::Format_NV21
-            << QVideoFrame::Format_IMC1
-            << QVideoFrame::Format_IMC2
-            << QVideoFrame::Format_IMC3
-            << QVideoFrame::Format_IMC4
-            << QVideoFrame::Format_Y8
-            << QVideoFrame::Format_Y16
-            << QVideoFrame::Format_Jpeg
-            << QVideoFrame::Format_CameraRaw
-            << QVideoFrame::Format_AdobeDng;
-    }
-
-    bool isFormatSupported(const QVideoSurfaceFormat &format) const
-    {
-        NEXXT_LOG_DEBUG("QVideoSurfaceFormat::isFormatSupported called");
-
-        const QImage::Format imageFormat = QVideoFrame::imageFormatFromPixelFormat(format.pixelFormat());
-        const QSize size = format.frameSize();
-
-        return imageFormat != QImage::Format_Invalid
-                && !size.isEmpty()
-                && format.handleType() == QAbstractVideoBuffer::NoHandle;
-    }
-
-    bool start(const QVideoSurfaceFormat &format)
-    {
-        NEXXT_LOG_DEBUG("QVideoSurfaceFormat::start called");
-
-        QAbstractVideoSurface::start(format);
-        return true;
-    }
-
-    void stop()
-    {
-        NEXXT_LOG_DEBUG("QVideoSurfaceFormat::stop called");
-        QAbstractVideoSurface::stop();
-    }
-
-    bool present(const QVideoFrame &_frame)
-    {
-        QImage img = qt_imageFromVideoFrame(_frame);
-        if(!img.isNull())
-        {
-            emit newImage(img);
-            return true;
-        } else
-        {
-            return false;
-        }
-    }
-
-};
 
 void VideoPlaybackDevice::openVideo()
 {
@@ -125,7 +26,7 @@ void VideoPlaybackDevice::openVideo()
     pauseOnStream = QString();
     player = new QMediaPlayer(this, QMediaPlayer::VideoSurface);
     player->setMuted(true);
-    videoSurface = new DummyVideoSurface(this);
+    videoSurface = new VideoGrabber(this);
     connect(player, SIGNAL(durationChanged(qint64)),
             this, SLOT(newDuration(qint64)));
     connect(player, SIGNAL(positionChanged(qint64)),
@@ -330,6 +231,3 @@ void VideoPlaybackDevice::onClose()
                               Qt::DirectConnection,
                               Q_ARG(QObject*,this));
 }
-
-#include "AviFilePlayback.moc"
-

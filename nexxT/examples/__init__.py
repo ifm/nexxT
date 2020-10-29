@@ -13,3 +13,9 @@ AviReader = FilterSurrogate(
                        "binary" / "${NEXXT_PLATFORM}" / "${NEXXT_VARIANT}" / "test_plugins").absolute()),
     "VideoPlaybackDevice"
 )
+
+CameraGrabber = FilterSurrogate(
+    "binary://" + str((Path(__file__).parent.parent / "tests" /
+                       "binary" / "${NEXXT_PLATFORM}" / "${NEXXT_VARIANT}" / "test_plugins").absolute()),
+    "CameraGrabber"
+)

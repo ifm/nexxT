@@ -21,6 +21,8 @@ plugin = env.SharedLibrary("test_plugins", env.RegisterSources(Split("""
     AviFilePlayback.cpp
     TestExceptionFilter.cpp
     Plugins.cpp
+    CameraGrabber.cpp
+    VideoGrabber.cpp
 """)))
 env.RegisterTargets(plugin)
 

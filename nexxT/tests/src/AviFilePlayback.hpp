@@ -10,12 +10,10 @@
 
 #include <QtCore/QObject>
 #include <QtMultimedia/QMediaPlayer>
+#include "VideoGrabber.hpp"
 #include "Filters.hpp"
 #include "Ports.hpp"
 #include "NexxTPlugins.hpp"
-
-
-class DummyVideoSurface;
 
 using namespace nexxT;
 
@@ -28,7 +26,7 @@ class VideoPlaybackDevice : public Filter
     double playbackRate;
     QString pauseOnStream;
     QMediaPlayer *player;
-    DummyVideoSurface *videoSurface;
+    VideoGrabber *videoSurface;
 
     void openVideo();
     void closeVideo();
