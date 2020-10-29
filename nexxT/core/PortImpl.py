@@ -108,8 +108,12 @@ class InputPortImpl(InputPortInterface):
 
     def __init__(self, dynamic, name, environment, queueSizeSamples=1, queueSizeSeconds=None):
         super().__init__(dynamic, name, environment)
-        self.queueSizeSamples = queueSizeSamples
-        self.queueSizeSeconds = queueSizeSeconds
+        self._queueSizeSamples = queueSizeSamples
+        self._queueSizeSeconds = queueSizeSeconds
+        self.setQueueSize(queueSizeSamples, queueSizeSeconds)
+        self._semaphoreN = {
+        }
+        self._interthreadDynamicQueue = False
         try:
             self.srvprof = Services.getService("Profiling")
         except KeyError:
@@ -146,12 +150,15 @@ class InputPortImpl(InputPortInterface):
 
     def _addToQueue(self, dataSample):
         self.queue.insert(0, dataSample)
-        if self.queueSizeSamples is not None and len(self.queue) > self.queueSizeSamples:
-            self.queue = self.queue[:self.queueSizeSamples]
-        if self.queueSizeSeconds is not None:
-            queueSizeTime = self.queueSizeSeconds / DataSample.TIMESTAMP_RES
+        if self._queueSizeSamples is not None and self._queueSizeSamples > 0:
+            if len(self.queue) > self._queueSizeSamples:
+                self.queue = self.queue[:self._queueSizeSamples]
+        if self._queueSizeSeconds is not None and self._queueSizeSeconds > 0.0:
+            queueSizeTime = self._queueSizeSeconds / DataSample.TIMESTAMP_RES
             while len(self.queue) > 0 and self.queue[0].getTimestamp() - self.queue[-1].getTimestamp() > queueSizeTime:
                 self.queue.pop()
+
+    def _transmit(self):
         if self.srvprof is not None:
             if self.profname is None:
                 self.profname = self.environment().getFullQualifiedName() + self.name()
@@ -173,8 +180,32 @@ class InputPortImpl(InputPortInterface):
         """
         if not QThread.currentThread() is self.thread():
             raise NexTInternalError("InputPort.receiveAsync has been called from an unexpected thread.")
-        semaphore.release(1)
         self._addToQueue(dataSample)
+        if not self._interthreadDynamicQueue:
+            # usual behaviour
+            semaphore.release(1)
+            self._transmit()
+        else:
+            if semaphore not in self._semaphoreN:
+                self._semaphoreN[semaphore] = 1
+            delta = self._semaphoreN[semaphore] - len(self.queue)
+            if delta <= 0:
+                # the semaphore's N is too small
+                semaphore.release(1-delta)
+                self._semaphoreN[semaphore] += -delta
+                logger.internal("delta = %d: semaphoreN = %d", delta, self._semaphoreN[semaphore])
+                self._transmit()
+            elif delta > 0:
+                # first acquire is done by caller
+                self._semaphoreN[semaphore] -= 1
+                # the semaphore's N is too large, try acquires to reduce the size
+                for i in range(1, delta):
+                    if semaphore.tryAcquire(1):
+                        self._semaphoreN[semaphore] -= 1
+                    else:
+                        break
+                logger.internal("delta = %d: semaphoreN = %d", delta, self._semaphoreN[semaphore])
+                self._transmit()
 
     def receiveSync(self, dataSample):
         return self._receiveSync(dataSample)
@@ -189,6 +220,7 @@ class InputPortImpl(InputPortInterface):
         if not QThread.currentThread() is self.thread():
             raise NexTInternalError("InputPort.receiveSync has been called from an unexpected thread.")
         self._addToQueue(dataSample)
+        self._transmit()
 
     def clone(self, newEnvironment):
         """
@@ -196,4 +228,60 @@ class InputPortImpl(InputPortInterface):
         :param newEnvironment: the new FilterEnvironment instance
         :return: a new Port instance
         """
-        return InputPortImpl(self.dynamic(), self.name(), newEnvironment, self.queueSizeSamples, self.queueSizeSeconds)
+        return InputPortImpl(self.dynamic(), self.name(), newEnvironment, self._queueSizeSamples,
+                             self._queueSizeSeconds)
+
+    def setQueueSize(self, queueSizeSamples, queueSizeSeconds):
+        """
+        Set the queue size of this port.
+        :param queueSizeSamples: 0 related the most actual sample, numbers > 0 relates to historic samples (None can be
+                                 given if delaySeconds is not None)
+        :param queueSizeSeconds: if not None, a delay of 0.0 is related to the current sample, positive numbers are
+                                 related to historic samples
+        :return:
+        """
+        if (queueSizeSamples is None or queueSizeSamples <= 0) and (queueSizeSeconds is None or queueSizeSeconds <= 0):
+            logger.warning("Warning: infinite buffering used for port '%s'. "
+                           "Using a one sample sized queue instead.", self.name())
+            queueSizeSamples = 1
+        self._queueSizeSamples = queueSizeSamples
+        self._queueSizeSeconds = queueSizeSeconds
+
+    def queueSizeSamples(self):
+        """
+        return the current queueSize in samples
+        :return: an integer
+        """
+        return self._queueSizeSamples
+
+    def queueSizeSeconds(self):
+        """
+        return the current queueSize in seconds
+        :return: an integer
+        """
+        return self._queueSizeSeconds
+
+    def setInterthreadDynamicQueue(self, enabled):
+        """
+        If enabled is True, inter thread connections to this input port are dynamically queued for non-blocking
+        behaviour. This setting does not affect connections from within the same thread. This method can be called
+        only during constructor or the onInit() method of a filter.
+        :param enabled: whether the dynamic queuing feature is enabled or not.
+        :return:
+        """
+        if enabled != self._interthreadDynamicQueue:
+            state = self.environment().state()
+            from nexxT.interface.Filters import FilterState # avoid recursive import
+            if state not in [FilterState.CONSTRUCTING, FilterState.CONSTRUCTED,
+                             FilterState.INITIALIZING, FilterState.INITIALIZED]:
+                logger.error("Cannot change the interthreadDynamicQueue setting in state %s.",
+                             FilterState.state2str(state))
+            else:
+                self._interthreadDynamicQueue = enabled
+
+    def interthreadDynamicQueue(self):
+        """
+        Return the interthread dynamic queue setting.
+        :return: a boolean
+        """
+        return self._interthreadDynamicQueue

@@ -79,12 +79,20 @@ namespace nexxT
         SharedDataSamplePtr getData(int delaySamples=0, double delaySeconds=-1.) const;
         SharedPortPtr clone(BaseFilterEnvironment *) const;
 
+        void setQueueSize(int queueSizeSamples, double queueSizeSeconds);
+        int queueSizeSamples();
+        double queueSizeSeconds();
+
+        void setInterthreadDynamicQueue(bool enabled);
+        bool interthreadDynamicQueue();
+
     public slots:
         void receiveAsync(const QSharedPointer<const nexxT::DataSample> &sample, QSemaphore *semaphore);
         void receiveSync (const QSharedPointer<const nexxT::DataSample> &sample);
 
     private:
         void addToQueue(const SharedDataSamplePtr &sample);
+        void transmit();
     };
 
     class DLLEXPORT InterThreadConnection : public QObject

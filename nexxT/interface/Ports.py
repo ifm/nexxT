@@ -179,3 +179,28 @@ class InputPortInterface(Port):
         :return: a new Port instance
         """
         raise NotImplementedError()
+
+    def setQueueSize(self, queueSizeSamples, queueSizeSeconds):
+        """
+        Set the queue size of this port.
+        :param queueSizeSamples: 0 related the most actual sample, numbers > 0 relates to historic samples (None can be
+                                 given if delaySeconds is not None)
+        :param queueSizeSeconds: if not None, a delay of 0.0 is related to the current sample, positive numbers are
+                                 related to historic samples
+        :return:
+        """
+        raise NotImplementedError()
+
+    def queueSizeSamples(self):
+        """
+        return the current queueSize in samples
+        :return: an integer
+        """
+        raise NotImplementedError
+
+    def queueSizeSeconds(self):
+        """
+        return the current queueSize in seconds
+        :return: an integer
+        """
+        raise NotImplementedError
