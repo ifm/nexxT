@@ -13,6 +13,7 @@ from pathlib import Path
 import string
 import time
 import logging
+import os
 import numpy as np
 import h5py
 from PySide2.QtCore import Signal, QDateTime, QTimer
@@ -25,7 +26,7 @@ class Hdf5Writer(Filter):
     """
     Generic nexxT filter for writing HDF5 files.
     """
-    statusUpdate = Signal(str, float, int)
+    statusUpdate = Signal(str, float, "qlonglong")
 
     def __init__(self, env):
         super().__init__(True, False, env)
@@ -45,6 +46,29 @@ class Hdf5Writer(Filter):
             False,
             "Whether or not silently overwrite existing files"
         )
+        self.propertyCollection().defineProperty(
+            "buffer_period",
+            1.0,
+            "The minimum buffer period in seconds. Pass 0.0 to disable buffering based on time.\n"
+            "Note that high numbers might require a lot of memory.",
+            options=dict(min=0.0, max=3600.0)
+        )
+        self.propertyCollection().defineProperty(
+            "buffer_samples",
+            0,
+            "The minimum number of samples to buffer. Pass 0 to disable buffering based on samples.\n"
+            "Note that high numbers might require a lot of memory.",
+            options=dict(min=0, max=1000000)
+        )
+        self.propertyCollection().defineProperty(
+            "use_posix_fadvise_if_available",
+            True,
+            "If available, hint the kernel with posix_fadvise(..., POSIX_FADV_DONTNEED). Might give\n"
+            "better write performance on linux systems, because there are no bursts of written data.\n"
+            "Note: You can also try to use echo 0 > /proc/sys/vm/dirty_writeback_centisecs to disable\n"
+            "write caching."
+        )
+        self.propertyCollection().propertyChanged.connect(self._propertyChanged)
         # create a numpy-style dtype for the contents of a datasample
         type_content = h5py.vlen_dtype(np.dtype(np.uint8))
         type_timestamp = np.int64
@@ -55,16 +79,27 @@ class Hdf5Writer(Filter):
                       ('rcvTimestamp', type_timestamp),
                       ]
 
+    def onInit(self):
+        for p in self.getDynamicInputPorts():
+            p.setInterthreadDynamicQueue(True)
 
     def onStart(self):
         """
         Registers itself to the recording control service
         :return:
         """
+        self._propertyChanged(self.propertyCollection(), "buffer_samples")
         srv = Services.getService("RecordingControl")
         srv.setupConnections(self)
         if isMainThread():
             logger.warning("Hdf5Writer seems to run in GUI thread. Consider to move it to a seperate thread.")
+
+    def _propertyChanged(self, pc, name):
+        if name in ["buffer_samples", "buffer_period"]:
+            qss = pc.getProperty("buffer_samples")
+            qsp = pc.getProperty("buffer_period")
+            for p in self.getDynamicInputPorts():
+                p.setQueueSize(qss, qsp)
 
     def onStop(self):
         """
@@ -90,13 +125,12 @@ class Hdf5Writer(Filter):
             self._name += ".h5"
         mode = "w" if self.propertyCollection().getProperty("silent_overwrite") else "x"
         # create a new HDF5 file / truncate an existing file containing a stream for all existing input ports
-        self._currentFile = h5py.File(Path(directory) / self._name, mode)
+        self._currentFile = h5py.File(Path(directory) / self._name, mode=mode)
         streams = self._currentFile.create_group("streams")
         for port in self.getDynamicInputPorts():
             streams.create_dataset(port.name(), (0,), chunks=(1,), maxshape=(None,), dtype=self.dtype)
         # setup variables needed during processing
         self._basetime = time.perf_counter_ns()
-        self._bytesWritten = 0
         # initial status update
         self.statusUpdate.emit(self._name, 0.0, 0)
 
@@ -139,8 +173,8 @@ class Hdf5Writer(Filter):
 
         # perform timestamp calculations
         if s.shape[0] > 0:
-            lastDataTimestamp = s[-1,"dataTimestamp"]
-            lastRcvTimestamp = s[-1,"rcvTimestamp"]
+            lastDataTimestamp = self._lastDataTimestamp
+            lastRcvTimestamp = self._lastRcvTimestamp
         else:
             lastDataTimestamp = sample.getTimestamp()
             lastRcvTimestamp = 0
@@ -149,6 +183,8 @@ class Hdf5Writer(Filter):
         else:
             rcvTimestamp = max(1, sample.getTimestamp() - lastDataTimestamp)
 
+        self._lastDataTimestamp = np.int64(sample.getTimestamp())
+        self._lastRcvTimestamp = rcvTimestamp
         # append the new data to the existing HDF5 dataset
         s.resize((s.shape[0]+1,))
         s[-1:] = (np.frombuffer(sample.getContent(), dtype=np.uint8),
@@ -156,12 +192,13 @@ class Hdf5Writer(Filter):
                   np.int64(sample.getTimestamp()),
                   rcvTimestamp)
         self._currentFile.flush()
-        # remember the number of bytes written
-        self._bytesWritten += sample.getContent().size() + len(sample.getDatatype()) + 2*8
 
         # status update once each second
         if (rcvTimestamp // 1000000) != (lastRcvTimestamp // 1000000):
-            self.statusUpdate.emit(self._name, rcvTimestamp*1e-6, self._bytesWritten)
+            if hasattr(os, "posix_fadvise") and self.propertyCollection().getProperty("use_posix_fadvise_if_available"):
+                os.posix_fadvise(self._currentFile.id.get_vfd_handle(), 0, self._currentFile.id.get_filesize(),
+                                 os.POSIX_FADV_DONTNEED)
+            self.statusUpdate.emit(self._name, rcvTimestamp*1e-6, self._currentFile.id.get_filesize())
 
 class Hdf5Reader(Filter):
     """
@@ -232,7 +269,7 @@ class Hdf5Reader(Filter):
             vMax = np.inf
             while maxIdx - minIdx > 1:
                 testIdx = max(0, min(num-1, (minIdx + maxIdx)//2))
-                vTest = s[testIdx,"rcvTimestamp"]
+                vTest = s[testIdx]["rcvTimestamp"]
                 if vTest <= t:
                     minIdx = testIdx
                     vMin = vTest
@@ -334,9 +371,9 @@ class Hdf5Reader(Filter):
         tmin = np.inf
         tmax = -np.inf
         for p in self._portToIdx:
-            t = self._currentFile["streams"][p][0, "rcvTimestamp"]
+            t = self._currentFile["streams"][p][0]["rcvTimestamp"]
             tmin = min(t, tmin)
-            t = self._currentFile["streams"][p][-1, "rcvTimestamp"]
+            t = self._currentFile["streams"][p][-1]["rcvTimestamp"]
             tmax = max(t, tmax)
         return QDateTime.fromMSecsSinceEpoch(tmin//1000), QDateTime.fromMSecsSinceEpoch(tmax//1000)
 
@@ -347,7 +384,7 @@ class Hdf5Reader(Filter):
             idx = self._portToIdx[p]
             idx = idx + self._dir
             if idx >= 0 and idx < len(self._currentFile["streams"][p]):
-                ts = self._currentFile["streams"][p][idx,"rcvTimestamp"]
+                ts = self._currentFile["streams"][p][idx]["rcvTimestamp"]
                 if nextPort is None or (ts < nextPort[0] and self._dir > 0) or (ts > nextPort[0] and self._dir < 0):
                     nextPort = (ts, p)
         return nextPort
@@ -397,7 +434,7 @@ class Hdf5Reader(Filter):
 
     def _transmitCurrent(self):
         ports = list(self._portToIdx.keys())
-        values = [self._currentFile["streams"][p][self._portToIdx[p],"rcvTimestamp"] for p in ports]
+        values = [self._currentFile["streams"][p][self._portToIdx[p]]["rcvTimestamp"] for p in ports]
         sortedIdx = sorted(range(len(values)), key=lambda x: values[x])
         # transmit most recent sample
         self._transmit(ports[sortedIdx[-1]])

@@ -23,7 +23,7 @@ class MVCRecordingControlBase(QObject):
     """
     _startRecording = Signal(str)
     _stopRecording = Signal()
-    statusUpdate = Signal(QObject, str, float, int)
+    statusUpdate = Signal(QObject, str, float, "qlonglong")
     notifyError = Signal(QObject, str)
 
     def __init__(self, config): # pylint: disable=unused-argument
