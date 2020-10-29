@@ -1,6 +1,6 @@
 {
-  "composite_filters": [
-  ],
+  "_guiState": {},
+  "composite_filters": [],
   "applications": [
     {
       "name": "videoplayback",
@@ -27,25 +27,25 @@
           }
         },
         {
-          "name": "display",
-          "library": "entry_point://examples.videoplayback.QImageDisplay",
-          "factoryFunction": "entry_point",
+          "name": "ImageView",
+          "library": "entry_point://examples.framework.ImageView",
+          "factoryFunction": "ImageView",
           "dynamicInputPorts": [],
           "staticInputPorts": [
-            "inPort"
+            "video_in"
           ],
           "dynamicOutputPorts": [],
           "staticOutputPorts": [],
           "thread": "main",
           "properties": {
-            "SubplotID": "ImageDisplay"
+            "caption": "view",
+            "scale": 1.0
           }
         }
       ],
       "connections": [
-        "source.video_out -> display.inPort"
+        "source.video_out -> ImageView.video_in"
       ]
     }
-  ],
-  "_guiState": {}
+  ]
 }

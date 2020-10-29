@@ -9,10 +9,12 @@
 #include "Services.hpp"
 #include "PropertyCollection.hpp"
 #include "Logger.hpp"
+#include "ImageFormat.h"
 #include <QtCore/QDateTime>
 #include <QtCore/QThread>
 #include <QtCore/QBuffer>
 #include <QtGui/QImageWriter>
+#include <cstring>
 
 using namespace nexxT;
 
@@ -82,26 +84,48 @@ VideoPlaybackDevice::~VideoPlaybackDevice()
     closeVideo();
 }
 
-void VideoPlaybackDevice::newImage(const QImage &img)
+void VideoPlaybackDevice::newImage(const QImage &_img)
 {
     if(!pauseOnStream.isNull())
     {
         pauseOnStream = QString();
         QMetaObject::invokeMethod(this, "pausePlayback", Qt::QueuedConnection);
     }
-    QByteArray a;
+    QImage img = _img; /* we need a writable img */
+    ImageHeader hdr;
+    QByteArray data;
+    /* reserve size for the image in the QByteArray for efficiency reasons */
+    data.reserve(int(sizeof(ImageHeader)) + (img.height() * img.bytesPerLine()));
+    /* determine the format */
+    QString format;
+    switch(img.format())
     {
-        QBuffer b(&a);
-        QImageWriter w;
-        w.setFormat("png");
-        w.setDevice(&b);
-        if( !w.write(img) )
-        {
-            NEXXT_LOG_ERROR(QString("Can't serialize image, %1").arg(w.errorString()));
-        }
+    case QImage::Format_RGB888:
+        format = "rgb_u8";
+        break;
+    case QImage::Format_Grayscale8:
+        format = "intensity_u8";
+        break;
+    case QImage::Format_Grayscale16:
+        format = "intensity_u16";
+        break;
+    default:
+        /* for all other formats, we create an rgb_u8 image using QImage functionality */
+        img = img.convertToFormat(QImage::Format_RGB888);
+        format = "rgb_u8";
     }
-    SharedDataSamplePtr newSample(new DataSample(a, "qimage", QDateTime::currentDateTime().toMSecsSinceEpoch()));
-    video_out->transmit(newSample);
+    /* fill the header fields */
+    hdr.width = uint32_t(img.width());
+    hdr.height = uint32_t(img.height());
+    hdr.lineInc = uint32_t(img.bytesPerLine());
+    std::strncpy(hdr.format, format.toLocal8Bit().constData(), sizeof(hdr.format));
+    /* fill the QByteArray instance */
+    data = data.append((const char *)&hdr, sizeof(hdr));
+    data = data.append((const char *)img.constBits(), hdr.lineInc*hdr.height);
+    /* transmit over the port */
+    video_out->transmit(
+         SharedDataSamplePtr(new DataSample(data, "example/image", DataSample::currentTime()))
+    );
 }
 
 void VideoPlaybackDevice::mediaPlayerError(QMediaPlayer::Error)
