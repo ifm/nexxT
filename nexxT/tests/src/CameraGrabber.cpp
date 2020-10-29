@@ -16,20 +16,31 @@ CameraGrabber::CameraGrabber(BaseFilterEnvironment *env)
     , camera()
     , videoSurface()
 {
+    /* similar to the python API, we create an output port for transmitting images */
     video_out = SharedOutputPortPtr(new OutputPortInterface(false, "video_out", env));
+    /* and register that port */
     addStaticPort(video_out);
+    /* note that we do not connect to the hardware in the constructor, this is to be
+     * done later in onOpen(...) for efficiency reasons.
+     */
 }
 
 CameraGrabber::~CameraGrabber()
 {
 }
 
+/* A new image has arrived, we convert this here to a QByteArray
+ * Note that QT takes care to call this method in the correct thread
+ * due to the QueuedConnection mechanism.
+ */
 void CameraGrabber::newImage(const QImage &_img)
 {
-    QImage img = _img;
+    QImage img = _img; /* we need a writable img */
     ImageHeader hdr;
     QByteArray data;
+    /* reserve size for the image in the QByteArray for efficiency reasons */
     data.reserve(int(sizeof(ImageHeader)) + (img.height() * img.bytesPerLine()));
+    /* determine the format */
     QString format;
     switch(img.format())
     {
@@ -43,20 +54,25 @@ void CameraGrabber::newImage(const QImage &_img)
         format = "intensity_u16";
         break;
     default:
+        /* for all other formats, we create an rgb_u8 image using QImage functionality */
         img = img.convertToFormat(QImage::Format_RGB888);
         format = "rgb_u8";
     }
+    /* fill the header fields */
     hdr.width = uint32_t(img.width());
     hdr.height = uint32_t(img.height());
     hdr.lineInc = uint32_t(img.bytesPerLine());
     std::strncpy(hdr.format, format.toLocal8Bit().constData(), sizeof(hdr.format));
+    /* fill the QByteArray instance */
     data = data.append((const char *)&hdr, sizeof(hdr));
     data = data.append((const char *)img.constBits(), hdr.lineInc*hdr.height);
+    /* transmit over the port */
     video_out->transmit(
          SharedDataSamplePtr(new DataSample(data, "example/image", DataSample::currentTime()))
     );
 }
 
+/* in case of an error, we restart the camera stream */
 void CameraGrabber::onStateChanged(QCamera::State state)
 {
     static bool recursive = false;
@@ -71,9 +87,9 @@ void CameraGrabber::onStateChanged(QCamera::State state)
     }
 }
 
+/* here we connect to the hardware */
 void CameraGrabber::onOpen()
 {
-
     if(camera)
     {
         NEXXT_LOG_WARN("camera still allocated in onOpen");
@@ -84,12 +100,17 @@ void CameraGrabber::onOpen()
         NEXXT_LOG_WARN("videoSurface still allocated in onOpen");
         delete videoSurface;
     }
+    /* create a QCamera and a VideoGrabber instance, the camera will run in a default mode
+     * All these objects run in the same thread as this filter.
+     */
     camera = new QCamera(this);
     videoSurface = new VideoGrabber(this);
+    /* make up signal/slot connections */
     QObject::connect(videoSurface, SIGNAL(newImage(const QImage &)), this, SLOT(newImage(const QImage &)));
     QObject::connect(camera, SIGNAL(stateChanged(QCamera::State)), this, SLOT(onStateChanged(QCamera::State)));
 }
 
+/* at that point, the streaming shall be started */
 void CameraGrabber::onStart()
 {
     camera->setCaptureMode(QCamera::CaptureVideo);
@@ -97,11 +118,13 @@ void CameraGrabber::onStart()
     camera->start();
 }
 
+/* inverse of onStart(...) */
 void CameraGrabber::onStop()
 {
     camera->stop();
 }
 
+/* inverse of onOpen(...) */
 void CameraGrabber::onClose()
 {
     if(camera)
@@ -115,5 +138,3 @@ void CameraGrabber::onClose()
         videoSurface = nullptr;
     }
 }
-
-
