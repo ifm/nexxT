@@ -243,9 +243,6 @@ class ActiveApplication(QObject):
                 OutputPortInterface.setupDirectConnection(p0, p1)
             else:
                 itc = OutputPortInterface.setupInterThreadConnection(p0, p1, self._threads[fromThread].qthread())
-                #itc = self.InterThreadConnection(self._threads[fromThread].qthread())
-                #p0.transmitSample.connect(itc.receiveSample)
-                #itc.transmitInterThread.connect(p1.receiveAsync)
                 self._interThreadConns.append(itc)
         self._graphConnected = True
 
@@ -352,6 +349,9 @@ class ActiveApplication(QObject):
         self._operationInProgress = True
         self._state = FilterState.STARTING
         self._setupConnections()
+        for itc in self._interThreadConns:
+            # set connections in active mode.
+            itc.setStopped(False)
         self.performOperation.emit("start", Barrier(len(self._threads)))
         while self._state == FilterState.STARTING:
             QCoreApplication.processEvents()
@@ -373,6 +373,9 @@ class ActiveApplication(QObject):
             raise FilterStateMachineError(self._state, FilterState.STOPPING)
         self._operationInProgress = True
         self._state = FilterState.STOPPING
+        for itc in self._interThreadConns:
+            # set connections in active mode.
+            itc.setStopped(True)
         self.performOperation.emit("stop", Barrier(len(self._threads)))
         while self._state == FilterState.STOPPING:
             logger.internal("stopping ... %s", FilterState.state2str(self._state))

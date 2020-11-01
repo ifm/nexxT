@@ -11,6 +11,7 @@
 #include "Filters.hpp"
 #include "Logger.hpp"
 #include "Services.hpp"
+#include <atomic>
 
 #include <QtCore/QThread>
 #include <map>
@@ -41,7 +42,8 @@ namespace nexxT
     struct InterThreadConnectionD
     {
         QSemaphore semaphore;
-        InterThreadConnectionD(int n) : semaphore(n) {}
+        std::atomic_bool stopped;
+        InterThreadConnectionD(int n) : semaphore(n), stopped(true) {}
     };
 
 };
@@ -361,6 +363,22 @@ InterThreadConnection::~InterThreadConnection()
 
 void InterThreadConnection::receiveSample(const QSharedPointer<const DataSample> &sample)
 {
-    d->semaphore.acquire(1);
-    emit transmitInterThread(sample, &d->semaphore);
+    while(true)
+    {
+        if( d->stopped.load() )
+        {
+            NEXXT_LOG_WARN("The inter-thread connection is set to stopped mode; data sample discarded.");
+            break;
+        }
+        if( d->semaphore.tryAcquire(1, 500) )
+        {
+            emit transmitInterThread(sample, &d->semaphore);
+            break;
+        }
+    }
+}
+
+void InterThreadConnection::setStopped(bool stopped)
+{
+    d->stopped.store(stopped);
 }

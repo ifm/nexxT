@@ -137,7 +137,7 @@ class ThreadSpecificProfItem:
         :param timeNs: the time in nano-seconds
         :return:
         """
-        if self._portStack[-1] != portname:
+        if len(self._portStack) == 0 or self._portStack[-1] != portname:
             return # canceled during profiling
         self._portStack = self._portStack[:-1]
         self._portProfiling[portname].stop(timeNs)

@@ -28,6 +28,7 @@ class InterThreadConnection(QObject):
         super().__init__()
         self.moveToThread(qthread_from)
         self.semaphore = QSemaphore(1)
+        self._stopped = True
 
     def receiveSample(self, dataSample):
         """
@@ -35,9 +36,27 @@ class InterThreadConnection(QObject):
         :param dataSample: the sample to be received
         :return: None
         """
+        self._receiveSample(dataSample)
+
+    @handleException
+    def _receiveSample(self, dataSample):
         assert QThread.currentThread() is self.thread()
-        self.semaphore.acquire(1)
-        self.transmitInterThread.emit(dataSample, self.semaphore)
+        while True:
+            if self._stopped:
+                logger.info("The inter-thread connection is set to stopped mode; data sample discarded.")
+                break
+            if self.semaphore.tryAcquire(1, 500):
+                self.transmitInterThread.emit(dataSample, self.semaphore)
+                break
+
+    def setStopped(self, stopped):
+        """
+        When the connection is stopped (the default), acquire will not deadlock and there is a warning when samples are
+        transmitted, samples are not forwarded to the input port in this case. Note: This method is thread safe and
+        may be called from any thread.
+        :return:
+        """
+        self._stopped = stopped
 
 class OutputPortImpl(OutputPortInterface):
     """

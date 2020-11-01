@@ -109,6 +109,7 @@ namespace nexxT
 
     public slots:
         void receiveSample(const QSharedPointer<const nexxT::DataSample> &sample);
+        void setStopped(bool stopped);
     };
 };
 
