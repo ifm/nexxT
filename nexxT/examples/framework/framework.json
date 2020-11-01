@@ -63,7 +63,7 @@
           ],
           "thread": "compute",
           "properties": {
-            "kernelSize": 1
+            "kernelSize": 9
           }
         },
         {
@@ -98,6 +98,7 @@
             "buffer_samples": 0,
             "filename": "${DATE}_${TIME}_${FILTER_NAME}.h5",
             "silent_overwrite": false,
+            "use_posix_fadvise_if_available": true,
             "use_receive_timestamps": true
           }
         }
