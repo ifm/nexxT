@@ -10,6 +10,8 @@ This module provides a widget for browsing the filesystem.
 import logging
 from pathlib import Path
 import os
+import platform
+import string
 from PySide2.QtCore import (QAbstractTableModel, Qt, Signal, QModelIndex, QDateTime, QFileInfo, QDir, QEvent)
 from PySide2.QtGui import QKeyEvent
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QTreeView, QFileIconProvider, QCompleter, QLineEdit, QHeaderView)
@@ -73,15 +75,31 @@ class FolderListModel(QAbstractTableModel):
         self._folder = None
         self.endRemoveRows()
         if folder is not None:
+            listDrives = False
             f = Path(folder).resolve()
+            if platform.system() == "Windows":
+                folder = Path(folder)
+                if folder.name == ".." and folder.parent == Path(folder.drive + "/"):
+                    listDrives = True
+                    f = Path("<Drives>")
             self._folder = f
             self._filter = flt
-            self._children = ([] if f.root == f else [f / ".."])
-            self._children += [x for x in f.glob("*") if self._match(x)]
-            self._children.sort(key=lambda c: (c.is_file(), c.drive, c.name))
+            if platform.system() == "Windows":
+                if listDrives:
+                    self._children = [Path("%s:/" % dl) for dl in string.ascii_uppercase if Path("%s:/" % dl).exists()]
+                else:
+                    self._children = [f / ".."]
+            else:
+                self._children = ([] if f.root == f else [f / ".."])
+            if not listDrives:
+                self._children += [x for x in f.glob("*") if self._match(x)]
+                self._children.sort(key=lambda c: (c.is_file(), c.drive, int(c.name != ".."), c.name))
             self.beginInsertRows(QModelIndex(), 0, len(self._children)-1)
             self.endInsertRows()
-            self.folderChanged.emit(str(self._folder) + (os.path.sep if self._folder.is_dir() else ""))
+            if listDrives:
+                self.folderChanged.emit("<Drives>")
+            else:
+                self.folderChanged.emit(str(self._folder) + (os.path.sep if self._folder.is_dir() else ""))
 
     def folder(self):
         """
@@ -123,7 +141,7 @@ class FolderListModel(QAbstractTableModel):
         c = self._children[index.row()]
         if role == Qt.DisplayRole:
             if index.column() == 0:
-                return c.name
+                return c.name if c.name != "" else str(c)
             if index.column() == 1:
                 if c.is_dir():
                     return ""
@@ -317,7 +335,7 @@ class BrowserWidget(QWidget):
 
     def _leTextEdited(self, text):
         p = Path(text)
-        if p.is_dir() and len(text) > 0 and text[-1] == "/":
+        if p.is_dir() and len(text) > 0 and text[-1] in ["/", "\\"]:
             self.setFolder(p)
 
     def _activated(self, idx):

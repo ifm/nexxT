@@ -374,7 +374,10 @@ class Hdf5Reader(Filter):
             self._ports = self.getDynamicOutputPorts()
             for s in self._currentFile["streams"]:
                 if s in [p.name() for p in self._ports]:
-                    self._portToIdx[s] = -1
+                    if len(self._currentFile["streams"][s]) > 0:
+                        self._portToIdx[s] = -1
+                    else:
+                        logger.warning("Stream %s does not contain any samples.", s)
                 else:
                     logger.warning("No matching output port for stream %s. Consider to create a port for it.", s)
             for p in self._ports:
