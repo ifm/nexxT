@@ -314,7 +314,7 @@ void InputPortInterface::receiveAsync(const QSharedPointer<const DataSample> &sa
             {
                 /* the first item is already acquired by the calling thread */
                 d->semaphoreN[semaphore]--;
-                for(uint32_t i = 1; i < delta; i++)
+                for(int32_t i = 1; i < delta; i++)
                 {
                     if(semaphore->tryAcquire(1))
                     {

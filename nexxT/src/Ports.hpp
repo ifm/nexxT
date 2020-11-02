@@ -73,7 +73,7 @@ namespace nexxT
         InputPortD *const d;
 
     public:
-        InputPortInterface(bool dynamic, const QString &name, BaseFilterEnvironment *env, int queueSizeSamples, double queueSizeSeconds);
+        InputPortInterface(bool dynamic, const QString &name, BaseFilterEnvironment *env, int queueSizeSamples = 1, double queueSizeSeconds = -1.0);
         virtual ~InputPortInterface();
 
         SharedDataSamplePtr getData(int delaySamples=0, double delaySeconds=-1.) const;

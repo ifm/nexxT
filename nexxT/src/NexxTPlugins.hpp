@@ -33,7 +33,7 @@
     extern "C" FORCE_DLLEXPORT void nexxT_pluginDefinition(QMap<QString, nexxT::PluginCreateFunc> &res)  \
     {                                                                                   \
         res.clear();                                                                    \
-        for(int i = 1;                                                                  \
+        for(uint32_t i = 1;                                                             \
             i < sizeof(nexxt_plugin_functions)/sizeof(nexxt_plugin_functions[0]);       \
             i++)                                                                        \
         {                                                                               \
