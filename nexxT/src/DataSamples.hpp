@@ -38,8 +38,6 @@ namespace nexxT
         static SharedDataSamplePtr make_shared(DataSample *sample);
         static void registerMetaType();
         static int64_t currentTime();
-        static uint32_t countSamples();
-        static size_t memory();
     };
 };
 
