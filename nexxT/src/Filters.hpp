@@ -57,7 +57,7 @@ namespace nexxT
 
         void addStaticPort(const SharedPortPtr &port);
         SharedPortPtr addStaticOutputPort(const QString &name);
-        SharedPortPtr addStaticInputPort(const QString &name, int queueSizeSamples, double queueSizeSeconds);
+        SharedPortPtr addStaticInputPort(const QString &name, int queueSizeSamples = 1, double queueSizeSeconds = -1);
         void removeStaticPort(const SharedPortPtr &port);
         PortList getDynamicInputPorts();
         PortList getDynamicOutputPorts();

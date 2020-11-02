@@ -70,7 +70,7 @@ SharedDataSamplePtr DataSample::make_shared(DataSample *sample)
 
 void DataSample::registerMetaType()
 {
-    int id = qRegisterMetaType<QSharedPointer<const nexxT::DataSample> >();
+    qRegisterMetaType<QSharedPointer<const nexxT::DataSample> >();
 }
 
 int64_t DataSample::currentTime()
