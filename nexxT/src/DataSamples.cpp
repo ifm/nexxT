@@ -14,7 +14,7 @@ using namespace nexxT;
 
 static constexpr double TIMESTAMP_RES_VALUE = 1e-6;
 const double DataSample::TIMESTAMP_RES = TIMESTAMP_RES_VALUE;
-static std::atomic_uint32_t instanceCounter(0);
+static std::atomic_uint instanceCounter(0);
 static std::atomic_size_t memoryHeld(0);
 
 namespace nexxT
