@@ -15,6 +15,46 @@
 
 We used Enterprise Architect for the initial design, and most of the design decisions are still somewhat valid, especially the part about data transport. The design can be found here: https://github.com/ifm/nexxT/blob/master/design/NeXT.eap
 
+## Installation
+
+It is highly recommended to use the binary packages from pypi in a virtual environment.
+
+### Linux
+
+Assuming that you have a python3.7+ interpreter in your path, the installation can be done with
+
+    python3 -m venv venv_nexxT
+    source venv_nexxT/bin/activate
+    python3 -m pip install pip -U
+    pip install nexxT
+    
+### Windows
+
+Assuming that you have a python3.7+ interpreter in your path, the installation is very similar
+
+    python -m venv venv_nexxT
+    .\venv_nexxT\Scripts\activate
+    python -m pip install pip -U
+    pip install nexxT
+
+## Building from source
+
+Building from source requires a QT5 installation suited to the PySide2 version used for the build. It is ok to use 5.14.0 to build against all versions 5.14.x of PySide2 because of QT's binary compatibility. You have to set the environment variable QTDIR to the installation directory of QT. Note that this installation is only used during build time, at runtime, nexxT always uses the QT version shipped with PySide2.
+
+On linux, you will also need llvm and clang installed (because of the shiboken2 dependency). You might need to set the environment variable LLVM_INSTALL_DIR.
+
+The following commands build nexxT from source using the non-recommended pip package of shiboken2-generator.
+
+    git clone https://github.com/ifm/nexxT.git
+    cd nexxT/workspace
+    python3 -m venv venv
+    source venv/bin/activate
+    python3 -m pip install pip -U
+    pip install -r requirements.txt --find-links https://download.qt.io/official_releases/QtForPython/shiboken2-generator/
+    export QTDIR=<path>/<to>/<qt>
+    export LLVM_INSTALL_DIR=<path>/<to>/<llvm>
+    scons ..
+
 ## History
 
 Originally we started with a commercial product from the automotive industry in our development, due to the requirements of a project at that time. That product had become more and more outdated and the management was not very keen on paying maintainance costs for updates. After very long discussions about the way forward, we finally got the go for developing an own framework. We have decided to apply an open-source license to it such that it might be useful to other people having the same pain than us as well. During the discussion phase we discussed also other alternatives, and here especially the use of *ROS2*, which claimed to fulfill many of our requirements. We decided against it because of the following reasons:
