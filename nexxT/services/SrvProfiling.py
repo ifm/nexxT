@@ -17,6 +17,8 @@ from nexxT.core.Utils import MethodInvoker
 
 logger = logging.getLogger(__name__)
 
+TIMER = time.perf_counter_ns
+
 class PortProfiling:
     """
     Simple helper class for storing profiling time points of a single port.
@@ -75,12 +77,12 @@ class ThreadSpecificProfItem:
     """
     This class contains all profiling items of a specific thread.
     """
-    THREAD_PROFILING_PERIOD_SEC = 0.2
+    THREAD_PROFILING_PERIOD_SEC = 0.3
     THREAD_PROFILING_TOTAL_TIME = 60
 
     def __init__(self):
         self._lastThreadTime = time.thread_time_ns()
-        self._lastMonotonicTime = time.monotonic_ns()
+        self._lastMonotonicTime = TIMER()
         self._portProfiling = {}
         self._portStack = []
         self._measurements = []
@@ -91,7 +93,9 @@ class ThreadSpecificProfItem:
         :return:
         """
         thread_time = time.thread_time_ns()
-        monotonic_time = time.monotonic_ns()
+        monotonic_time = TIMER()
+        if monotonic_time == self._lastMonotonicTime:
+            return
         load = (thread_time - self._lastThreadTime) / (monotonic_time - self._lastMonotonicTime)
         self._lastThreadTime = thread_time
         self._lastMonotonicTime = monotonic_time
@@ -168,7 +172,7 @@ class ProfilingService(QObject):
         super().__init__()
         self._threadSpecificProfiling = {}
         self._lockThreadSpecific = Lock()
-        self._lastEmitTime = time.monotonic_ns()
+        self._lastEmitTime = TIMER()
         self._loadMonitoringEnabled = True
         self._portProfilingEnabled = False
         self._mi = None
@@ -187,7 +191,7 @@ class ProfilingService(QObject):
                 self._threadSpecificProfiling[t].timer = QTimer(parent=self.sender())
                 self._threadSpecificProfiling[t].timer.timeout.connect(self._generateRecord, Qt.DirectConnection)
                 self._threadSpecificProfiling[t].timer.setInterval(
-                    ThreadSpecificProfItem.THREAD_PROFILING_PERIOD_SEC*1e3)
+                    int(ThreadSpecificProfItem.THREAD_PROFILING_PERIOD_SEC*1e3))
                 self.stopTimers.connect(self._threadSpecificProfiling[t].timer.stop)
                 self.startTimers.connect(self._threadSpecificProfiling[t].timer.start)
                 if self._loadMonitoringEnabled:
@@ -283,7 +287,7 @@ class ProfilingService(QObject):
                 self._threadSpecificProfiling[t].registerPortChangeFinished(portname, timeNs)
 
     def _emitData(self):
-        t = time.monotonic_ns()
+        t = TIMER()
         if t - self._lastEmitTime > 1e8:
             # emit each 100 ms
             self._lastEmitTime = t

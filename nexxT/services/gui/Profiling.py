@@ -47,7 +47,15 @@ class LoadDisplayWidget(QWidget):
             self._loadData[threadName] = QPolygonF()
         p = self._loadData[threadName]
         for i in range(aload.shape[0]):
-            p.append(QPointF(1e-9*(atimestamps[i] - self.baseTimestamp), aload[i]))
+            x = 1e-9*(atimestamps[i] - self.baseTimestamp)
+            if p.size() > 0 and p.at(p.count()-1).x() > x:
+                # it seems that QT re-orders slots :( we have to maintain the order here
+                idx = p.count()
+                while idx > 0 and p.at(idx-1).x() > x:
+                    idx -= 1
+                p.insert(idx, QPointF(x, aload[i]))
+            else:
+                p.append(QPointF(x, aload[i]))
         if p[p.count()-1].x() - p[0].x() > 60:
             for i in range(p.count()):
                 if p[p.count()-1].x() - p[i].x() <= 60:
