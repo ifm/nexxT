@@ -472,7 +472,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
                                          encoding="utf-8").replace("\n", "<br>").replace(" ", "&nbsp;")
         QMessageBox.about(self, "About python", """\
 This program uses <b>python</b> %(version)s and the following installed python packages.<br><br>
-<p style="font-family: monospace;">
+<pre>
 %(table)s
-</p>
+</pre>
 """ % dict(version=sys.version, table=piplic))
