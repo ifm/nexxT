@@ -16,19 +16,12 @@ import os
 import logging
 from pathlib import Path
 import pytest
-import pytestqt
-import pytest_xvfb
 import shiboken2
 from PySide2.QtCore import QItemSelection, Qt, QTimer, QSize, QPoint, QModelIndex
-from PySide2.QtGui import QContextMenuEvent
 from PySide2.QtWidgets import QGraphicsSceneContextMenuEvent, QWidget, QApplication, QTreeView
 from nexxT.core.AppConsole import startNexT
 from nexxT.interface import Services
-from nexxT.services.gui.Configuration import MVCConfigurationGUI
-from nexxT.services.gui.RecordingControl import MVCRecordingControlGUI
-from nexxT.services.gui.PlaybackControl import MVCPlaybackControlGUI
 from nexxT.services.gui.GraphEditorView import GraphEditorView
-from nexxT.services.gui.GuiLogger import GuiLogger
 
 logger = logging.getLogger(__name__)
 
@@ -36,25 +29,85 @@ logger = logging.getLogger(__name__)
 def keep_open(request):
     return request.config.getoption("--keep-open")
 
+# context menu actions
+class ContextMenuEntry(str):
+    pass
+CM_ADD_APPLICATION = ContextMenuEntry("Add application")
+CM_EDIT_GRAPH = ContextMenuEntry("Edit graph")
+CM_INIT_APP = ContextMenuEntry("Init Application")
+CM_INIT_APP_AND_OPEN =ContextMenuEntry("Init and load sequence")
+CM_INIT_APP_AND_PLAY = ContextMenuEntry("Init, load and play")
+CM_FILTER_LIBRARY = ContextMenuEntry("Filter Library")
+CM_FILTER_FROM_PYMOD = ContextMenuEntry("Add filter from python module ...")
+CM_FILTER_FROM_COMPOSITE = ContextMenuEntry("Add filter form composite definition ...")
+CM_ADDCOMPOSITE = ContextMenuEntry("Add composite filter")
+CM_AUTOLAYOUT = ContextMenuEntry("Auto layout")
+CM_FILTER_LIBRARY_TESTS = ContextMenuEntry("tests")
+CM_FILTER_LIBRARY_HARDDISK = ContextMenuEntry("harddisk")
+CM_FILTER_LIBRARY_TESTS_NEXXT = ContextMenuEntry("nexxT")
+CM_FILTER_LIBRARY_CSIMPLESOURCE = ContextMenuEntry("CSimpleSource")
+CM_FILTER_LIBRARY_PYSIMPLESTATICFILTER = ContextMenuEntry("PySimpleStaticFilter")
+CM_FILTER_LIBRARY_HDF5WRITER = ContextMenuEntry("HDF5Writer")
+CM_FILTER_LIBRARY_HDF5READER = ContextMenuEntry("HDF5Reader")
+CM_RENAME_NODE = ContextMenuEntry("Rename node ...")
+CM_REMOVE_NODE = ContextMenuEntry('Remove node ...')
+CM_ADDDYNINPORT = ContextMenuEntry("Add dynamic input port ...")
+CM_ADDDYNOUTPORT = ContextMenuEntry("Add dynamic output port ...")
+CM_SUGGEST_DYNPORTS = ContextMenuEntry("Suggest dynamic ports ...")
+CM_SETTHREAD = ContextMenuEntry("Set thread ...")
+CM_RENAMEDYNPORT = ContextMenuEntry("Rename dynamic port ...")
+CM_REMOVEDYNPORT = ContextMenuEntry("Remove dynamic port ...")
+
+
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])
 def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
+    # make sure that we have a fresh environment
+    os.environ["HOME"] = str(tmpdir)
+    logger.info("TMPDIR=%s", tmpdir)
     if xvfb is not None:
-        os.environ["HOME"] = str(tmpdir)
         print("dims = ",xvfb.width, xvfb.height)
         print("DISPLAY=",xvfb.display)
 
     def activateContextMenu(*idx):
+        """
+        In a given context menu navigate to the given index using key presses and activate it using return
+        :param idx: Might be either integers referencing the position in the menu or strings referencing the menu text
+        :return:
+        """
+        def activeMenuEntry():
+            menu = QApplication.activePopupWidget()
+            if menu is None:
+                return None
+            act = menu.activeAction()
+            if act is None:
+                return None
+            while act.menu() is not None and act.menu().activeAction() is not None:
+                act = act.menu().activeAction()
+            return act.text()
         try:
             # activate context menu index idx
             for j in range(len(idx)):
-                for i in range(idx[j]):
-                    qtbot.keyClick(None, Qt.Key_Down, delay=delay)
+                if isinstance(idx[j], int):
+                    for i in range(idx[j]):
+                        qtbot.keyClick(None, Qt.Key_Down, delay=delay)
+                    logger.debug("(int) Current action: '%s'", activeMenuEntry())
+                else:
+                    nonNoneAction = None
+                    while activeMenuEntry() is None or activeMenuEntry() != idx[j]:
+                        logger.debug("(str) Current action: '%s' != '%s'", activeMenuEntry(), idx[j])
+                        qtbot.keyClick(None, Qt.Key_Down, delay=delay)
+                        if nonNoneAction is None:
+                            nonNoneAction = activeMenuEntry()
+                        else:
+                            assert nonNoneAction != activeMenuEntry()
+                    logger.debug("(str) Current action: '%s'", activeMenuEntry())
                 if j < len(idx) - 1:
                     qtbot.keyClick(None, Qt.Key_Right, delay=delay)
             qtbot.keyClick(None, Qt.Key_Return, delay=delay)
         except Exception:
             logger.exception("exception while activating context menu")
+            raise
 
     def aw(w=None):
         # on xvfb, the main window sometimes looses focus leading to a crash of the qtbot's keyClick(s) function
@@ -87,16 +140,17 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
         qtbot.wait(1000)
         pos = treeView.visualRegionForSelection(QItemSelection(idx, idx)).boundingRect().center()
         qtbot.mouseMove(treeView.viewport(), pos=pos, delay=delay)
-        ev = QContextMenuEvent(QContextMenuEvent.Mouse, pos, treeView.viewport().mapToGlobal(pos))
+        #ev = QContextMenuEvent(QContextMenuEvent.Mouse, pos, treeView.viewport().mapToGlobal(pos))
         try:
-            intIdx = max([i for i in range(-1,-len(contextMenuIndices)-1,-1) if isinstance(contextMenuIndices[i], int)])
+            intIdx = max([i for i in range(-1, -len(contextMenuIndices)-1, -1)
+                          if isinstance(contextMenuIndices[i], int)])
             intIdx += len(contextMenuIndices)
         except ValueError:
             intIdx = -1
         cmIdx = contextMenuIndices[:intIdx+1]
         texts = contextMenuIndices[intIdx+1:]
         QTimer.singleShot(delay, lambda: activateContextMenu(*cmIdx))
-        for i,t in enumerate(texts):
+        for i, t in enumerate(texts):
             QTimer.singleShot(delay*(i+2), lambda text=t: enterText(text))
         conf._execTreeViewContextMenu(pos)
         #conf.contextMenuEvent(ev)
@@ -104,7 +158,8 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
     def addNodeToGraphEditor(graphEditView, scenePos, *contextMenuIndices):
         oldNodes = set(graphEditView.scene().nodes.keys())
         try:
-            intIdx = max([i for i in range(-1,-len(contextMenuIndices)-1,-1) if isinstance(contextMenuIndices[i], int)])
+            intIdx = max([i for i in range(-1,-len(contextMenuIndices)-1,-1)
+                                if isinstance(contextMenuIndices[i], (int, ContextMenuEntry))])
             intIdx += len(contextMenuIndices)
         except ValueError:
             intIdx = -1
@@ -133,7 +188,7 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
 
     def removeNodeFromGraph(graphEditView, node):
         pos = node.nodeGrItem.sceneBoundingRect().center()
-        QTimer.singleShot(delay, lambda: activateContextMenu(2))
+        QTimer.singleShot(delay, lambda: activateContextMenu(CM_REMOVE_NODE))
         QTimer.singleShot(2*delay, lambda: enterText(""))
         gsContextMenu(graphEditView, pos)
 
@@ -151,6 +206,7 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
 
     def setFilterProperty(conf, subConfig, filterName, propName, propVal):
         idxapp = conf.model.indexOfSubConfig(subConfig)
+        idxFilter = None
         for r in range(conf.model.rowCount(idxapp)):
             idxFilter = conf.model.index(r, 0, idxapp)
             name = conf.model.data(idxFilter, Qt.DisplayRole)
@@ -159,16 +215,19 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             else:
                 idxFilter = None
         assert idxFilter is not None
+        idxProp = None
+        row = None
         for r in range(conf.model.rowCount(idxFilter)):
             idxProp = conf.model.index(r, 0, idxFilter)
             name = conf.model.data(idxProp, Qt.DisplayRole)
-            print(name)
             if name == propName:
+                row = r
                 break
             else:
                 idxProp = None
         assert idxProp is not None
-        idxPropVal = conf.model.index(r, 1, idxFilter)
+        assert row is not None
+        idxPropVal = conf.model.index(row, 1, idxFilter)
         conf.treeView.scrollTo(idxPropVal)
         region = conf.treeView.visualRegionForSelection(QItemSelection(idxPropVal, idxPropVal))
         qtbot.mouseMove(conf.treeView.viewport(), pos=region.boundingRect().center(), delay=delay)
@@ -234,7 +293,8 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
 
 
     def do_test():
-
+        conf = None
+        mw = None
         try:
             mw = Services.getService("MainWindow")
             mw.resize(1980,1080)
@@ -242,11 +302,6 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             rec = Services.getService("RecordingControl")
             playback = Services.getService("PlaybackControl")
             log = Services.getService("Logging")
-            if 0:
-                assert isinstance(conf, MVCConfigurationGUI)
-                assert isinstance(rec, MVCRecordingControlGUI)
-                assert isinstance(playback, MVCPlaybackControlGUI)
-                assert isinstance(log, GuiLogger)
             idxComposites = conf.model.index(0, 0)
             idxApplications = conf.model.index(1, 0)
             # add application
@@ -256,68 +311,77 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             qtbot.mouseMove(conf.treeView.viewport(), region.boundingRect().center(), delay=delay)
             # mouse click does not trigger context menu :(
             #qtbot.mouseClick(conf.treeView.viewport(), Qt.RightButton, pos=region.boundingRect().center())
-            QTimer.singleShot(delay, lambda: activateContextMenu(1))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_ADD_APPLICATION))
             conf._execTreeViewContextMenu(region.boundingRect().center())
             app = conf.configuration().applicationByName("application")
             # start graph editor
             gev = startGraphEditor(conf, mw, "application")
-            scene = gev.scene()
             qtbot.wait(delay)
             # create 3 nodes: CSimpleSource, PySimpleStaticFilter, HDF5Writer
-            n1 = addNodeToGraphEditor(gev, QPoint(20,20), 3,2,0,0)
+            n1 = addNodeToGraphEditor(gev, QPoint(20,20),
+                                      CM_FILTER_LIBRARY, CM_FILTER_LIBRARY_TESTS, CM_FILTER_LIBRARY_TESTS_NEXXT,
+                                      CM_FILTER_LIBRARY_CSIMPLESOURCE)
             removeNodeFromGraph(gev, n1)
-            n1 = addNodeToGraphEditor(gev, QPoint(20,20), 3,2,0,0)
-            n2 = addNodeToGraphEditor(gev, QPoint(20,80), 3,2,0,5)
-            n3 = addNodeToGraphEditor(gev, QPoint(20,140), 3,1,1)
-            n4 = addNodeToGraphEditor(gev, QPoint(-120,-60), 2, "nexxT.tests.interface.SimpleStaticFilter", "SimpleView")
-            n5 = addNodeToGraphEditor(gev, QPoint(-120, 140), 2, "nexxT.tests.interface.SimpleStaticFilter", "SimpleView")
-            n6 = addNodeToGraphEditor(gev, QPoint(20, -60), 2, "nexxT.tests.interface.SimpleStaticFilter", "SimpleView")
+            n1 = addNodeToGraphEditor(gev, QPoint(20,20),
+                                      CM_FILTER_LIBRARY, CM_FILTER_LIBRARY_TESTS, CM_FILTER_LIBRARY_TESTS_NEXXT,
+                                      CM_FILTER_LIBRARY_CSIMPLESOURCE)
+            n2 = addNodeToGraphEditor(gev, QPoint(20,80),
+                                      CM_FILTER_LIBRARY, CM_FILTER_LIBRARY_TESTS, CM_FILTER_LIBRARY_TESTS_NEXXT,
+                                      CM_FILTER_LIBRARY_PYSIMPLESTATICFILTER)
+            n3 = addNodeToGraphEditor(gev, QPoint(20,140),
+                                      CM_FILTER_LIBRARY, CM_FILTER_LIBRARY_HARDDISK, CM_FILTER_LIBRARY_HDF5WRITER)
+            n4 = addNodeToGraphEditor(gev, QPoint(-120,-60), CM_FILTER_FROM_PYMOD,
+                                      "nexxT.tests.interface.SimpleStaticFilter", "SimpleView")
+            n5 = addNodeToGraphEditor(gev, QPoint(-120, 140), CM_FILTER_FROM_PYMOD,
+                                      "nexxT.tests.interface.SimpleStaticFilter", "SimpleView")
+            n6 = addNodeToGraphEditor(gev, QPoint(20, -60), CM_FILTER_FROM_PYMOD,
+                                      "nexxT.tests.interface.SimpleStaticFilter", "SimpleView")
             # auto layout
-            QTimer.singleShot(delay, lambda: activateContextMenu(4))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_AUTOLAYOUT))
             gsContextMenu(gev, QPoint(-120,40))
             qtbot.wait(delay)
             # rename n4
-            QTimer.singleShot(delay, lambda: activateContextMenu(1))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_RENAME_NODE))
             QTimer.singleShot(delay*2, lambda: enterText("view_source"))
             print(n4, n4.nodeGrItem.sceneBoundingRect().center())
             gsContextMenu(gev, n4.nodeGrItem.sceneBoundingRect().center())
             # rename n5
-            QTimer.singleShot(delay, lambda: activateContextMenu(1))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_RENAME_NODE))
             QTimer.singleShot(delay*2, lambda: enterText("view_filter"))
             print(n5, n5.nodeGrItem.sceneBoundingRect().center())
             gsContextMenu(gev, n5.nodeGrItem.sceneBoundingRect().center())
             # rename n6
-            QTimer.singleShot(delay, lambda: activateContextMenu(1))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_RENAME_NODE))
             QTimer.singleShot(delay*2, lambda: enterText("view_filter2"))
             print(n6, n6.nodeGrItem.sceneBoundingRect().center())
             gsContextMenu(gev, n6.nodeGrItem.sceneBoundingRect().center())
             # setup dynamic input port of HDF5Writer
             n3p = n3.nodeGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(3))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_ADDDYNINPORT))
             QTimer.singleShot(delay*2, lambda: enterText("CSimpleSource_out"))
             gsContextMenu(gev, n3p)
             # rename the dynamic port
             pp = n3.inPortItems[0].portGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(1))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_RENAMEDYNPORT))
             QTimer.singleShot(2*delay, lambda: enterText("xxx"))
             gsContextMenu(gev, pp)
             # remove the dynamic port
             pp = n3.inPortItems[0].portGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(2))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_REMOVEDYNPORT))
             QTimer.singleShot(2*delay, lambda: enterText(""))
             gsContextMenu(gev, pp)
             # setup dynamic input port of HDF5Writer
             n3p = n3.nodeGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(3))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_ADDDYNINPORT))
             QTimer.singleShot(delay*2, lambda: enterText("CSimpleSource_out"))
             gsContextMenu(gev, n3p)
             # set thread of souurce
             n1p = n1.nodeGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(3))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_SETTHREAD))
             QTimer.singleShot(delay*2, lambda: enterText("source_thread"))
             gsContextMenu(gev, n1p)
             # set thread of HDF5Writer
-            QTimer.singleShot(delay, lambda: activateContextMenu(5))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_SETTHREAD))
             QTimer.singleShot(delay*2, lambda: enterText("writer_thread"))
             gsContextMenu(gev, n3p)
             # connect the ports
@@ -332,9 +396,8 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             conf.treeView.scrollTo(idxComposites)
             region = conf.treeView.visualRegionForSelection(QItemSelection(idxComposites, idxComposites))
             qtbot.mouseMove(conf.treeView.viewport(), region.boundingRect().center(), delay=delay)
-            QTimer.singleShot(delay, lambda: activateContextMenu(1))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_ADDCOMPOSITE))
             conf._execTreeViewContextMenu(region.boundingRect().center())
-            composite = conf.configuration().compositeFilterByName("composite")
             qtbot.wait(delay)
             gevc = startGraphEditor(conf, mw, "composite", True)
             assert gevc != gev
@@ -346,28 +409,27 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             n2 = gevc.scene().nodes["PySimpleStaticFilter"]
             # setup dynamic port of gevc_in
             gevc_inp = gevc_in.nodeGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(3))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_ADDDYNOUTPORT))
             QTimer.singleShot(delay*2, lambda: enterText("comp_in"))
             gsContextMenu(gevc, gevc_inp)
             # setup dynamic ports of gevc_out
             gevc_outp = gevc_out.nodeGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(3))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_ADDDYNINPORT))
             QTimer.singleShot(delay*2, lambda: enterText("source"))
             gsContextMenu(gevc, gevc_outp)
             gevc_outp = gevc_out.nodeGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(3))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_ADDDYNINPORT))
             QTimer.singleShot(delay*2, lambda: enterText("filter"))
             gsContextMenu(gevc, gevc_outp)
             # setup connections
             addConnectionToGraphEditor(gevc, gevc_out.inPortItems[0], n1.outPortItems[0])
             addConnectionToGraphEditor(gevc, gevc_out.inPortItems[1], n2.outPortItems[0])
             # add composite filter to gev
-            comp = addNodeToGraphEditor(gev, QPoint(20,20), 3, "composite")
+            comp = addNodeToGraphEditor(gev, QPoint(20,20), CM_FILTER_FROM_COMPOSITE, "composite")
             shiboken2.delete(gevc.parent())
-            gevc = None
             qtbot.wait(delay)
             # auto layout
-            QTimer.singleShot(delay, lambda: activateContextMenu(5))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_AUTOLAYOUT))
             gsContextMenu(gev, QPoint(-120,40))
             qtbot.wait(delay)
             addConnectionToGraphEditor(gev, comp.outPortItems[0], n3.inPortItems[0])
@@ -427,7 +489,6 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
 
             # add another application for offline use
             conf.configuration().addNewApplication()
-            app = conf.configuration().applicationByName("application_2")
             # start and delete a graph editor for the old application
             gev = startGraphEditor(conf, mw, "application")
             qtbot.wait(delay)
@@ -436,38 +497,39 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
             # start the editor for the new application
             gev = startGraphEditor(conf, mw, "application_2")
             # start graph editor
-            scene = gev.scene()
             qtbot.mouseMove(gev, pos=QPoint(20,20), delay=delay)
-            # create 3 nodes: CSimpleSource, PySimpleStaticFilter, HDF5Writer
-            n1 = addNodeToGraphEditor(gev, QPoint(20,80), 4,1,0)
-            n2 = addNodeToGraphEditor(gev, QPoint(20,80), 4,2,0,5)
+            # create 2 nodes: HDF5Reader and PySimpleStaticFilter
+            n1 = addNodeToGraphEditor(gev, QPoint(20,80), CM_FILTER_LIBRARY, CM_FILTER_LIBRARY_HARDDISK,
+                                      CM_FILTER_LIBRARY_HDF5READER)
+            n2 = addNodeToGraphEditor(gev, QPoint(20,80), CM_FILTER_LIBRARY, CM_FILTER_LIBRARY_TESTS,
+                                      CM_FILTER_LIBRARY_TESTS_NEXXT, CM_FILTER_LIBRARY_PYSIMPLESTATICFILTER)
             # auto layout
-            QTimer.singleShot(delay, lambda: activateContextMenu(5))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_AUTOLAYOUT))
             gsContextMenu(gev, QPoint(1,1))
             # setup dynamic output port of HDF5Reader
             n1p = n1.nodeGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(3))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_ADDDYNOUTPORT))
             QTimer.singleShot(delay*2, lambda: enterText("yyy"))
             gsContextMenu(gev, n1p)
             # rename the dynamic port
             pp = n1.outPortItems[0].portGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(1))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_RENAMEDYNPORT))
             QTimer.singleShot(2*delay, lambda: enterText("xxx"))
             gsContextMenu(gev, pp)
             qtbot.wait(delay)
             # remove the dynamic port
             pp = n1.outPortItems[0].portGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(2))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_REMOVEDYNPORT))
             QTimer.singleShot(2*delay, lambda: enterText(""))
             gsContextMenu(gev, pp)
-            # setup dynamic ports of HDF5Reader
+            # setup dynamic ports of HDF5Reader using the suggest ports feature
             n1p = n1.nodeGrItem.sceneBoundingRect().center()
-            QTimer.singleShot(delay, lambda: activateContextMenu(4))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_SUGGEST_DYNPORTS))
             QTimer.singleShot(delay*2, lambda: enterText(str(h5file)))
             QTimer.singleShot(delay*4, lambda: enterText(""))
             gsContextMenu(gev, n1p)
             # set thread of HDF5Writer
-            QTimer.singleShot(delay, lambda: activateContextMenu(5))
+            QTimer.singleShot(delay, lambda: activateContextMenu(CM_SETTHREAD))
             QTimer.singleShot(delay*2, lambda: enterText("reader_thread"))
             gsContextMenu(gev, n1p)
             # connect the ports
@@ -536,43 +598,39 @@ def test_basic(qtbot, xvfb, keep_open, delay, tmpdir):
     startNexT(None, None, [], [], True)
 
     def do_reopen_test():
+        conf = None
+        mw = None
         try:
             # load last config
             mw = Services.getService("MainWindow")
             conf = Services.getService("Configuration")
-            rec = Services.getService("RecordingControl")
             playback = Services.getService("PlaybackControl")
             log = Services.getService("Logging")
-            if 0:
-                assert isinstance(conf, MVCConfigurationGUI)
-                assert isinstance(rec, MVCRecordingControlGUI)
-                assert isinstance(playback, MVCPlaybackControlGUI)
-                assert isinstance(log, GuiLogger)
             # load recent config
             qtbot.keyClick(aw(), Qt.Key_R, Qt.ControlModifier, delay=delay)
             # this is the offline config
             appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application_2"))
-            cmContextMenu(conf, appidx, 3)
+            cmContextMenu(conf, appidx, CM_INIT_APP)
             qtbot.wait(1000)
             assert not playback.actPause.isEnabled()
-            cmContextMenu(conf, appidx, 4, 0)
+            cmContextMenu(conf, appidx, CM_INIT_APP_AND_OPEN, 0)
             qtbot.wait(1000)
             assert not playback.actPause.isEnabled()
             playback.actStepFwd.trigger()
             qtbot.wait(1000)
             firstFrame = getLastLogFrameIdx(log)
-            cmContextMenu(conf, appidx, 5, 0)
+            cmContextMenu(conf, appidx, CM_INIT_APP_AND_PLAY, 0)
             qtbot.wait(1000)
             qtbot.waitUntil(playback.actStart.isEnabled, timeout=10000)
             lastFrame = getLastLogFrameIdx(log)
             assert lastFrame >= firstFrame + 10
             # this is the online config
             appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
-            cmContextMenu(conf, appidx, 3)
+            cmContextMenu(conf, appidx, CM_INIT_APP)
             qtbot.wait(2000)
-            cmContextMenu(conf, appidx, 4, 0)
+            cmContextMenu(conf, appidx, CM_INIT_APP_AND_OPEN, 0)
             qtbot.wait(2000)
-            cmContextMenu(conf, appidx, 5, 0)
+            cmContextMenu(conf, appidx, CM_INIT_APP_AND_PLAY, 0)
             qtbot.wait(2000)
             noWarningsInLog(log)
         finally:

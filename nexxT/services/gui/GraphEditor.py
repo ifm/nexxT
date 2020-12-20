@@ -977,7 +977,7 @@ class GraphScene(BaseGraphScene):
         self.actRenameNode = QAction("Rename node ...", self)
         self.actRemoveNode = QAction("Remove node ...", self)
         self.actAddNode = QAction("Add filter from file ...", self)
-        self.actAutoLayout = QAction("Auto layourt", self)
+        self.actAutoLayout = QAction("Auto layout", self)
         self.actRemoveConnection = QAction("Remove connection ...", self)
         self.actRenameNode.triggered.connect(self.renameDialog)
         self.actRemoveNode.triggered.connect(self.removeDialog)
