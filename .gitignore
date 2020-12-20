@@ -15,6 +15,12 @@ include/
 .sconsign.dblite
 workspace/build
 
+# the automatically generated MANIFEST.in file (nexxT specific)
+MANIFEST.in
+
+# pycharm project files
+.idea
+
 # qt creator
 nexxT.config
 nexxT.creator
