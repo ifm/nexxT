@@ -90,8 +90,12 @@ class IntHandler(PropertyHandler):
         res.setFrame(False)
         if "min" in self._options:
             res.setMinimum(self._options["min"])
+        else:
+            res.setMinimum(-2147483648)
         if "max" in self._options:
             res.setMaximum(self._options["max"])
+        else:
+            res.setMaximum(2147483647)
         return res
 
     def setEditorData(self, editor, value):
