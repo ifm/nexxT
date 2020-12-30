@@ -9,13 +9,11 @@ This module provides the recording control GUI service for the nexxT framework.
 """
 
 import logging
-from datetime import timedelta
 from pathlib import Path
-from PySide2.QtCore import Qt
-from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import (QAction, QApplication, QStyle, QWidget, QBoxLayout, QToolBar, QLabel, QLineEdit,
-                               QFileDialog)
-from nexxT.core.Utils import assertMainThread
+from PySide2.QtCore import Qt, QStorageInfo
+from PySide2.QtGui import QIcon, QTextOption
+from PySide2.QtWidgets import QAction, QApplication, QStyle, QWidget, QBoxLayout, QToolBar, QFileDialog
+from nexxT.core.Utils import assertMainThread, ElidedLabel
 from nexxT.core.Exceptions import PropertyCollectionPropertyNotFound
 from nexxT.interface import Services
 from nexxT.services.SrvRecordingControl import MVCRecordingControlBase
@@ -71,15 +69,21 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
         toolBar.addAction(self.actStop)
         toolBar.addAction(self.actSetDir)
 
-        self._directoryLabel = QLineEdit(parent=self.dockWidgetContents)
-        self._directoryLabel.setReadOnly(True)
-        self._directoryLabel.setFrame(False)
-        self._directoryLabel.setStyleSheet("* { background-color: rgba(0, 0, 0, 0); }")
-        self._directoryLabel.setText(self._directory)
-        self._statusLabel = QLabel("(disabled)", parent=self.dockWidgetContents)
+        self._directoryLabel = ElidedLabel(self._directory, parent=self.dockWidgetContents)
+        to = self._directoryLabel.textOption()
+        to.setWrapMode(QTextOption.NoWrap)
+        self._directoryLabel.setTextOption(to)
+        self._directoryLabel.setElideMode(Qt.ElideMiddle)
+
+        self._statusLabel = ElidedLabel("(disabled)", parent=self.dockWidgetContents)
+        to = self._statusLabel.textOption()
+        to.setWrapMode(QTextOption.NoWrap)
+        self._statusLabel.setTextOption(to)
+        self._statusLabel.setElideMode(Qt.ElideMiddle)
+
         toolLayout.addWidget(self._directoryLabel)
-        toolLayout.addWidget(self._statusLabel)
-        toolLayout.addStretch(100)
+        toolLayout.addWidget(self._statusLabel, stretch=100)
+        #toolLayout.addStretch(100)
 
         self.statusUpdate.connect(self._onUpdateStatus)
         self.notifyError.connect(self._onNotifyError)
@@ -114,13 +118,14 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
             self.actSetDir.setEnabled(False)
             self._statusLabel.setText("(disabled)")
 
-    def _onUpdateStatus(self, originFilter, file, length, bytesWritten):
+    def _onUpdateStatus(self, _, file, length, bytesWritten):
         lines = self._statusLabel.text().split("\n")
         if length < 0:
             length = None
         if bytesWritten < 0:
             bytesWritten = None
         updated = False
+
         if bytesWritten is None:
             bw = "??"
         elif bytesWritten < 1024:
@@ -131,11 +136,31 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
             bw = "%.1f Mb" % (bytesWritten/1024/1024)
         else:
             bw = "%.1f Gb" % (bytesWritten/1024/1024/1024)
-        sl = str(timedelta(seconds=length)) if length is not None else "??"
+
+        if length is None:
+            sl = "?? s"
+        elif length < 60:
+            sl = "%.1f sec" % length
+        else:
+            sl = "%.1f min" % (length//60)
+
+        bytesAv = QStorageInfo(file).bytesAvailable()
+        if length is not None and bytesWritten is not None and bytesAv >= 0 and bytesWritten > 0:
+            timeAv = length*bytesAv/bytesWritten - length
+            if timeAv < 60:
+                av = "%.1f sec" % timeAv
+            elif timeAv < 3600:
+                av = "%.1f min" % (timeAv // 60)
+            else:
+                av = "> 1 hour"
+        else:
+            av = "?? s"
+
         if length is not None or bytesWritten is not None:
-            newl = Path(file).name + ": " + sl + " | " + bw
+            newl = Path(file).name + ": " + sl + " | " + bw + " R: " + av
         else:
             newl = None
+
         if newl is not None:
             for i, l in enumerate(lines):
                 if l.startswith(Path(file).name + ":"):
@@ -156,6 +181,7 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
                 lines = lines[:toDel] + lines[toDel+1:]
         if len(lines) == 0:
             lines.append("inactive")
+
         self._statusLabel.setText("\n".join(lines))
 
     def _onNotifyError(self, originFilter, errorDesc):
@@ -188,7 +214,6 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
     def _restoreState(self):
         """
         Restores the state of the playback control from the given property collection
-        :param propertyCollection: a PropertyCollection instance
         :return:
         """
         assertMainThread()

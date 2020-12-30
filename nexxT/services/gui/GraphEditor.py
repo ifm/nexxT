@@ -957,6 +957,8 @@ class GraphScene(BaseGraphScene):
                 self.addInPort(n, p)
             for p in self.graph.allOutputPorts(n):
                 self.addOutPort(n, p)
+            # make sure that the added nodes are painted in correct styling
+            self.nodes[n].sync()
         for c in self.graph.allConnections():
             self.addConnection(*c)
         self.graph.nodeAdded.connect(self.addNode)
