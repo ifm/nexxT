@@ -1,11 +1,76 @@
 {
   "_guiState": {
-    "PlaybackControl_folder": "/spaces/mirror/wd-netcenter-unclassified/backups/FREE/sa",
-    "PlaybackControl_recent": "/spaces/mirror/wd-netcenter-unclassified/backups/FREE/BrookeSky/load/007/BrookeSkye-brooke07_pool-High.wmv|/spaces/mirror/wd-netcenter-unclassified/backups/FREE/sa/Approaching_SexArt-720p.mp4|/spaces/mirror/wd-netcenter-unclassified/backups/FREE/SapphicErotica/sapphic-Leanna_and_Ginger_Glass_Affair.wmv|/spaces/mirror/wd-netcenter-unclassified/backups/FREE/sa/Be-My-Slave-III_SexArt-720p.mp4|/spaces/mirror/wd-netcenter-unclassified/backups/FREE/sa/Blind-Date_SexArt-720p.mp4|/spaces/mirror/wd-netcenter-unclassified/backups/FREE/sa/Alone_SexArt-720p.mp4",
     "PlaybackControl_showAllFiles": 0,
-    "RecordingControl_directory": "/home/wiedeman/development/nexxT"
   },
-  "composite_filters": [],
+  "composite_filters": [
+    {
+      "name": "visualization",
+      "nodes": [
+        {
+          "name": "CompositeInput",
+          "library": "composite://port",
+          "factoryFunction": "CompositeInput",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [
+            "original",
+            "processed"
+          ],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {}
+        },
+        {
+          "name": "CompositeOutput",
+          "library": "composite://port",
+          "factoryFunction": "CompositeOutput",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {}
+        },
+        {
+          "name": "ProcessedView",
+          "library": "pymod://nexxT.examples.framework.ImageView",
+          "factoryFunction": "ImageView",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "video_in"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "caption": "Processed",
+            "scale": 0.5
+          }
+        },
+        {
+          "name": "OrigView",
+          "library": "pymod://nexxT.examples.framework.ImageView",
+          "factoryFunction": "ImageView",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "video_in"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "caption": "Original",
+            "scale": 0.5
+          }
+        }
+      ],
+      "connections": [
+        "CompositeInput.original -> OrigView.video_in",
+        "CompositeInput.processed -> ProcessedView.video_in"
+      ],
+      "_guiState": {}
+    }
+  ],
   "applications": [
     {
       "name": "live",
@@ -17,6 +82,22 @@
         "filters__ImageView2": {
           "MainWindow_MDI_view_2__geom": "AdnQywABAAAAAAAAAAAAjgAAAAAAAAA/AAAAAAAAApoAAAAAAAACLgAAAAAAAACOAAAAAAAAAD8AAAAAAAACmgAAAAAAAAIuAAAAAAAAAAA=",
           "MainWindow_MDI_view_2__visible": 1
+        },
+        "filters__OrigView": {
+          "MainWindow_MDI_Original_geom": "AdnQywABAAAAAAAAAAAAAwAAAAAAAAACAAAAAAAAApoAAAAAAAABlgAAAAAAAAADAAAAAAAAAAIAAAAAAAACmgAAAAAAAAGWAAAAAAAAAAA=",
+          "MainWindow_MDI_Original_visible": 1
+        },
+        "filters__ProcessedView": {
+          "MainWindow_MDI_Processed_geom": "AdnQywABAAAAAAAAAAACngAAAAAAAAACAAAAAAAAApoAAAAAAAABlgAAAAAAAAKeAAAAAAAAAAIAAAAAAAACmgAAAAAAAAGWAAAAAAAAAAA=",
+          "MainWindow_MDI_Processed_visible": 1
+        },
+        "filters__visualization_ProcessedView": {
+          "MainWindow_MDI_Processed_geom": "AdnQywABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApoAAAAAAAABlgAAAAAAAAAAAAAAAAAAAAAAAAAAAAACmgAAAAAAAAGWAAAAAAAAAAA=",
+          "MainWindow_MDI_Processed_visible": 1
+        },
+        "filters__visualization_OrigView": {
+          "MainWindow_MDI_Original_geom": "AdnQywABAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAApoAAAAAAAABlgAAAAAAAAB4AAAAAAAAAAAAAAAAAAACmgAAAAAAAAGWAAAAAAAAAAA=",
+          "MainWindow_MDI_Original_visible": 1
         }
       },
       "nodes": [
@@ -34,22 +115,6 @@
           "properties": {}
         },
         {
-          "name": "ImageView",
-          "library": "pymod://nexxT.examples.framework.ImageView",
-          "factoryFunction": "ImageView",
-          "dynamicInputPorts": [],
-          "staticInputPorts": [
-            "video_in"
-          ],
-          "dynamicOutputPorts": [],
-          "staticOutputPorts": [],
-          "thread": "main",
-          "properties": {
-            "caption": "view",
-            "scale": 0.5
-          }
-        },
-        {
           "name": "ImageBlur",
           "library": "pymod://nexxT.examples.framework.ImageBlur",
           "factoryFunction": "ImageBlur",
@@ -64,22 +129,6 @@
           "thread": "compute",
           "properties": {
             "kernelSize": 9
-          }
-        },
-        {
-          "name": "ImageView2",
-          "library": "pymod://nexxT.examples.framework.ImageView",
-          "factoryFunction": "ImageView",
-          "dynamicInputPorts": [],
-          "staticInputPorts": [
-            "video_in"
-          ],
-          "dynamicOutputPorts": [],
-          "staticOutputPorts": [],
-          "thread": "main",
-          "properties": {
-            "caption": "view",
-            "scale": 0.5
           }
         },
         {
@@ -101,13 +150,91 @@
             "use_posix_fadvise_if_available": true,
             "use_receive_timestamps": true
           }
+        },
+        {
+          "name": "visualization",
+          "library": "composite://ref",
+          "factoryFunction": "visualization",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "original",
+            "processed"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {}
         }
       ],
       "connections": [
-        "CameraGrabber.video_out -> ImageView.video_in",
         "CameraGrabber.video_out -> ImageBlur.video_in",
-        "ImageBlur.video_out -> ImageView2.video_in",
-        "CameraGrabber.video_out -> HDF5Writer.video"
+        "CameraGrabber.video_out -> HDF5Writer.video",
+        "CameraGrabber.video_out -> visualization.original",
+        "ImageBlur.video_out -> visualization.processed"
+      ]
+    },
+    {
+      "name": "sim",
+      "_guiState": {
+        "filters__visualization_ProcessedView": {
+          "MainWindow_MDI_Processed_geom": "AdnQywABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApoAAAAAAAABlgAAAAAAAAAAAAAAAAAAAAAAAAAAAAACmgAAAAAAAAGWAAAAAAAAAAA=",
+          "MainWindow_MDI_Processed_visible": 1
+        },
+        "filters__visualization_OrigView": {
+          "MainWindow_MDI_Original_geom": "AdnQywABAAAAAAAAAAAAeAAAAAAAAAAAAAAAAAAAApoAAAAAAAABlgAAAAAAAAB4AAAAAAAAAAAAAAAAAAACmgAAAAAAAAGWAAAAAAAAAAA=",
+          "MainWindow_MDI_Original_visible": 1
+        }
+      },
+      "nodes": [
+        {
+          "name": "ImageBlur",
+          "library": "pymod://nexxT.examples.framework.ImageBlur",
+          "factoryFunction": "ImageBlur",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "video_in"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "video_out"
+          ],
+          "thread": "compute",
+          "properties": {
+            "kernelSize": 9
+          }
+        },
+        {
+          "name": "visualization",
+          "library": "composite://ref",
+          "factoryFunction": "visualization",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "original",
+            "processed"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {}
+        },
+        {
+          "name": "HDF5Reader",
+          "library": "entry_point://harddisk.HDF5Reader",
+          "factoryFunction": "HDF5Reader",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [
+            "video"
+          ],
+          "staticOutputPorts": [],
+          "thread": "reader",
+          "properties": {}
+        }
+      ],
+      "connections": [
+        "ImageBlur.video_out -> visualization.processed",
+        "HDF5Reader.video -> ImageBlur.video_in",
+        "HDF5Reader.video -> visualization.original"
       ]
     }
   ]

@@ -17,8 +17,9 @@ import os.path
 import sqlite3
 import time
 from PySide2.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
-                            QMutexLocker, QRecursiveMutex, QTimer, Qt)
-from PySide2.QtGui import QColor
+                            QMutexLocker, QRecursiveMutex, QTimer, Qt, QPoint)
+from PySide2.QtGui import QColor, QPainter, QTextLayout, QTextOption
+from PySide2.QtWidgets import QFrame, QSizePolicy
 from nexxT.core.Exceptions import NexTInternalError, InvalidIdentifierException
 
 logger = logging.getLogger(__name__)
@@ -353,6 +354,102 @@ def handleException(func):
             # catching a general exception is exactly wanted here
             excepthook(*sys.exc_info())
     return wrapper
+
+class ElidedLabel(QFrame):
+    """
+    Loosly based on this https://doc.qt.io/qt-5/qtwidgets-widgets-elidedlabel-example.html
+    """
+    def __init__(self, text, parent=None):
+        super().__init__(parent)
+        self._content = None
+        self._textOption = QTextOption()
+        self._elideMode = Qt.ElideRight
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setMinimumHeight(self.fontMetrics().lineSpacing() + 5)
+        self.setText(text)
+
+    def setText(self, newText):
+        """
+        Sets the displayed text.
+        :param newText: str
+        :return:
+        """
+        self._content = newText
+        self.update()
+
+    def text(self):
+        """
+        Returns the current text
+        :return:
+        """
+        return self._content
+
+    def setTextOption(self, textOption):
+        """
+        Sets the text option
+        :param textOption: A QTextOption instance
+        :return:
+        """
+        self._textOption = textOption
+
+    def textOption(self):
+        """
+        Returns the text option
+        :return: a QTextOption instance
+        """
+        return self._textOption
+
+    def setElideMode(self, elideMode):
+        """
+        Sets the elide mode of the label.
+        :param elideMode: see Qt.ElideMode
+        :return:
+        """
+        self._elideMode = elideMode
+
+    def elideMode(self):
+        """
+        Returns the elide mode of the label
+        :return: see Qt.ElideMode
+        """
+        return self._elideMode
+
+    def paintEvent(self, event):
+        """
+        standard qt paint event
+        :param event: a QPaintEvent instance
+        :return:
+        """
+        super().paintEvent(event)
+        painter = QPainter(self)
+        try:
+            fontMetrics = painter.fontMetrics()
+            lineSpacing = self.fontMetrics().lineSpacing()
+            y = 0
+            textLayout = QTextLayout(self._content, painter.font())
+            textLayout.setTextOption(self._textOption)
+            textLayout.beginLayout()
+            while True:
+                line = textLayout.createLine()
+                if not line.isValid():
+                    break
+                line.setLineWidth(self.width())
+                nextLineY = y + lineSpacing
+                if self.height() >= nextLineY + lineSpacing:
+                    # not the last line
+                    elidedLine = self._content[line.textStart():line.textStart() + line.textLength()]
+                    elidedLine = fontMetrics.elidedText(elidedLine, self._elideMode, self.width())
+                    painter.drawText(QPoint(0, y + fontMetrics.ascent()), elidedLine)
+                    y = nextLineY
+                else:
+                    # last line, check if we are to elide here to the end
+                    lastLine = self._content[line.textStart():]
+                    elidedLastLine = fontMetrics.elidedText(lastLine, self._elideMode, self.width())
+                    painter.drawText(QPoint(0, y + fontMetrics.ascent()), elidedLastLine)
+                    break
+            textLayout.endLayout()
+        except Exception as e:
+            logger.exception("Exception during paint: %s", e)
 
 if __name__ == "__main__": # pragma: no cover
     def _smokeTestBarrier():
