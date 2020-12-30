@@ -122,8 +122,8 @@ class Hdf5Writer(Filter):
         self._useRcvTimestamps = self.propertyCollection().getProperty("use_receive_timestamps")
         # interpolate the name with optionally given variables
         dt = datetime.datetime.now()
-        variables = dict(DATE=dt.date().strftime('%Y-%m-%d'),
-                         TIME=dt.time().strftime('%H-%M-%S'),
+        variables = dict(DATE=dt.date().strftime('%Y%m%d'),
+                         TIME=dt.time().strftime('%H%M%S'),
                          FILTER_NAME=self.propertyCollection().objectName())
         self._name = string.Template(self._name).safe_substitute(variables)
         if not (self._name.endswith(".h5") or self._name.endswith(".hdf5") or self._name.endswith(".hdf")):
