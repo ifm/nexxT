@@ -1,0 +1,33 @@
+usage: nexxT-gui [-h] [-a ACTIVE] [-l LOGFILE] [-v {INTERNAL,DEBUG,INFO,WARN,ERROR,FATAL,CRITICAL}] [-q] [-e EXECPYTHON] [-s EXECSCRIPT] [-g [GUI]] [cfg]
+
+nexxT console application
+
+positional arguments:
+  cfg                   .json configuration file of the project to be loaded.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -a ACTIVE, --active ACTIVE
+                        active application; default: first application in config file
+  -l LOGFILE, --logfile LOGFILE
+                        log file location (.db extension will use sqlite).
+  -v {INTERNAL,DEBUG,INFO,WARN,ERROR,FATAL,CRITICAL}, --verbosity {INTERNAL,DEBUG,INFO,WARN,ERROR,FATAL,CRITICAL}
+                        sets the log verbosity
+  -q, --quiet           disble logging to stderr
+  -e EXECPYTHON, --execpython EXECPYTHON
+                        execute arbitrary python code given in a string before actually starting the application.
+  -s EXECSCRIPT, --execscript EXECSCRIPT
+                        execute arbitrary python code given in a file before actually starting the application.
+  -g [GUI], --gui [GUI]
+                        If true, start nexxT with GUI otherwise use console mode.
+
+The following environment variables have effect on nexxT's behaviour:
+
+NEXXT_VARIANT: 
+    might be set to 'nonopt' to use the non-optimized variant
+
+NEXXT_DISABLE_CIMPL: 
+    If set to '1', the nexxT C extensions are replaced by native python modules.
+
+NEXXT_CEXT_PATH:
+    Can be set to override the default search path for the nexxT C extension.
