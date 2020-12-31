@@ -118,7 +118,7 @@ void VideoPlaybackDevice::newImage(const QImage &_img)
     hdr.width = uint32_t(img.width());
     hdr.height = uint32_t(img.height());
     hdr.lineInc = uint32_t(img.bytesPerLine());
-    std::strncpy(hdr.format, format.toLocal8Bit().constData(), sizeof(hdr.format));
+    std::strncpy(hdr.format, format.toLocal8Bit().constData(), sizeof(hdr.format)-1);
     /* fill the QByteArray instance */
     data = data.append((const char *)&hdr, sizeof(hdr));
     data = data.append((const char *)img.constBits(), hdr.lineInc*hdr.height);
@@ -213,7 +213,7 @@ void VideoPlaybackDevice::seekTime(const QDateTime &pos)
 
 void VideoPlaybackDevice::setSequence(const QString &_filename)
 {
-    NEXXT_LOG_DEBUG("setSequence called");
+    NEXXT_LOG_DEBUG(QString("setSequence called filename=%1").arg(_filename));
     closeVideo();
     filename = _filename;
     openVideo();

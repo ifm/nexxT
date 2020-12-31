@@ -108,6 +108,7 @@ class MVCPlaybackControlBase(QObject):
                     logger.debug("setSequence done")
                 else:
                     logger.debug("%s does not match filters: %s", filename, nameFilters)
+                    MethodInvoker(dict(object=playbackDevice, method="setSequence"), Qt.QueuedConnection, None)
 
             # setSequence is called only if filename matches the given filters
             if self._setSequence.connect(setSequenceWrapper, Qt.DirectConnection):

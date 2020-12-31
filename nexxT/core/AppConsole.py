@@ -120,7 +120,7 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
     code_globals = {}
     for c in execCode:
         logger.info("Executing code '%s'", c)
-        # note that exec is used intentionally here to provide the user with scripting possibilities
+        # note that exec is used intentionally here to provide the user with scripting posibilities
         exec(compile(c, "<string>", 'exec'), code_globals) # pylint: disable=exec-used
         logger.debug("Executing code done")
 

@@ -17,9 +17,15 @@ AviReader = FilterSurrogate(
                        "binary" / "${NEXXT_PLATFORM}" / "${NEXXT_VARIANT}" / "test_plugins").absolute()),
     "VideoPlaybackDevice"
 )
+"""
+Filter surrogate for the VideoPlaybackDevice class which is defined in a packaged shared object "test_plugins".
+"""
 
 CameraGrabber = FilterSurrogate(
     "binary://" + str((Path(__file__).parent.parent / "tests" /
                        "binary" / "${NEXXT_PLATFORM}" / "${NEXXT_VARIANT}" / "test_plugins").absolute()),
     "CameraGrabber"
 )
+"""
+Filter surrogate for the CameraGrabber class which is defined in a packaged shared object "test_plugins".
+"""

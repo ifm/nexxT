@@ -47,6 +47,7 @@ def byteArrayToNumpy(qByteArray):
     """
     Interpret the input instance as an image and convert that to a numpy array. If the alignment is ok, then this
     operation is a zero-copy operation, otherwise one copy is made.
+
     :param qByteArray: a QByteArray instance
     :return: a numpy instance
     """
@@ -81,6 +82,7 @@ def byteArrayToNumpy(qByteArray):
 def numpyToByteArray(img):
     """
     Convert a numpy image to the corresponding QByteArray (and make a copy).
+
     :param img: a numpy array instance with 2 or 3 dimensions
     :return: a QByteArray instance
     """
