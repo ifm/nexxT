@@ -680,6 +680,7 @@ class BaseGraphScene(QGraphicsScene):
         """
         returns render-relevant information about the specified item
         can be overriden in concrete editor instances
+
         :param item: an instance of BaseGraphScene.NodeItem, BaseGraphScene.PortItem or BaseGraphScene.ConnectionItem
         :param role: one of STYLE_ROLE_SIZE, STYLE_ROLE_PEN, STYLE_ROLE_BRUSH, STYLE_ROLE_RRRADIUS, STYLE_ROLE_VSPACING,
                      STYLE_ROLE_HSPACING

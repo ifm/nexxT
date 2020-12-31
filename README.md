@@ -54,6 +54,8 @@ The following commands build nexxT from source using the non-recommended pip pac
     export QTDIR=<path>/<to>/<qt>
     export LLVM_INSTALL_DIR=<path>/<to>/<llvm>
     scons ..
+    
+When using setup.py to install nexxT, the above requirements shall be also fulfilled and scons is called implicitely from setup.py. Installation from source without using the wheel package is not supported.
 
 ## History
 
@@ -65,4 +67,4 @@ Originally we started with a commercial product from the automotive industry in 
 
 ## Current Status
 
-The current status is still in an early phase. We use the framework in newer projects, but there is still the chance for API-breaking changes. Documentation is pretty poor at the moment. It is planned to come up with some example use cases.
+The current status is still in an early phase. We use the framework in newer projects, but there is still the chance for API-breaking changes. Some aspects like error handling are still a little rough.

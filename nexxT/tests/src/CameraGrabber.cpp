@@ -11,6 +11,7 @@
 
 using namespace nexxT;
 
+// LITERAL_INCLUDE_START_1
 CameraGrabber::CameraGrabber(BaseFilterEnvironment *env)
     : Filter(false, false, env)
     , camera()
@@ -28,7 +29,9 @@ CameraGrabber::CameraGrabber(BaseFilterEnvironment *env)
 CameraGrabber::~CameraGrabber()
 {
 }
+// LITERAL_INCLUDE_END_1
 
+// LITERAL_INCLUDE_START_2
 /* A new image has arrived, we convert this here to a QByteArray
  * Note that QT takes care to call this method in the correct thread
  * due to the QueuedConnection mechanism.
@@ -62,7 +65,7 @@ void CameraGrabber::newImage(const QImage &_img)
     hdr.width = uint32_t(img.width());
     hdr.height = uint32_t(img.height());
     hdr.lineInc = uint32_t(img.bytesPerLine());
-    std::strncpy(hdr.format, format.toLocal8Bit().constData(), sizeof(hdr.format));
+    std::strncpy(hdr.format, format.toLocal8Bit().constData(), sizeof(hdr.format)-1);
     /* fill the QByteArray instance */
     data = data.append((const char *)&hdr, sizeof(hdr));
     data = data.append((const char *)img.constBits(), hdr.lineInc*hdr.height);
@@ -71,6 +74,7 @@ void CameraGrabber::newImage(const QImage &_img)
          SharedDataSamplePtr(new DataSample(data, "example/image", DataSample::currentTime()))
     );
 }
+// LITERAL_INCLUDE_END_2
 
 /* in case of an error, we restart the camera stream */
 void CameraGrabber::onStateChanged(QCamera::State state)
@@ -87,6 +91,7 @@ void CameraGrabber::onStateChanged(QCamera::State state)
     }
 }
 
+// LITERAL_INCLUDE_START_3
 /* here we connect to the hardware */
 void CameraGrabber::onOpen()
 {
@@ -138,3 +143,4 @@ void CameraGrabber::onClose()
         videoSurface = nullptr;
     }
 }
+// LITERAL_INCLUDE_END_3

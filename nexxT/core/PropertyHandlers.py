@@ -22,6 +22,11 @@ class IntHandler(PropertyHandler):
     """
 
     def __init__(self, options):
+        """
+        Constructor
+
+        :param options: the options given to the defineProperty(...) function.
+        """
         for k in options:
             if k in ["min", "max"]:
                 if not isinstance(options[k], int):
@@ -33,6 +38,7 @@ class IntHandler(PropertyHandler):
     def options(self):
         """
         return this handler's options
+
         :return: a python dict with the actual options.
         """
         return self._options
@@ -40,6 +46,7 @@ class IntHandler(PropertyHandler):
     def fromConfig(self, value):
         """
         import value from config file and return the adapted version.
+
         :param value: an integer is expected
         :return: the validated integer
         """
@@ -49,6 +56,7 @@ class IntHandler(PropertyHandler):
     def toConfig(self, value):
         """
         export value to config file and return the adapted version
+
         :param value: an integer is expected
         :return: the exported value
         """
@@ -58,6 +66,7 @@ class IntHandler(PropertyHandler):
     def toViewValue(self, value):
         """
         create a view of this option value.
+
         :param value: the current option value
         :return: a string
         """
@@ -67,6 +76,7 @@ class IntHandler(PropertyHandler):
     def validate(self, value):
         """
         Validate an option value and return an adapted, valid value
+
         :param value: the value to be tested (an integer)
         :return: the adapted, valid value
         """
@@ -83,6 +93,7 @@ class IntHandler(PropertyHandler):
     def createEditor(self, parent):
         """
         Creates a QSpinBox instance for GUI editing of integer values
+
         :param parent: the parent of the widget
         :return: a QSpinBox instance
         """
@@ -101,6 +112,7 @@ class IntHandler(PropertyHandler):
     def setEditorData(self, editor, value):
         """
         set the value of the QSpinBox
+
         :param editor: the instance returned by createEditor
         :param value: the option value (an integer)
         :return: None
@@ -110,6 +122,7 @@ class IntHandler(PropertyHandler):
     def getEditorData(self, editor):
         """
         return the currently edited value
+
         :param editor: the instance returned by createEditor
         :return: the integer value
         """

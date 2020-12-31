@@ -101,6 +101,7 @@ class OutputPortImpl(OutputPortInterface):
     def setupInterThreadConnection(outputPort, inputPort, outputPortThread):
         """
         Setup an inter thread connection between outputPort and inputPort
+
         :param outputPort: the output port instance to be connected
         :param inputPort: the input port instance to be connected
         :param outputPortThread: the QThread instance of the outputPort instance

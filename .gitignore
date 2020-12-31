@@ -33,6 +33,10 @@ nexxT/tests/core/test1.saved.json
 nexxT/tests/core/test_except_constr_tmp.json
 *.guistate
 
+# files generated during manual creation
+doc/*.rst
+doc/c++/xml/
+doc/_build
 
 # Distribution / packaging
 .Python

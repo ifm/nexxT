@@ -224,7 +224,7 @@ class Hdf5Reader(Filter):
         slot called when the playback shall be started
         :return:
         """
-        if not self._playing:
+        if not self._playing and self._timer is not None:
             self._playing = True
             self._timer.start(0)
             self._updateTimer.start()
@@ -235,7 +235,7 @@ class Hdf5Reader(Filter):
         slot called when the playback shall be paused
         :return:
         """
-        if self._playing:
+        if self._playing and self._timer is not None:
             self._playing = False
             self._untilStream = None
             self._dir = 1
@@ -324,6 +324,7 @@ class Hdf5Reader(Filter):
         :param filename: a string instance
         :return:
         """
+        logger.debug("Set sequence filename=%s", filename)
         self._name = filename
 
     def setTimeFactor(self, factor):

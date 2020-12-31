@@ -5,12 +5,23 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
+/**
+    \file NexxTPlugins.hpp
+
+    Macros for announcing filters in the c++ world.
+*/
+
 #ifndef NEXXT_PLUGINS_HPP
 #define NEXXT_PLUGINS_HPP
 
 #include "Filters.hpp"
 #include <QtCore/QLibrary>
 
+/*!
+    This macro must be present in the Filter's class declaration.
+
+    \param classname the name of the Filter class
+*/
 #define NEXXT_PLUGIN_DECLARE_FILTER(classname)                                          \
     static nexxT::Filter *nexxt_plugin_create(nexxT::BaseFilterEnvironment *env)        \
     {                                                                                   \
@@ -18,15 +29,37 @@
         return res;                                                                     \
     }
 
+/*!
+    Start to define the plugin introspection code section. To define the introspection
+    code section, one of the .cpp files must call these macros once:
+
+    \verbatim embed:rst
+        .. code-block:: c
+
+            NEXXT_PLUGIN_DEFINE_START()
+            NEXXT_PLUGIN_ADD_FILTER(...)
+            NEXXT_PLUGIN_ADD_FILTER(...)
+            NEXXT_PLUGIN_ADD_FILTER(...)
+            NEXXT_PLUGIN_DEFINE_FINISH()
+    \endverbatim
+*/
 #define NEXXT_PLUGIN_DEFINE_START()                                                     \
     struct {                                                                            \
         QString name;                                                                   \
         nexxT::PluginCreateFunc func;                                                   \
     } nexxt_plugin_functions[] = { {"", 0}
 
+/*!
+    Add the given filtertype to the plugin
+
+    \param filtertype the name of the Filter class
+*/
 #define NEXXT_PLUGIN_ADD_FILTER(filtertype)                                             \
     , {#filtertype, &filtertype::nexxt_plugin_create}
 
+/*!
+    Finish the plugin introspection code section
+*/
 #define NEXXT_PLUGIN_DEFINE_FINISH()                                                    \
     };                                                                                  \
                                                                                         \
@@ -41,6 +74,7 @@
         }                                                                               \
     }
 
+//! @cond Doxygen_Suppress
 namespace nexxT
 {
     typedef nexxT::Filter *(*PluginCreateFunc)(nexxT::BaseFilterEnvironment *env);
@@ -65,5 +99,6 @@ namespace nexxT
         void unloadAll();
     };
 };
+//! @endcond
 
 #endif
