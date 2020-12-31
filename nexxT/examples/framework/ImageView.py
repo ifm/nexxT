@@ -43,6 +43,7 @@ class ImageView(Filter):
     def propChanged(self, propColl, name):
         """
         Slot called whenever a property of this filter has changed.
+
         :param pc: the PropertyCollection instance of this filter
         :param name: the name of the changed parameter
         :return:
@@ -53,6 +54,7 @@ class ImageView(Filter):
     def onOpen(self):
         """
         Now we can create the widget.
+
         :return:
         """
         pc = self.propertyCollection()
@@ -68,6 +70,7 @@ class ImageView(Filter):
     def onClose(self):
         """
         Inverse of onOpen
+
         :return:
         """
         mw = Services.getService("MainWindow")
@@ -79,6 +82,7 @@ class ImageView(Filter):
     def onPortDataChanged(self, port):
         """
         Notification of new data.
+
         :param port: the port where the data arrived.
         :return:
         """
@@ -103,6 +107,7 @@ class DisplayWidget(QWidget):
     def setScale(self, scale):
         """
         Set the scale factor
+
         :param scale: a floating point (<1: size reduction)
         :return:
         """
@@ -116,6 +121,7 @@ class DisplayWidget(QWidget):
         """
         Called when new data arrives. This function converts the numpy array to a QImage which can then be drawn
         with a QT painter.
+
         :param data: the image as a numpy array
         :return:
         """
@@ -150,6 +156,7 @@ class DisplayWidget(QWidget):
     def checkSize(self):
         """
         make sure that the minimum size is consistent with the shown image.
+
         :return:
         """
         size = self._img.size() * self._scale
@@ -161,6 +168,7 @@ class DisplayWidget(QWidget):
     def paintEvent(self, paintEvent): # pylint: disable=unused-argument
         """
         The paint event actually drawing the image
+
         :param paintEvent: a QPaintEvent instance
         :return:
         """

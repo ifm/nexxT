@@ -313,10 +313,11 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     def subplot(self, windowId, theFilter, widget):
         """
         Adds widget to the GridLayout specified by windowId.
+
         :param windowId: a string with the format "<windowTitle>[<row>,<col>]" where <windowTitle> is the caption
                          of the MDI window (and it is used as identifier for saving/restoring window state) and
                          <row>, <col> are the coordinates of the addressed subplots (starting at 0)
-        :param theFilter:a Filter instance which is requesting the subplot
+        :param theFilter: a Filter instance which is requesting the subplot
         :param widget:   a QWidget which shall be placed into the grid layout. Note that this widget is reparented
                          as a result of this operation and the parents can be used to get access to the MDI sub window.
                          Use releaseSubplot to remove the window

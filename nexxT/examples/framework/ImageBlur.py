@@ -20,7 +20,7 @@ class ImageBlur(Filter):
     def __init__(self, env):
         super().__init__(False, False, env)
         # add the input port for the filter
-        self.inPort = self.addStaticInputPort("video_in", 1, -1)
+        self.inPort = self.addStaticInputPort("video_in")
         # add the output port for the filter
         self.outPort = self.addStaticOutputPort("video_out")
         # define the kernelSize property

@@ -19,7 +19,8 @@ SimpleSource::SimpleSource(nexxT::BaseFilterEnvironment *env) :
 {
     NEXXT_LOG_DEBUG("SimpleSource::SimpleSource");
     addStaticPort(outPort);
-    propertyCollection()->defineProperty("frequency", double(1.0), "frequency of data generation [Hz]");
+    propertyCollection()->defineProperty("frequency", double(1.0), "frequency of data generation [Hz]", {{"min", 0.01}});
+    propertyCollection()->defineProperty("enumProp", "Hello", "an enum prop", {{"enum", QStringList{"Hello", "World"}}});
     connect(&timer, &QTimer::timeout, this, &SimpleSource::newDataEvent);
 }
 

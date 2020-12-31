@@ -229,12 +229,27 @@
           "staticOutputPorts": [],
           "thread": "reader",
           "properties": {}
+        },
+        {
+          "name": "AviReader",
+          "library": "entry_point://examples.videoplayback.AviReader",
+          "factoryFunction": "AviReader",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "video_out"
+          ],
+          "thread": "reader",
+          "properties": {}
         }
       ],
       "connections": [
         "ImageBlur.video_out -> visualization.processed",
         "HDF5Reader.video -> ImageBlur.video_in",
-        "HDF5Reader.video -> visualization.original"
+        "HDF5Reader.video -> visualization.original",
+        "AviReader.video_out -> ImageBlur.video_in",
+        "AviReader.video_out -> visualization.original"
       ]
     }
   ]
