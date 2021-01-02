@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 project = 'nexxT'
 copyright = '2020, ifm electronic gmbh'
-author = 'ifm electronic gmbh'
+author = 'Christoph Wiedemann'
 
 # The short X.Y version
 version = ''
