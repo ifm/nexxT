@@ -15,6 +15,10 @@
 
 We used Enterprise Architect for the initial design, and most of the design decisions are still somewhat valid, especially the part about data transport. The design can be found here: https://github.com/ifm/nexxT/blob/master/design/NeXT.eap
 
+## Documentation
+
+The documentation is hosted here: https://nexxt.readthedocs.io
+
 ## Installation
 
 It is highly recommended to use the binary packages from pypi in a virtual environment.
