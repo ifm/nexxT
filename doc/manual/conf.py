@@ -258,3 +258,5 @@ def setup(app):
     logger.info("Directory listing of #/doc:")
     for p in (Path(confpy_dir) / "..").rglob("**/*"):
         logger.info("  %s", str(p))
+    logger.info("pip freeze output")
+    logger.info(subprocess.check_output([sys.executable, "-m", "pip", "freeze"]).decode())
