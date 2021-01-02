@@ -253,4 +253,4 @@ def setup(app):
             ["# Introduction\n", "\n"] +
             list(open(confpy_dir + "/../../README.md", "r").readlines())[2:]
         )
-    subprocess.check_call("doxygen", cwd="c++")
+    subprocess.check_call("doxygen", cwd=confpy_dir + "/../c++")
