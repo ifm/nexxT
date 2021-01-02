@@ -6,7 +6,7 @@ version: 2
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
-  configuration: docs/manual/conf.py
+  configuration: doc/manual/conf.py
 
 # Build documentation with MkDocs
 #mkdocs:
@@ -20,4 +20,4 @@ formats:
 python:
   version: 3.7
   install:
-    - requirements: docs/requirements.txt
+    - requirements: doc/requirements.txt
