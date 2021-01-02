@@ -9,7 +9,9 @@ define FilterSurrogates for binary filters.
 """
 
 from pathlib import Path
-from PySide2 import QtMultimedia # needed to load corresponding DLL before loading the nexxT plugin
+import os
+if os.environ.get("READTHEDOCS", None) is None:
+    from PySide2 import QtMultimedia # needed to load corresponding DLL before loading the nexxT plugin
 from nexxT.interface import FilterSurrogate
 
 AviReader = FilterSurrogate(
