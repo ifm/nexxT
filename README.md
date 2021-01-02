@@ -17,7 +17,7 @@ We used Enterprise Architect for the initial design, and most of the design deci
 
 ## Documentation
 
-The documentation is hosted here: https://nexxt.readthedocs.io
+The documentation is hosted on [readthedocs](https://nexxt.readthedocs.io).
 
 ## Installation
 
