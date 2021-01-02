@@ -10,6 +10,7 @@
 
 import os
 os.environ["NEXXT_DISABLE_CIMPL"] = "1"  # use pure python version as early as possible
+from pathlib import Path
 import shutil
 import subprocess
 import sys
@@ -254,3 +255,6 @@ def setup(app):
             list(open(confpy_dir + "/../../README.md", "r").readlines())[2:]
         )
     subprocess.check_call("doxygen", cwd="c++")
+    logger.info("Directory listing of #/doc:")
+    for p in (Path(confpy_dir) / "..").rglob("**/*"):
+        logger.info("  %s", str(p))
