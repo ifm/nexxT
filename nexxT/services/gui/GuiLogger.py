@@ -291,7 +291,7 @@ class LogView(QTableView):
         Add a log record to the synchronized queue
 
         :param items: a tuple of (timestamp[str], level[int], message[str], modulename[str], filename[str], lineno[int])
-        :return:None
+        :return: None
         """
         self.queue.put(items)
 
@@ -299,7 +299,7 @@ class LogView(QTableView):
         """
         Called periodically to synchronize model with added log records
 
-        :return:None
+        :return: None
         """
         assertMainThread()
         if not shiboken2.isValid(self): # pylint: disable=no-member
