@@ -35,6 +35,7 @@ class LoadDisplayWidget(QWidget):
     def newLoadData(self, threadName, timestamps, load):
         """
         Slot called when new load data is available
+
         :param threadName: the name of the thread given as string
         :param loadData: the load data, given as the QByteArray of a n x 2 np.float32 array
         :return:
@@ -67,6 +68,7 @@ class LoadDisplayWidget(QWidget):
     def removeThread(self, thread):
         """
         Remove the thread from the stored load data.
+
         :param thread: the name of the thread to be removed.
         :return:
         """
@@ -76,6 +78,7 @@ class LoadDisplayWidget(QWidget):
     def paintEvent(self, ev):
         """
         Manually implemented paint event
+
         :param ev: the QT paint event
         :return:
         """
@@ -134,6 +137,7 @@ class SpanDisplayWidget(QWidget):
     def newSpanData(self, threadName, portName, spanData):
         """
         This slot is called when new profiling data is available.
+
         :param threadName: the name of the associated thread
         :param portName: the full-qualified name of the port
         :param spanData: the profiling data, given as the byte array representation of a n x 2 int64 array.
@@ -162,6 +166,7 @@ class SpanDisplayWidget(QWidget):
         """
         Lazily removes the thread from the profiling data. To be able to inspect the data when the application is
         stopped, the data will actually be removed when new data of the thread is available.
+
         :param thread: the name of the thread to be removed.
         :return:
         """
@@ -171,6 +176,7 @@ class SpanDisplayWidget(QWidget):
     def paintEvent(self, ev):
         """
         Manually implemented paint event of the time / occupancy diagram.
+
         :param ev: the qt paint event
         :return:
         """
@@ -236,6 +242,7 @@ class SpanDisplayWidget(QWidget):
     def textDescription(self, thread, port):
         """
         Tooltip text generation.
+
         :param thread: the name of the corresponding thread
         :param port: the full-qualified port name.
         :return: a string instance containing the profiling info.
@@ -264,6 +271,7 @@ class SpanDisplayWidget(QWidget):
     def event(self, ev):
         """
         Event filter for generating tool tips.
+
         :param ev: a QEvent instance.
         :return:
         """
@@ -315,6 +323,7 @@ class Profiling(ProfilingService):
     def setLoadMonitorEnabled(self, enabled):
         """
         called when the corresponding QAction is toggled
+
         :param enabled: boolean
         :return:
         """
@@ -324,6 +333,7 @@ class Profiling(ProfilingService):
     def setPortProfilingEnabled(self, enabled):
         """
         called when the corresponding QAction is toggled
+
         :param enabled: boolean
         :return:
         """

@@ -202,6 +202,7 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
     def _saveState(self):
         """
         Saves the state of the playback control
+
         :return:
         """
         assertMainThread()
@@ -214,6 +215,7 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
     def _restoreState(self):
         """
         Restores the state of the playback control from the given property collection
+
         :return:
         """
         assertMainThread()

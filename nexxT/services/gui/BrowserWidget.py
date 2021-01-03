@@ -35,6 +35,7 @@ class FolderListModel(QAbstractTableModel):
     def setFolder(self, folder):
         """
         set the folder of this browser
+
         :param folder: a Path or string instance
         :return:
         """
@@ -44,6 +45,7 @@ class FolderListModel(QAbstractTableModel):
     def setFilter(self, flt):
         """
         Set the filter of this browser
+
         :param flt: string or a list of strings containing glob-style patterns
         :return:
         """
@@ -54,6 +56,7 @@ class FolderListModel(QAbstractTableModel):
     def fileToIndex(self, filename):
         """
         return the given file name to a model index.
+
         :param filename: a string or Path instance
         :return: a QModelIndex instance
         """
@@ -104,6 +107,7 @@ class FolderListModel(QAbstractTableModel):
     def folder(self):
         """
         Return the current folder.
+
         :return: a Path instance
         """
         return self._folder
@@ -111,6 +115,7 @@ class FolderListModel(QAbstractTableModel):
     def filter(self):
         """
         Return the current filter
+
         :return: a list of strings
         """
         return self._filter
@@ -118,6 +123,7 @@ class FolderListModel(QAbstractTableModel):
     def columnCount(self, index=QModelIndex()): # pylint: disable=unused-argument
         """
         overwritten from base class
+
         :param index:
         :return:
         """
@@ -126,6 +132,7 @@ class FolderListModel(QAbstractTableModel):
     def rowCount(self, index=QModelIndex()): # pylint: disable=unused-argument
         """
         overwritten from base class
+
         :param index:
         :return:
         """
@@ -134,6 +141,7 @@ class FolderListModel(QAbstractTableModel):
     def data(self, index, role):
         """
         overwritten from base class
+
         :param index:
         :param role:
         :return:
@@ -179,6 +187,7 @@ class FolderListModel(QAbstractTableModel):
     def headerData(self, section, orientation, role):
         """
         overwritten from base class
+
         :param section:
         :param orientation:
         :param role:
@@ -200,6 +209,7 @@ class TabCompletionLineEdit(QLineEdit):
     def nextCompletion(self, direction):
         """
         interacts with the completer, selects next / previous item
+
         :param direction: the direction, either -1 or +1
         :return:
         """
@@ -217,6 +227,7 @@ class TabCompletionLineEdit(QLineEdit):
     def event(self, event):
         """
         overwritten from base class
+
         :param event:
         :return:
         """
@@ -270,6 +281,7 @@ class BrowserWidget(QWidget):
     def setActive(self, activeFile):
         """
         set the activated file
+
         :param activeFile: a string or Path instance
         :return:
         """
@@ -284,6 +296,7 @@ class BrowserWidget(QWidget):
     def active(self):
         """
         The currently activated file
+
         :return: a string instance
         """
         cidx = self._view.currentIndex()
@@ -293,6 +306,7 @@ class BrowserWidget(QWidget):
     def current(self):
         """
         A synonym for active()
+
         :return: a string instance
         """
         return self.active()
@@ -300,6 +314,7 @@ class BrowserWidget(QWidget):
     def setFilter(self, flt):
         """
         Set the name filter of the file browser
+
         :param flt: a string instance or a list of strings
         :return:
         """
@@ -308,6 +323,7 @@ class BrowserWidget(QWidget):
     def scrollTo(self, item):
         """
         Scrolls to the given item.
+
         :param item: a string instance
         :return:
         """
@@ -317,6 +333,7 @@ class BrowserWidget(QWidget):
     def folder(self):
         """
         Returns the current folder
+
         :return: a Path instance
         """
         return self._model.folder()
@@ -324,6 +341,7 @@ class BrowserWidget(QWidget):
     def setFolder(self, folder):
         """
         Sets the current folder
+
         :param folder: a string or a Path instance
         :return:
         """
@@ -352,6 +370,7 @@ if __name__ == "__main__": # pragma: no-cover
     def main():
         """
         Test function
+
         :return:
         """
         from PySide2.QtWidgets import QApplication

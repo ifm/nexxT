@@ -31,6 +31,7 @@ class NexxTMdiSubWindow(QMdiSubWindow):
     def closeEvent(self, closeEvent):
         """
         override from QMdiSubWindow
+
         :param closeEvent: a QCloseEvent instance
         :return:
         """
@@ -41,6 +42,7 @@ class NexxTMdiSubWindow(QMdiSubWindow):
     def showEvent(self, showEvent):
         """
         override from QMdiSubWindow
+
         :param closeEvent: a QShowEvent instance
         :return:
         """
@@ -55,6 +57,7 @@ class NexxTMdiSubWindow(QMdiSubWindow):
     def saveGeometry(self):
         """
         Saves the geometry of this subwindow (see https://bugreports.qt.io/browse/QTBUG-18648)
+
         :return: a ByteArray instance
         """
         array = QByteArray()
@@ -79,6 +82,7 @@ class NexxTMdiSubWindow(QMdiSubWindow):
     def restoreGeometry(self, geometry):
         """
         Restores the geometry of this subwindow
+
         :param geometry: the saved state as a QByteArray instance
         :return:
         """
@@ -133,6 +137,7 @@ class NexxTDockWidget(QDockWidget):
     def closeEvent(self, closeEvent):
         """
         override from QMdiSubWindow
+
         :param closeEvent: a QCloseEvent instance
         :return:
         """
@@ -142,6 +147,7 @@ class NexxTDockWidget(QDockWidget):
     def showEvent(self, showEvent):
         """
         override from QMdiSubWindow
+
         :param closeEvent: a QShowEvent instance
         :return:
         """
@@ -191,6 +197,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     def closeEvent(self, closeEvent):
         """
         Override from QMainWindow, saves the state.
+
         :param closeEvent: a QCloseEvent instance
         :return:
         """
@@ -209,6 +216,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         """
         Can be called in slots connected to aboutToClose for requesting to ignore the event.
         Use case is the "There are unsaved changes" dialog.
+
         :return:
         """
         self._ignoreCloseEvent = True
@@ -216,6 +224,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     def restoreState(self):
         """
         restores the state of the main window including the dock windows of Services
+
         :return:
         """
         logger.info("restoring main window's state")
@@ -233,6 +242,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     def saveState(self):
         """
         saves the state of the main window including the dock windows of Services
+
         :return:
         """
         logger.info("saving main window's state")
@@ -243,6 +253,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     def saveMdiState(self):
         """
         saves the state of the individual MDI windows
+
         :return:
         """
         for i in self.managedMdiWindows:
@@ -264,6 +275,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     def getToolBar(self):
         """
         Get the main toolbar (adds seperators as appropriate).
+
         :return:
         """
         if self.toolbar is None:
@@ -278,6 +290,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
                       defaultLoc=None):
         """
         This function is supposed to be called by services
+
         :param name: the name of the dock window
         :param parent: the parent (usually None)
         :param defaultArea: the default dock area
@@ -300,6 +313,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     def parseWindowId(windowId):
         """
         convers a subplot window id into windowTitle, row and column
+
         :param windowId: the window id
         :return: title, row, column
         """
@@ -400,6 +414,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     def newMdiSubWindow(self, filterOrService, windowTitle=None):
         """
         Deprectated (use subplot(...) instead): This function is supposed to be called by filters.
+
         :param filterOrService: a Filter instance
         :param windowTitle: the title of the window (might be None)
         :return: a new QMdiSubWindow instance

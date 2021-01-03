@@ -89,6 +89,7 @@ class ConfigurationModel(QAbstractItemModel):
         Returns CONFIG_TYPE_COMPOSITE if the index refers to the group
         composite, CONFIG_TYPE_APPLICATION if the index refers to the group
         applications, None otherwise.
+
         :param index: a QModelIndex instance
         :return:
         """
@@ -104,6 +105,7 @@ class ConfigurationModel(QAbstractItemModel):
     def isApplication(index):
         """
         Returns true, if this index relates to an applications, false otherwise.
+
         :param index: a QModelIndex instance
         :return: bool
         """
@@ -113,6 +115,7 @@ class ConfigurationModel(QAbstractItemModel):
     def indexOfSubConfigParent(self, subConfig):
         """
         Returns the index of the given subConfig's parent
+
         :param subConfig: a SubConfiguration instance
         :return: a QModelIndex instance.
         """
@@ -128,6 +131,7 @@ class ConfigurationModel(QAbstractItemModel):
     def indexOfSubConfig(self, subConfig):
         """
         Returns the index of the given subConfig
+
         :param subConfig: a SubConfiguration instance
         :return: a QModelIndex instance.
         """
@@ -146,6 +150,7 @@ class ConfigurationModel(QAbstractItemModel):
     def indexOfNode(self, subConfig, node):
         """
         Returns the index of the given node inside a subconfig.
+
         :param subConfig: a SubConfiguration instance
         :param node: a node name
         :return: a QModelIndex instance
@@ -161,6 +166,7 @@ class ConfigurationModel(QAbstractItemModel):
     def subConfigByNameAndType(self, name, sctype):
         """
         Returns a SubConfiguration instance, given its name and type
+
         :param name: the name as a string
         :param sctype: either CONFIG_TYPE_APPLICATION or CONFIG_TYPE_COMPOSITE
         :return: a SubConfiguration instance
@@ -181,6 +187,7 @@ class ConfigurationModel(QAbstractItemModel):
     def subConfigAdded(self, subConfig):
         """
         This slot is called when a subconfig is added to the configuration instance. It inserts a row as needed.
+
         :param subConfig: a SubConfiguration instance
         :return:
         """
@@ -199,6 +206,7 @@ class ConfigurationModel(QAbstractItemModel):
     def subConfigRenamed(self, subConfig, oldName): # pylint: disable=unused-argument
         """
         This slot is called when a subconfig is renamed in the configuration instance.
+
         :param subConfig: a SubConfiguration instance
         :param oldName: the old name of this subConfig
         :return:
@@ -213,6 +221,7 @@ class ConfigurationModel(QAbstractItemModel):
     def subConfigRemoved(self, name, sctype):
         """
         This slot is called when a subconfig is removed from the configuration
+
         :param name. the name of the removed subConfig
         :param sctype: the type ( either CONFIG_TYPE_APPLICATION or CONFIG_TYPE_COMPOSITE)
         :return:
@@ -233,6 +242,7 @@ class ConfigurationModel(QAbstractItemModel):
     def appActivated(self, name, app):
         """
         This slot is called when an application has been activated.
+
         :param name: the name of the application
         :param app: the Application instance
         :return:
@@ -257,6 +267,7 @@ class ConfigurationModel(QAbstractItemModel):
     def nodeAdded(self, subConfig, node):
         """
         This slot is called when a node is added to a subConfig
+
         :param subConfig: a SubConfiguration instance
         :param node: the node name.
         :return:
@@ -278,6 +289,7 @@ class ConfigurationModel(QAbstractItemModel):
     def nodeDeleted(self, subConfig, node):
         """
         This slot is called when a node is removed from a subConfig
+
         :param subConfig: a SubConfiguration instance
         :param node: the node name.
         :return:
@@ -293,6 +305,7 @@ class ConfigurationModel(QAbstractItemModel):
     def nodeRenamed(self, subConfig, oldName, newName):
         """
         This slot is called when a node is renamed in a subConfig
+
         :param subConfig: a SubConfiguration instance
         :param oldName: the original name.
         :param newName: the new name
@@ -307,6 +320,7 @@ class ConfigurationModel(QAbstractItemModel):
     def propertyAdded(self, parentItem, propColl, name):
         """
         Slot called when a property was added.
+
         :param parentItem: a NodeItem instance
         :param propColl: the PropertyCollection instance
         :param name: the name of the new property.
@@ -320,6 +334,7 @@ class ConfigurationModel(QAbstractItemModel):
     def indexOfProperty(self, nodeItem, propName):
         """
         Returns the model index of the specified property
+
         :param nodeItem: a NodeItem instance
         :param propName: a property name
         :return: a QModelIndex instance
@@ -334,6 +349,7 @@ class ConfigurationModel(QAbstractItemModel):
     def propertyRemoved(self, parentItem, propColl, name): # pylint: disable=unused-argument
         """
         Slot called when a property has been removed.
+
         :param parentItem: a NodeItem instance
         :param propColl: a PropertyCollection instance
         :param name: the name of the removed property
@@ -347,6 +363,7 @@ class ConfigurationModel(QAbstractItemModel):
     def propertyChanged(self, item, propColl, name):
         """
         Slot called when a property has been changed.
+
         :param item: a PropertyItem instance
         :param propColl: a PropertyCollection instance
         :param name: the name of the changed property
@@ -358,6 +375,7 @@ class ConfigurationModel(QAbstractItemModel):
     def index(self, row, column, parent=QModelIndex()):
         """
         Creates a model index according to QAbstractItemModel conventions.
+
         :param row: the row index
         :param column: the column index
         :param parent: the parent index
@@ -378,6 +396,7 @@ class ConfigurationModel(QAbstractItemModel):
     def parent(self, index):
         """
         Returns the indice's parent according to QAbstractItemModel convetions.
+
         :param index: a QModelIndex instance.
         :return:
         """
@@ -393,6 +412,7 @@ class ConfigurationModel(QAbstractItemModel):
     def rowCount(self, parent):
         """
         Returns the number of children of the given model index
+
         :param parent: a QModelIndex instance
         :return:
         """
@@ -407,6 +427,7 @@ class ConfigurationModel(QAbstractItemModel):
     def columnCount(self, parent):
         """
         Returns the number of columns of the given model index
+
         :param parent: a QModelIndex instance
         :return:
         """
@@ -425,6 +446,7 @@ class ConfigurationModel(QAbstractItemModel):
     def data(self, index, role): # pylint: disable=too-many-return-statements,too-many-branches
         """
         Generic data query
+
         :param index: a QModelIndex instance
         :param role: the data role (see QAbstractItemModel)
         :return:
@@ -481,6 +503,7 @@ class ConfigurationModel(QAbstractItemModel):
     def flags(self, index): # pylint: disable=too-many-return-statements,too-many-branches
         """
         Returns teh item flags of the given index
+
         :param index: a QModelIndex instance
         :return:
         """
@@ -504,6 +527,7 @@ class ConfigurationModel(QAbstractItemModel):
     def setData(self, index, value, role):# pylint: disable=too-many-return-statements,too-many-branches,unused-argument
         """
         Generic data modification (see QAbstractItemModel for details)
+
         :param index: a QModelIndex instance
         :param value: the new value
         :param role: the role to be changed
@@ -558,6 +582,7 @@ class ConfigurationModel(QAbstractItemModel):
     def headerDate(self, section, orientation, role): # pylint: disable=no-self-use
         """
         Returns the header data of this model
+
         :param section: section number starting from 0
         :param orientation: orientation
         :param role: the role to be returned
@@ -603,6 +628,7 @@ class MVCConfigurationBase(QObject):
     def activate(self): # pylint: disable=no-self-use
         """
         Call this slot to activate the current application
+
         :return:
         """
         @handleException
@@ -615,6 +641,7 @@ class MVCConfigurationBase(QObject):
     def deactivate(self): # pylint: disable=no-self-use
         """
         Call this slot to deactivate the current application
+
         :return:
         """
         @handleException
@@ -627,6 +654,7 @@ class MVCConfigurationBase(QObject):
     def loadConfig(self, cfgFileName):
         """
         Call this slot to load a configuration
+
         :param cfgFileName: the filename of the configuration
         :return:
         """
@@ -668,6 +696,7 @@ class MVCConfigurationBase(QObject):
     def saveConfigAs(self, filename):
         """
         Call this slot to save the configuration
+
         :return:
         """
         @handleException
@@ -681,6 +710,7 @@ class MVCConfigurationBase(QObject):
     def newConfig(self, cfgFileName):
         """
         Call this slot to create a new configuration
+
         :param cfgFileName: the filename of the configuration
         :return:
         """
@@ -696,6 +726,7 @@ class MVCConfigurationBase(QObject):
     def changeActiveApp(self, app):
         """
         Call this slot to activate an application
+
         :param app: can be either an Application instance or the name of an application
         :return:
         """
@@ -704,6 +735,7 @@ class MVCConfigurationBase(QObject):
     def appActivated(self, name, app): # pylint: disable=unused-argument
         """
         Called when the application is activated. This is overwritten in the GUI class.
+
         :param name: the application name
         :param app: An ActiveApplication instance.
         :return:
@@ -712,6 +744,7 @@ class MVCConfigurationBase(QObject):
     def configuration(self):
         """
         Return this service's configuration object
+
         :return: a Configuration instance
         """
         return self._configuration

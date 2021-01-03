@@ -46,6 +46,7 @@ class MyGraphicsPathItem(QGraphicsPathItem, QObject):
     def hoverEnterEvent(self, event):
         """
         emit corresponding singal
+
         :param event: the qt event
         :return:
         """
@@ -55,6 +56,7 @@ class MyGraphicsPathItem(QGraphicsPathItem, QObject):
     def hoverLeaveEvent(self, event):
         """
         emit corresponding signal
+
         :param event: the qt event
         :return:
         """
@@ -64,6 +66,7 @@ class MyGraphicsPathItem(QGraphicsPathItem, QObject):
     def itemChange(self, change, value):
         """
         in case of scene position changes, emit the corresponding signal
+
         :param change: what has changed
         :param value: the new value
         :return:
@@ -83,6 +86,7 @@ class MySimpleTextItem(QGraphicsSimpleTextItem):
     def setBackgroundBrush(self, brush):
         """
         set the background brush
+
         :param brush: a QBrush instance
         :return:
         """
@@ -91,6 +95,7 @@ class MySimpleTextItem(QGraphicsSimpleTextItem):
     def paint(self, painter, option, widget):
         """
         first paint the background and afterwards use standard paint method
+
         :param painter: a QPainter instance
         :param option: unused
         :param widget: unused
@@ -130,6 +135,7 @@ class BaseGraphScene(QGraphicsScene):
         def itemTypeName():
             """
             return a class identification name.
+
             :return:
             """
             return "node"
@@ -149,6 +155,7 @@ class BaseGraphScene(QGraphicsScene):
         def getInPortItem(self, name):
             """
             Searches for the input port named by name
+
             :param name: a string instance
             :return: a PortItem instance
             """
@@ -160,6 +167,7 @@ class BaseGraphScene(QGraphicsScene):
         def getOutPortItem(self, name):
             """
             Searches for the output port named by name
+
             :param name: a string instance
             :return: a PortItem instance
             """
@@ -171,6 +179,7 @@ class BaseGraphScene(QGraphicsScene):
         def addInPortItem(self, name):
             """
             Adds a new input port to the node
+
             :param name: the port name
             :return:
             """
@@ -182,6 +191,7 @@ class BaseGraphScene(QGraphicsScene):
         def addOutPortItem(self, name):
             """
             Adds a new output port to the node
+
             :param name: the port name
             :return:
             """
@@ -214,6 +224,7 @@ class BaseGraphScene(QGraphicsScene):
         def sync(self):
             """
             synchronize the item with the model (also the ports)
+
             :return:
             """
             self.prepareGeometryChange()
@@ -268,6 +279,7 @@ class BaseGraphScene(QGraphicsScene):
         def hoverEnter(self):
             """
             Slot called on hover enter
+
             :return:
             """
             self.hovered = True
@@ -277,6 +289,7 @@ class BaseGraphScene(QGraphicsScene):
         def hoverLeave(self):
             """
             Slot called on hover leave.
+
             :return:
             """
             self.hovered = False
@@ -286,6 +299,7 @@ class BaseGraphScene(QGraphicsScene):
         def itemChange(self, change, value):
             """
             overwritten from QGraphicsItem
+
             :param change: the thing that has changed
             :param value: the new value
             :return:
@@ -297,6 +311,7 @@ class BaseGraphScene(QGraphicsScene):
         def paint(self, painter, option, widget):
             """
             Overwritten from base class to prevent drawing the selection rectangle
+
             :param painter: a QPainter instance
             :param option: a QStyleOptionGraphicsItem instance
             :param widget: a QWidget instance or None
@@ -314,6 +329,7 @@ class BaseGraphScene(QGraphicsScene):
         def itemTypeName():
             """
             Returns a class identification string.
+
             :return:
             """
             return "port"
@@ -329,6 +345,7 @@ class BaseGraphScene(QGraphicsScene):
         def setPos(self, x, y, isOutput): # pylint: disable=invalid-name
             """
             Sets the position of this item to the given coordinates, assigns output / input property.
+
             :param x: the x coordinate
             :param y: the y coordinate
             :param isOutput: a boolean
@@ -346,6 +363,7 @@ class BaseGraphScene(QGraphicsScene):
         def sync(self):
             """
             Synchronizes the item to the model.
+
             :return:
             """
             portPP = QPainterPath()
@@ -384,6 +402,7 @@ class BaseGraphScene(QGraphicsScene):
         def hoverEnter(self):
             """
             Slot called on hover enter
+
             :return:
             """
             self.hovered = True
@@ -392,6 +411,7 @@ class BaseGraphScene(QGraphicsScene):
         def hoverLeave(self):
             """
             Slot called on hover leave.
+
             :return:
             """
             self.hovered = False
@@ -400,6 +420,7 @@ class BaseGraphScene(QGraphicsScene):
         def scenePosChanged(self, value): # pylint: disable=unused-argument
             """
             Slot called on scene position changes, need to synchronize connections.
+
             :param value:
             :return:
             """
@@ -409,6 +430,7 @@ class BaseGraphScene(QGraphicsScene):
         def remove(self):
             """
             Removes this port from its item group.
+
             :return:
             """
             if hasattr(self, "portGrItem"):
@@ -429,6 +451,7 @@ class BaseGraphScene(QGraphicsScene):
         def itemTypeName():
             """
             Returns an identificytion string.
+
             :return:
             """
             return "connection"
@@ -446,6 +469,7 @@ class BaseGraphScene(QGraphicsScene):
         def sync(self):
             """
             Synchronizes the view with the model.
+
             :return:
             """
             pp = QPainterPath()
@@ -485,6 +509,7 @@ class BaseGraphScene(QGraphicsScene):
         def hoverEnterEvent(self, event):
             """
             override for hover enter events
+
             :param event: the QT event
             :return:
             """
@@ -495,6 +520,7 @@ class BaseGraphScene(QGraphicsScene):
         def hoverLeaveEvent(self, event):
             """
             override for hover leave events
+
             :param event: the QT event
             :return:
             """
@@ -505,6 +531,7 @@ class BaseGraphScene(QGraphicsScene):
         def shape(self):
             """
             Unsure if this is needed, but it may give better hover positions
+
             :return:
             """
             return self.path()
@@ -521,6 +548,7 @@ class BaseGraphScene(QGraphicsScene):
     def addNode(self, name):
         """
         Add a named node to the graph
+
         :param name: a string instance
         :return:
         """
@@ -531,6 +559,7 @@ class BaseGraphScene(QGraphicsScene):
     def renameNode(self, oldName, newName):
         """
         Rename a node in the graph
+
         :param oldName: the old name
         :param newName: the new name
         :return:
@@ -544,6 +573,7 @@ class BaseGraphScene(QGraphicsScene):
     def removeNode(self, name):
         """
         Remove a node from the graph
+
         :param name: the node name
         :return:
         """
@@ -561,6 +591,7 @@ class BaseGraphScene(QGraphicsScene):
     def addInPort(self, node, name):
         """
         add an input port to a node
+
         :param node: the node name
         :param name: the port name
         :return:
@@ -571,6 +602,7 @@ class BaseGraphScene(QGraphicsScene):
     def renameInPort(self, node, oldName, newName):
         """
         Rename an input port from a node
+
         :param node: the node name
         :param oldName: the old port name
         :param newName: the new port name
@@ -584,6 +616,7 @@ class BaseGraphScene(QGraphicsScene):
     def renameOutPort(self, node, oldName, newName):
         """
         Rename an output port from a node
+
         :param node: the node name
         :param oldName: the old port name
         :param newName: the new port name
@@ -597,6 +630,7 @@ class BaseGraphScene(QGraphicsScene):
     def removeInPort(self, node, name):
         """
         Remove an input port from a node
+
         :param node: the node name
         :param name: the port name
         :return:
@@ -613,6 +647,7 @@ class BaseGraphScene(QGraphicsScene):
     def removeOutPort(self, node, name):
         """
         Remove an output port from a node
+
         :param node: the node name
         :param name: the port name
         :return:
@@ -629,6 +664,7 @@ class BaseGraphScene(QGraphicsScene):
     def addOutPort(self, node, name):
         """
         Adds an output port to a node
+
         :param node: the node name
         :param name: the port name
         :return:
@@ -639,6 +675,7 @@ class BaseGraphScene(QGraphicsScene):
     def addConnection(self, nodeFrom, portFrom, nodeTo, portTo):
         """
         Add a connection to the graph
+
         :param nodeFrom: the start node's name
         :param portFrom: the start node's port
         :param nodeTo: the end node's name
@@ -657,6 +694,7 @@ class BaseGraphScene(QGraphicsScene):
     def removeConnection(self, nodeFrom, portFrom, nodeTo, portTo):
         """
         Removes a connection from the graph
+
         :param nodeFrom: the start node's name
         :param portFrom: the start node's port
         :param nodeTo: the end node's name
@@ -753,6 +791,7 @@ class BaseGraphScene(QGraphicsScene):
     def graphItemAt(self, scenePos):
         """
         Returns the graph item at the specified scene position
+
         :param scenePos: a QPoint instance
         :return: a NodeItem, PortItem or ConnectionItem instance
         """
@@ -768,6 +807,7 @@ class BaseGraphScene(QGraphicsScene):
     def mousePressEvent(self, event):
         """
         Override from QGraphicsScene (used for dragging connections)
+
         :param event: the QT event
         :return:
         """
@@ -790,6 +830,7 @@ class BaseGraphScene(QGraphicsScene):
     def mouseMoveEvent(self, event):
         """
         Override from QGraphicsScene (used for dragging connections)
+
         :param event: the QT event
         :return:
         """
@@ -814,6 +855,7 @@ class BaseGraphScene(QGraphicsScene):
     def mouseReleaseEvent(self, event):
         """
         Override from QGraphicsScene (used for dragging connections)
+
         :param event: the QT event
         :return:
         """
@@ -841,6 +883,7 @@ class BaseGraphScene(QGraphicsScene):
     def autoLayout(self):
         """
         Automatic layout of nodes using a heuristic layering algorithm.
+
         :return:
         """
         gl = GraphLayering.GraphRep(self)
@@ -863,6 +906,7 @@ class PortSelectorDialog(QDialog):
     def __init__(self, parent, inputPorts, outputPorts, graph, nodeName):
         """
         Constructor
+
         :param parent: this dialog's parent widget
         :param inputPorts: the list of input port names
         :param outputPorts: the list of output port names
@@ -931,6 +975,7 @@ class PortSelectorDialog(QDialog):
     def getSelectedPorts(parent, inputPorts, outputPorts, graph, nodeName):
         """
         Convenience function for executing the dialog.
+
         :param parent: this dialog's parent widget
         :param inputPorts: the list of input port names
         :param outputPorts: the list of output port names
@@ -1117,6 +1162,7 @@ class GraphScene(BaseGraphScene):
     def compositeFilters(self):
         """
         Get a list of names of composite filters.
+
         :return: a list of strings
         """
         sc = self.graph.getSubConfig()
@@ -1126,6 +1172,7 @@ class GraphScene(BaseGraphScene):
     def renameDialog(self):
         """
         Opens a dialog for renamign an item (node or port)
+
         :return:
         """
         item = self.itemOfContextMenu
@@ -1150,6 +1197,7 @@ class GraphScene(BaseGraphScene):
     def removeDialog(self):
         """
         Opens a dialog for removing an item (Node or Port)
+
         :return:
         """
         item = self.itemOfContextMenu
@@ -1173,6 +1221,7 @@ class GraphScene(BaseGraphScene):
     def onConnectionRemove(self):
         """
         Removes a connection
+
         :return:
         """
         item = self.itemOfContextMenu
@@ -1182,6 +1231,7 @@ class GraphScene(BaseGraphScene):
     def addInputPort(self):
         """
         Adds an input port to a node
+
         :return:
         """
         item = self.itemOfContextMenu
@@ -1198,6 +1248,7 @@ class GraphScene(BaseGraphScene):
     def addOutputPort(self):
         """
         Adds an output port to a node
+
         :return:
         """
         item = self.itemOfContextMenu
@@ -1214,6 +1265,7 @@ class GraphScene(BaseGraphScene):
     def setThread(self):
         """
         Opens a dialog to enter the new thread of the node.
+
         :return:
         """
         item = self.itemOfContextMenu
@@ -1231,6 +1283,7 @@ class GraphScene(BaseGraphScene):
     def onAddNode(self):
         """
         Called when the user wants to add a new node. (Generic variant)
+
         :return:
         """
         newName, ok = QInputDialog.getText(self.views()[0], self.sender().text(),
@@ -1242,6 +1295,7 @@ class GraphScene(BaseGraphScene):
     def onSuggestDynamicPorts(self):
         """
         Called when the user wants to add dynamic ports based on the filter's suggestions.
+
         :return:
         """
         assertMainThread()
@@ -1264,6 +1318,7 @@ class GraphScene(BaseGraphScene):
         """
         Called when the user wants to add a new filter from a file (FilterGraph variant).
         Opens a dialog to select the file.
+
         :return:
         """
         if platform.system().lower() == "linux":
@@ -1283,6 +1338,7 @@ class GraphScene(BaseGraphScene):
     def onAddFilterFromMod(self):
         """
         Called when the user wants to add a new filter from a python module.
+
         :return:
         """
         library, ok = QInputDialog.getText(self.views()[0], "Choose python module", "Choose python module")
@@ -1301,6 +1357,7 @@ class GraphScene(BaseGraphScene):
     def addFilterFromEntryPoint(self):
         """
         Add a filter from its corresponding entry point (the entry point is deduced from the sender action's data()).
+
         :return:
         """
         self._addFilterFromEntryPoint()
@@ -1308,6 +1365,7 @@ class GraphScene(BaseGraphScene):
     def onAddComposite(self):
         """
         Called when the user wants to add a new composite filter to this graph.
+
         :return:
         """
         cfs = self.compositeFilters()
