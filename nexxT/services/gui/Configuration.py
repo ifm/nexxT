@@ -47,6 +47,9 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self.actSave = QAction(QIcon.fromTheme("document-save", style.standardIcon(QStyle.SP_DialogSaveButton)),
                                "Save config", self)
         self.actSave.triggered.connect(self._execSaveConfig)
+        self.actSaveWithGuiState = QAction(QIcon.fromTheme("document-save", style.standardIcon(QStyle.SP_DialogSaveButton)),
+                                           "Save config sync gui state", self)
+        self.actSaveWithGuiState.triggered.connect(self._execSaveConfigWithGuiState)
         self.actNew = QAction(QIcon.fromTheme("document-new", style.standardIcon(QStyle.SP_FileIcon)),
                               "New config", self)
         self.actNew.triggered.connect(self._execNew)
@@ -60,6 +63,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
 
         confMenu.addAction(self.actLoad)
         confMenu.addAction(self.actSave)
+        confMenu.addAction(self.actSaveWithGuiState)
         confMenu.addAction(self.actNew)
         confMenu.addAction(self.actActivate)
         confMenu.addAction(self.actDeactivate)
@@ -125,6 +129,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
     def _openRecent(self):
         """
         Called when the user clicks on a recent config.
+
         :return:
         """
         if self._checkDirty():
@@ -170,9 +175,16 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         else:
             self.saveConfig()
 
+    def _execSaveConfigWithGuiState(self):
+        if self.configuration().filename() is None:
+            self._execSaveConfigAs()
+        else:
+            self.saveConfigWithGuiState()
+
     def _execSaveConfigAs(self):
         """
         Opens a file dialog to get the save file name and calls saveConfig.
+
         :return:
         """
         assertMainThread()
@@ -317,6 +329,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
     def _changeActiveAppAndInit(self, app):
         """
         Call this slot to activate and init an application
+
         :param app: can be either an Application instance or the name of an application
         :return:
         """
@@ -336,6 +349,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
     def appActivated(self, name, app): # pylint: disable=unused-argument
         """
         Called when the application is activated.
+
         :param name: the application name
         :param app: An ActiveApplication instance.
         :return:
@@ -369,6 +383,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
     def activeAppStateChange(self, newState):
         """
         Called when the active application changes its state.
+
         :param newState: the new application's state (see FilterState)
         :return:
         """
@@ -396,6 +411,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         Restore the state of the configuration gui service (namely the recently
         open config files). This is saved in QSettings because it is used
         across config files.
+
         :return:
         """
         logger.debug("restoring config state ...")
@@ -420,6 +436,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         Save the state of the configuration gui service (namely the recently
         open config files). This is saved in QSettings because it is used
         across config files.
+
         :return:
         """
         logger.debug("saving config state ...")

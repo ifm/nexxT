@@ -37,6 +37,7 @@ class GraphRep:
     def addNode(self, n):
         """
         Adds a new node to the graph
+
         :param n: a unique string id
         :return: None
         """
@@ -51,6 +52,7 @@ class GraphRep:
     def addEdge(self, n1, n2):
         """
         Adds an edge to the graph
+
         :param n1: from node (string id)
         :param n2: to node (string id)
         :return:
@@ -65,6 +67,7 @@ class GraphRep:
     def dump(self, title=None): # pragma: no cover
         """
         Dump to stdout for debugging
+
         :param title: an optional title for the stdout section
         :return:
         """
@@ -82,6 +85,7 @@ class GraphRep:
         """
         Topological sorting of the graph. Side effect: self.cycleEdges is a set of
         edges to be ignored for forcing a DAG.
+
         :return:
         """
         #self.dump("original:")
@@ -118,6 +122,7 @@ class GraphRep:
     def assignLayers(self):
         """
         Assign nodes to layers
+
         :return: layers (a list of a list of nodes), node2layer (a dictionary assigning nodes to layer indices)
         """
         topsorted = self.topological_sort()
@@ -141,6 +146,7 @@ class GraphRep:
     def sortLayers(self):
         """
         Sort the layers to avoid too many crossings. Note that this does not take the non-sortable ports into account.
+
         :return: layers (a list of a list of nodes), numCrosses (number of crossings in the graph)
         """
         def numberOfCrossings(layer1, layer2):
@@ -230,6 +236,7 @@ class GraphRep:
     def layersToNodeNames(self, layers):
         """
         convert the layering result back to node names
+
         :param layers: result from sortLayers (list of list of int)
         :return: list of list of string
         """

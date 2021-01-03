@@ -171,6 +171,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         """
         overwritten from MVCPlaybackControlBase. This function is called
         from multiple threads, but not at the same time.
+
         :param featureset: the current featureset
         :return:
         """
@@ -201,6 +202,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def scrollToCurrent(self):
         """
         Scrolls to the current item in the browser
+
         :return:
         """
         assertMainThread()
@@ -211,6 +213,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def _sequenceOpened(self, filename, begin, end, streams):
         """
         Notifies about an opened sequence.
+
         :param filename: the filename which has been opened
         :param begin: timestamp of sequence's first sample
         :param end: timestamp of sequence's last sample
@@ -248,6 +251,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def _currentTimestampChanged(self, currentTime):
         """
         Notifies about a changed timestamp
+
         :param currentTime: the new current timestamp
         :return: None
         """
@@ -267,6 +271,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def onSliderValueChanged(self, value):
         """
         Slot called whenever the slider value is changed.
+
         :param value: the new slider value
         :return:
         """
@@ -282,6 +287,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def displayPosition(self, value):
         """
         Slot called when the slider is moved. Displays the position without actually seeking to it.
+
         :param value: the new slider value.
         :return:
         """
@@ -296,6 +302,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def _playbackStarted(self):
         """
         Notifies about starting playback
+
         :return: None
         """
         assertMainThread()
@@ -307,6 +314,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def _playbackPaused(self):
         """
         Notifies about pause playback
+
         :return: None
         """
         assertMainThread()
@@ -319,6 +327,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def openRecent(self):
         """
         Called when the user clicks on a recent sequence.
+
         :return:
         """
         assertMainThread()
@@ -328,6 +337,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def browserActivated(self, filename):
         """
         Called when the user activated a file.
+
         :param filename: the new filename
         :return:
         """
@@ -352,6 +362,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def _timeRatioChanged(self, newRatio):
         """
         Notifies about a changed playback time ratio,
+
         :param newRatio the new playback ratio as a float
         :return: None
         """
@@ -368,6 +379,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def selectedStream(self):
         """
         Returns the user-selected stream (for forward/backward stepping)
+
         :return:
         """
         return self._selectedStream
@@ -375,6 +387,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def setSelectedStream(self, stream):
         """
         Sets the user-selected stream (for forward/backward stepping)
+
         :param stream the stream name.
         :return:
         """
@@ -383,6 +396,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def saveState(self):
         """
         Saves the state of the playback control
+
         :return:
         """
         assertMainThread()
@@ -401,6 +415,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def restoreState(self):
         """
         Restores the state of the playback control from the given property collection
+
         :param propertyCollection: a PropertyCollection instance
         :return:
         """
@@ -411,13 +426,14 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         self.actShowAllFiles.setChecked(bool(showAllFiles))
         propertyCollection.defineProperty("PlaybackControl_folder", "", "current folder name")
         folder = propertyCollection.getProperty("PlaybackControl_folder")
-        logger.debug("Setting current file: %s", folder)
-        self.browser.setFolder(folder)
+        if Path(folder).is_dir():
+            logger.debug("Setting current file: %s", folder)
+            self.browser.setFolder(folder)
         propertyCollection.defineProperty("PlaybackControl_recent", "", "recent opened sequences")
         recentFiles = propertyCollection.getProperty("PlaybackControl_recent")
         idx = 0
         for f in recentFiles.split("|"):
-            if f != "":
+            if f != "" and Path(f).is_file():
                 self.recentSeqs[idx].setData(f)
                 self.recentSeqs[idx].setText(self.compressFileName(f))
                 self.recentSeqs[idx].setVisible(True)
@@ -433,6 +449,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
     def compressFileName(filename):
         """
         Compresses long path names with an ellipsis (...)
+
         :param filename: the original path name as a Path or string instance
         :return: the compressed path name as a string instance
         """

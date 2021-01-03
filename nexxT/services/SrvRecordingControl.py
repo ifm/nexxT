@@ -121,6 +121,7 @@ class MVCRecordingControlBase(QObject):
         """
         Can be overriden to get the supported features of the connected playbackDevice(s). This function is called
         from multiple threads, but not at the same time.
+
         :param featureset set of supported features
         :param nameFilters set of supported nameFilters
         :return:
@@ -129,6 +130,7 @@ class MVCRecordingControlBase(QObject):
     def _statusUpdate(self, file=None, lengthInSeconds=None, bytesWritten=None):
         """
         Emits the statusUpdate signal
+
         :param file: the currently active recording file
         :param lengthInSeconds: the length of this file in seconds
         :return:
@@ -138,6 +140,7 @@ class MVCRecordingControlBase(QObject):
     def _notifyError(self, errorDescription):
         """
         Emits the notifyError signal and stops the recording
+
         :param errorDescription: a string with a description of the error
         :return:
         """
@@ -147,6 +150,7 @@ class MVCRecordingControlBase(QObject):
     def startRecording(self, directory):
         """
         Starts the recording in the given directory
+
         :param directory: The directory where to store the recordings
         :return:
         """
@@ -157,6 +161,7 @@ class MVCRecordingControlBase(QObject):
     def stateChanged(self, state):
         """
         Stops the recording when application is stopped.
+
         :param state: the new filter state
         :return:
         """
@@ -166,6 +171,7 @@ class MVCRecordingControlBase(QObject):
     def stopRecording(self):
         """
         Stops the recording.
+
         :return:
         """
         self._recordingActive = False

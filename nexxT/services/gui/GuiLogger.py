@@ -30,6 +30,7 @@ class LogHandler(logging.Handler):
     def emit(self, record):
         """
         called when a new log record is created
+
         :param record: a log record instance (see python docs)
         :return:
         """
@@ -62,6 +63,7 @@ class LogView(QTableView):
             """
             called from the table view to indicate single line mode (in this mode only the last line of a log message
             is displayed.
+
             :param enabled: boolean
             :return:
             """
@@ -70,6 +72,7 @@ class LogView(QTableView):
         def rowCount(self, parent):
             """
             Overwritten from QAbstractItemModel
+
             :param parent: a QModelIndex instance
             :return: number of log entries
             """
@@ -80,6 +83,7 @@ class LogView(QTableView):
         def columnCount(self, parent): # pylint: disable=unused-argument
             """
             Overwritten from QAbstractItemModel
+
             :param parent: a QModelIndex instance
             :return: the number of columns (constant)
             """
@@ -88,6 +92,7 @@ class LogView(QTableView):
         def update(self, queue):
             """
             add queued items to model
+
             :param queue: a python Queue instance
             :return: None
             """
@@ -103,6 +108,7 @@ class LogView(QTableView):
         def clear(self):
             """
             removes all entries from the list
+
             :return: None
             """
             if len(self.entries) > 0:
@@ -113,6 +119,7 @@ class LogView(QTableView):
         def index(self, row, column, parent):
             """
             Overwritten from QAbstractItemModel
+
             :param row: integer
             :param column: integer
             :param parent: a QModelIndex instance
@@ -130,6 +137,7 @@ class LogView(QTableView):
         def parent(self, index): # pylint: disable=unused-argument
             """
             Overwritten from QAbstractItemModel
+
             :param index:
             :return: invalid model index (because we have a 2D table)
             """
@@ -138,6 +146,7 @@ class LogView(QTableView):
         def headerData(self, section, orientation, role):
             """
             Overwritten from QAbstractItemModel
+
             :param section: the section index
             :param orientation: the orientation
             :param role: the item role
@@ -150,6 +159,7 @@ class LogView(QTableView):
         def data(self, modelIndex, role):
             """
             Overwritten from QAbstractItemModel
+
             :param modelIndex: a QModelIndex instance
             :param role: the role
             :return: the requested data
@@ -219,6 +229,7 @@ class LogView(QTableView):
     def setUniformRowHeights(self, enabled):
         """
         Takeover from QTreeView, see also here https://stackoverflow.com/questions/50943356/qtableview-performance
+
         :param enabled:
         :return:
         """
@@ -238,6 +249,7 @@ class LogView(QTableView):
     def sizeHintForRow(self, row):
         """
         return a size hint for the given row index
+
         :param row: the row index as integer
         :return: the height of the row as integer
         """
@@ -257,6 +269,7 @@ class LogView(QTableView):
         """
         This for instance happens when the style sheet changed. It may affect
         the calculated row height. So invalidate:
+
         :param event: the event causing the change
         :return:
         """
@@ -276,15 +289,17 @@ class LogView(QTableView):
     def addLogRecord(self, items):
         """
         Add a log record to the synchronized queue
+
         :param items: a tuple of (timestamp[str], level[int], message[str], modulename[str], filename[str], lineno[int])
-        :return:None
+        :return: None
         """
         self.queue.put(items)
 
     def update(self):
         """
         Called periodically to synchronize model with added log records
-        :return:None
+
+        :return: None
         """
         assertMainThread()
         if not shiboken2.isValid(self): # pylint: disable=no-member
@@ -297,6 +312,7 @@ class LogView(QTableView):
     def setFollow(self, follow):
         """
         set follow mode
+
         :param follow: a boolean
         :return: None
         """
@@ -305,6 +321,7 @@ class LogView(QTableView):
     def clear(self):
         """
         Clears the view
+
         :return: None
         """
         self._model.clear()
@@ -372,6 +389,7 @@ class GuiLogger(ConsoleLogger):
     def setLogLevel(self):
         """
         Sets the current log level from the calling action.
+
         :return: None
         """
         lv = self.loglevelMap[self.sender()]

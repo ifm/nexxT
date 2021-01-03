@@ -174,6 +174,7 @@ class MVCPlaybackControlBase(QObject):
         """
         Can be overriden to get the supported features of the connected playbackDevice(s). This function is called
         from multiple threads, but not at the same time.
+
         :param featureset set of supported features
         :param nameFilters set of supported nameFilters
         :return:
@@ -182,6 +183,7 @@ class MVCPlaybackControlBase(QObject):
     def _sequenceOpened(self, filename, begin, end, streams):
         """
         Notifies about an opened sequence.
+
         :param filename: the filename which has been opened
         :param begin: timestamp of sequence's first sample
         :param end: timestamp of sequence's last sample
@@ -192,6 +194,7 @@ class MVCPlaybackControlBase(QObject):
     def _currentTimestampChanged(self, currentTime):
         """
         Notifies about a changed timestamp
+
         :param currentTime: the new current timestamp
         :return: None
         """
@@ -199,18 +202,21 @@ class MVCPlaybackControlBase(QObject):
     def _playbackStarted(self):
         """
         Notifies about starting playback
+
         :return: None
         """
 
     def _playbackPaused(self):
         """
         Notifies about pause playback
+
         :return: None
         """
 
     def _timeRatioChanged(self, newRatio):
         """
         Notifies about a changed playback time ratio,
+
         :param newRatio the new playback ratio as a float
         :return: None
         """
@@ -235,6 +241,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def startPlayback(self):
         """
         Start playback
+
         :return:
         """
         self._startPlayback.emit()
@@ -242,6 +249,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def pausePlayback(self):
         """
         Pause playback
+
         :return:
         """
         self._pausePlayback.emit()
@@ -249,6 +257,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def stepForward(self, stream):
         """
         Step one frame forward in the given stream (might be None).
+
         :param stream: a string containing the selected stream.
         :return:
         """
@@ -257,6 +266,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def stepBackward(self, stream):
         """
         Step one frame backward in the given stream (might be None)
+
         :param stream: a string containing the selected stream.
         :return:
         """
@@ -265,6 +275,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def seekBeginning(self):
         """
         Seek to the beginning of the file.
+
         :return:
         """
         self._seekBeginning.emit()
@@ -272,6 +283,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def seekEnd(self):
         """
         Seek to the end of the file.
+
         :return:
         """
         self._seekEnd.emit()
@@ -279,6 +291,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def seekTime(self, datetime):
         """
         Seek to the specified time
+
         :param datetime: a QDateTime instance
         :return:
         """
@@ -287,6 +300,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def setSequence(self, file):
         """
         Set the sequence to be played.
+
         :param file: a string containing a filename
         :return:
         """
@@ -295,6 +309,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def setTimeFactor(self, factor):
         """
         Set the time factor to be used.
+
         :param factor: a float containing the factor.
         :return:
         """
@@ -304,6 +319,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         """
         Can be overriden to get the supported features of the connected playbackDevice(s). This function is called
         from multiple threads, but not at the same time.
+
         :param featureset set of supported features
         :param nameFilters set of supported nameFilters
         :return:
@@ -313,6 +329,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def _sequenceOpened(self, filename, begin, end, streams):
         """
         Notifies about an opened sequence.
+
         :param filename: the filename which has been opened
         :param begin: timestamp of sequence's first sample
         :param end: timestamp of sequence's last sample
@@ -324,6 +341,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def _currentTimestampChanged(self, currentTime):
         """
         Notifies about a changed timestamp
+
         :param currentTime: the new current timestamp
         :return: None
         """
@@ -332,6 +350,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def _playbackStarted(self):
         """
         Notifies about starting playback
+
         :return: None
         """
         self._playing = True
@@ -340,6 +359,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def _playbackPaused(self):
         """
         Notifies about pause playback
+
         :return: None
         """
         self._playing = False
@@ -348,6 +368,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def _timeRatioChanged(self, newRatio):
         """
         Notifies about a changed playback time ratio,
+
         :param newRatio the new playback ratio as a float
         :return: None
         """
