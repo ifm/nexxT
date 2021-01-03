@@ -411,13 +411,14 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         self.actShowAllFiles.setChecked(bool(showAllFiles))
         propertyCollection.defineProperty("PlaybackControl_folder", "", "current folder name")
         folder = propertyCollection.getProperty("PlaybackControl_folder")
-        logger.debug("Setting current file: %s", folder)
-        self.browser.setFolder(folder)
+        if Path(folder).is_dir():
+            logger.debug("Setting current file: %s", folder)
+            self.browser.setFolder(folder)
         propertyCollection.defineProperty("PlaybackControl_recent", "", "recent opened sequences")
         recentFiles = propertyCollection.getProperty("PlaybackControl_recent")
         idx = 0
         for f in recentFiles.split("|"):
-            if f != "":
+            if f != "" and Path(f).is_file():
                 self.recentSeqs[idx].setData(f)
                 self.recentSeqs[idx].setText(self.compressFileName(f))
                 self.recentSeqs[idx].setVisible(True)

@@ -221,6 +221,8 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
         logger.debug("before restore dir=%s", self._directory)
         propertyCollection.defineProperty("RecordingControl_directory", self._directory,
                                           "Target directory for recordings")
-        self._directory = propertyCollection.getProperty("RecordingControl_directory")
+        d = propertyCollection.getProperty("RecordingControl_directory")
+        if Path(d).exists():
+            self._directory = d
         self._directoryLabel.setText(self._directory)
         logger.debug("after restore dir=%s", self._directory)

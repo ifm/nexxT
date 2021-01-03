@@ -47,6 +47,9 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self.actSave = QAction(QIcon.fromTheme("document-save", style.standardIcon(QStyle.SP_DialogSaveButton)),
                                "Save config", self)
         self.actSave.triggered.connect(self._execSaveConfig)
+        self.actSaveWithGuiState = QAction(QIcon.fromTheme("document-save", style.standardIcon(QStyle.SP_DialogSaveButton)),
+                                           "Save config sync gui state", self)
+        self.actSaveWithGuiState.triggered.connect(self._execSaveConfigWithGuiState)
         self.actNew = QAction(QIcon.fromTheme("document-new", style.standardIcon(QStyle.SP_FileIcon)),
                               "New config", self)
         self.actNew.triggered.connect(self._execNew)
@@ -60,6 +63,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
 
         confMenu.addAction(self.actLoad)
         confMenu.addAction(self.actSave)
+        confMenu.addAction(self.actSaveWithGuiState)
         confMenu.addAction(self.actNew)
         confMenu.addAction(self.actActivate)
         confMenu.addAction(self.actDeactivate)
@@ -169,6 +173,12 @@ class MVCConfigurationGUI(MVCConfigurationBase):
             self._execSaveConfigAs()
         else:
             self.saveConfig()
+
+    def _execSaveConfigWithGuiState(self):
+        if self.configuration().filename() is None:
+            self._execSaveConfigAs()
+        else:
+            self.saveConfigWithGuiState()
 
     def _execSaveConfigAs(self):
         """
