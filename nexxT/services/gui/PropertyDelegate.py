@@ -18,6 +18,7 @@ class PropertyDelegate(QStyledItemDelegate):
     def __init__(self, model, role, PropertyContent, parent):
         """
         Constructor.
+
         :param model: An instance of the nexxT gui service implementation of QAbstractItemModle
         :param role: the role which can be used to query the property items
         :param PropertyContent: the class of the property items queried with model->data(..., self.role)
@@ -32,6 +33,7 @@ class PropertyDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         """
         Create an editor for the given index (if this is not a PropertyContent, the default implementation is used)
+
         :param parent: the parent of the editor
         :param option: unused
         :param index: the model index
@@ -49,6 +51,7 @@ class PropertyDelegate(QStyledItemDelegate):
     def setEditorData(self, editor, index):
         """
         Populate the editor with the data from the model
+
         :param editor: the editor as created by createEditor
         :param index: the index into the model
         :return:
@@ -64,6 +67,7 @@ class PropertyDelegate(QStyledItemDelegate):
     def setModelData(self, editor, model, index):
         """
         Commit the data from the editor into the model
+
         :param editor: the editor as returned by createEditor
         :param model: the model
         :param index: an index to the model

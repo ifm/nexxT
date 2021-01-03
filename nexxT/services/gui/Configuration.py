@@ -129,6 +129,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
     def _openRecent(self):
         """
         Called when the user clicks on a recent config.
+
         :return:
         """
         if self._checkDirty():
@@ -183,6 +184,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
     def _execSaveConfigAs(self):
         """
         Opens a file dialog to get the save file name and calls saveConfig.
+
         :return:
         """
         assertMainThread()
@@ -327,6 +329,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
     def _changeActiveAppAndInit(self, app):
         """
         Call this slot to activate and init an application
+
         :param app: can be either an Application instance or the name of an application
         :return:
         """
@@ -346,6 +349,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
     def appActivated(self, name, app): # pylint: disable=unused-argument
         """
         Called when the application is activated.
+
         :param name: the application name
         :param app: An ActiveApplication instance.
         :return:
@@ -379,6 +383,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
     def activeAppStateChange(self, newState):
         """
         Called when the active application changes its state.
+
         :param newState: the new application's state (see FilterState)
         :return:
         """
@@ -406,6 +411,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         Restore the state of the configuration gui service (namely the recently
         open config files). This is saved in QSettings because it is used
         across config files.
+
         :return:
         """
         logger.debug("restoring config state ...")
@@ -430,6 +436,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         Save the state of the configuration gui service (namely the recently
         open config files). This is saved in QSettings because it is used
         across config files.
+
         :return:
         """
         logger.debug("saving config state ...")

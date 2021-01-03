@@ -25,6 +25,7 @@ class GraphEditorView(QGraphicsView):
     def __init__(self, parent):
         """
         Constructor
+
         :param parent: a QWidget instance
         """
         super().__init__(parent=parent)
@@ -34,6 +35,7 @@ class GraphEditorView(QGraphicsView):
     def keyPressEvent(self, event):
         """
         Overwritten from QGraphicsView for intercepting copy & paste events.
+
         :param event: a QKeyEvent instance
         :return:
         """
@@ -50,6 +52,7 @@ class GraphEditorView(QGraphicsView):
     def _copy(self, cut):
         """
         Copys the selection to clipboard.
+
         :param cut: boolean whether the copy is actually a cut.
         :return:
         """
@@ -90,6 +93,7 @@ class GraphEditorView(QGraphicsView):
     def _paste(self):
         """
         Pastes the clipboard contents to the scene.
+
         :return:
         """
         md = QGuiApplication.clipboard().mimeData()

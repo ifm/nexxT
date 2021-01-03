@@ -30,6 +30,7 @@ class PortProfiling:
     def start(self, timeNs):
         """
         Called when the corresponding item is started.
+
         :param timeNs: the time point, given in nanoseconds.
         :return:
         """
@@ -38,6 +39,7 @@ class PortProfiling:
     def pause(self, timeNs):
         """
         Called when the corresponding item is paused (another item may be started).
+
         :param timeNs: the time point, given in nanoseconds.
         :return:
         """
@@ -46,6 +48,7 @@ class PortProfiling:
     def unpause(self, timeNs):
         """
         Called when the corresponding item is unpaused.
+
         :param timeNs: the time point, given in nanoseconds.
         :return:
         """
@@ -54,6 +57,7 @@ class PortProfiling:
     def stop(self, timeNs):
         """
         Called when the corresponding item is finished. The profiling information will be added to the history.
+
         :param timeNs: the time point, given in nanoseconds.
         :return:
         """
@@ -67,6 +71,7 @@ class PortProfiling:
     def getSpans(self):
         """
         Returns the profiling time points in a list.
+
         :return: list of tuples containing nanosecond time points.
         """
         res = self.spans
@@ -90,6 +95,7 @@ class ThreadSpecificProfItem:
     def update(self):
         """
         Updates the load profiling.
+
         :return:
         """
         thread_time = time.thread_time_ns()
@@ -104,6 +110,7 @@ class ThreadSpecificProfItem:
     def getLoad(self):
         """
         Returns the load measurements.
+
         :return: list of 2-tuples (time_nano_seconds, load_ratio)
         """
         res = self._measurements
@@ -113,6 +120,7 @@ class ThreadSpecificProfItem:
     def getSpans(self):
         """
         Get the current port profiling data.
+
         :return: dict mapping thread names to lists of tuples with nano-second time points.
         """
         res = {}
@@ -123,6 +131,7 @@ class ThreadSpecificProfItem:
     def registerPortChangeStarted(self, portname, timeNs):
         """
         Called when starting the onPortDataChanged function.
+
         :param portname: the full-qualified port name
         :param timeNs: the time in nano-seconds
         :return:
@@ -137,6 +146,7 @@ class ThreadSpecificProfItem:
     def registerPortChangeFinished(self, portname, timeNs):
         """
         Called when the onPortDataChanged function has finished.
+
         :param portname: the full-qualified port name
         :param timeNs: the time in nano-seconds
         :return:
@@ -151,6 +161,7 @@ class ThreadSpecificProfItem:
     def cancel(self):
         """
         Cancel profiling on user-request and reset the corresponding data.
+
         :return:
         """
         self._portProfiling = {}
@@ -181,6 +192,7 @@ class ProfilingService(QObject):
     def registerThread(self):
         """
         This slot shall be called from each activated nexxT thread with a direct connection.
+
         :return:
         """
         t = QThread.currentThread()
@@ -205,6 +217,7 @@ class ProfilingService(QObject):
     def setLoadMonitorEnabled(self, enabled):
         """
         Enables / disables load monitoring
+
         :param enabled: boolean
         :return:
         """
@@ -220,6 +233,7 @@ class ProfilingService(QObject):
     def setPortProfilingEnabled(self, enabled):
         """
         Enables / disables port profiling
+
         :param enabled: boolean
         :return:
         """
@@ -232,6 +246,7 @@ class ProfilingService(QObject):
     def deregisterThread(self):
         """
         This slot shall be called from each deactivated nexxT thread with a direct connection
+
         :return:
         """
         self._mi = None
@@ -247,6 +262,7 @@ class ProfilingService(QObject):
     def _generateRecord(self):
         """
         This slot is automaticall called periodically
+
         :return:
         """
         t = QThread.currentThread()
@@ -258,6 +274,7 @@ class ProfilingService(QObject):
     def beforePortDataChanged(self, portname):
         """
         This slot is called before calling onPortDataChanged.
+
         :param portname: the fully qualified name of the port
         :param timeNs: the timestamp
         :return:
@@ -274,6 +291,7 @@ class ProfilingService(QObject):
     def afterPortDataChanged(self, portname):
         """
         This slot is called after calling onPortDataChanged.
+
         :param portname: the fully qualified name of the port
         :param timeNs: the timestamp
         :return:
