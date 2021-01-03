@@ -639,7 +639,8 @@ class MVCConfigurationBase(QObject):
     @Slot()
     def saveConfig(self):
         """
-        Call this slot to save the configuration
+        Call this slot to save the configuration (the gui state in the config will not be changed)
+
         :return:
         """
         @handleException
@@ -647,6 +648,20 @@ class MVCConfigurationBase(QObject):
             assertMainThread()
             logger.debug("Saving config file")
             ConfigFileLoader.save(self._configuration)
+        execute()
+
+    @Slot()
+    def saveConfigWithGuiState(self):
+        """
+        Call this slot to save the configuration and synchronize the gui state.
+
+        :return:
+        """
+        @handleException
+        def execute():
+            assertMainThread()
+            logger.debug("Saving config file")
+            ConfigFileLoader.save(self._configuration, forceGuiState=True)
         execute()
 
     @Slot(str)

@@ -56,7 +56,7 @@ class ConfigFileLoader:
         return config
 
     @staticmethod
-    def save(config, file=None):
+    def save(config, file=None, forceGuiState=False):
         """
         Save the configuration to the given file (or overwrite the existing file).
         :param config: A Configuration instance
@@ -83,10 +83,20 @@ class ConfigFileLoader:
                 # catching a broad exception is exactly wanted here
                 oldCfg = None
         if oldCfg is not None:
-            cfg, guistate = ConfigFileLoader._split(cfg, oldCfg)
+            cfgWithOldGuiState, guistate = ConfigFileLoader._split(cfg, oldCfg)
+            if not forceGuiState:
+                cfg = cfgWithOldGuiState
             validatorGuiState.validate(guistate)
         else:
             guistate = None
+
+        if "_guiState" in cfg and "PlaybackControl_folder" in cfg["_guiState"]:
+            del cfg["_guiState"]["PlaybackControl_folder"]
+        if "_guiState" in cfg and "PlaybackControl_recent" in cfg["_guiState"]:
+            del cfg["_guiState"]["PlaybackControl_recent"]
+        if "_guiState" in cfg and "RecordingControl_directory" in cfg["_guiState"]:
+            del cfg["_guiState"]["RecordingControl_directory"]
+
         with file.open("w", encoding='utf-8') as fp:
             json.dump(cfg, fp, indent=2, ensure_ascii=False)
         if guistate is not None:
