@@ -4,7 +4,7 @@ Tutorial
 The purpose of this tutorial is to introduce the nexxT framework from different perspectives. We start with the perspective of a user who wants to be able to use predefined configurations. Then we show the perspective of an integrator who creates and manipulates configurations of filter graphs using nexxT. The last perspective is the developer view who develops filters ready to be integrated into the framework accessing both the python and the C++ API.
 
 nexxT Nomenclature
-++++++++++++++++++
+------------------
 
 **Terms and definitions**: A nexxT *configuration* provides one or more *applications*. *Applications* consist of a directed graph where the nodes are *filter* instances. *Filter* instances have input and output *ports*. Edges from output to input *ports* represent data flow *connections*. The *filters* can provide *properties* which can be manipulated in the GUI. For a clearer view it is possible to group subgraphs in so-called *composite filters*.
 
