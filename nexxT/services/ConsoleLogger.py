@@ -42,6 +42,7 @@ class ConsoleLogger(QObject):
     def log(self, level, message, file, line): # pylint: disable=no-self-use
         """
         Called from c++ to log a message.
+
         :param level: logging compatible log level
         :param message: message as a string
         :param file: file which originated the log message
@@ -54,6 +55,7 @@ class ConsoleLogger(QObject):
     def qtMessageHandler(qtMsgType, qMessageLogContext, msg):
         """
         Qt message handler for handling qt messages in normal logging.
+
         :param qtMsgType: qt log level
         :param qMessageLogContext: qt log context
         :param msg: message as a string

@@ -91,6 +91,7 @@ class Hdf5Writer(Filter):
     def onStart(self):
         """
         Registers itself to the recording control service
+
         :return:
         """
         self._propertyChanged(self.propertyCollection(), "buffer_samples")
@@ -109,6 +110,7 @@ class Hdf5Writer(Filter):
     def onStop(self):
         """
         De-registers itself from the recording control service
+
         :return:
         """
         srv = Services.getService("RecordingControl")
@@ -142,6 +144,7 @@ class Hdf5Writer(Filter):
     def startRecording(self, directory):
         """
         Called on a recording start event.
+
         :param directory: the directory where the recording is expected to be created.
         :return:
         """
@@ -159,6 +162,7 @@ class Hdf5Writer(Filter):
     def stopRecording(self):
         """
         Called on a recording stop event.
+
         :param directory: the directory where the recording is expected to be created.
         :return:
         """
@@ -167,6 +171,7 @@ class Hdf5Writer(Filter):
     def onPortDataChanged(self, port):
         """
         Called when new data arrives at a port.
+
         :param port: the port where the new data is available.
         :return:
         """
@@ -222,6 +227,7 @@ class Hdf5Reader(Filter):
     def startPlayback(self):
         """
         slot called when the playback shall be started
+
         :return:
         """
         if not self._playing and self._timer is not None:
@@ -233,6 +239,7 @@ class Hdf5Reader(Filter):
     def pausePlayback(self):
         """
         slot called when the playback shall be paused
+
         :return:
         """
         if self._playing and self._timer is not None:
@@ -247,6 +254,7 @@ class Hdf5Reader(Filter):
     def stepForward(self, stream):
         """
         slot called to step one frame in stream forward
+
         :param stream: a string instance or None (all streams are selected)
         :return:
         """
@@ -256,6 +264,7 @@ class Hdf5Reader(Filter):
     def stepBackward(self, stream):
         """
         slot called to step one frame in stream backward
+
         :param stream: a string instance or None (all streams are selected)
         :return:
         """
@@ -266,6 +275,7 @@ class Hdf5Reader(Filter):
     def seekBeginning(self):
         """
         slot called to go to the beginning of the file
+
         :return:
         """
         self.pausePlayback()
@@ -277,6 +287,7 @@ class Hdf5Reader(Filter):
     def seekEnd(self):
         """
         slot called to go to the end of the file
+
         :return:
         """
         self.pausePlayback()
@@ -290,6 +301,7 @@ class Hdf5Reader(Filter):
     def seekTime(self, tgtDatetime):
         """
         slot called to go to the specified time
+
         :param tgtDatetime: a QDateTime instance
         :return:
         """
@@ -321,6 +333,7 @@ class Hdf5Reader(Filter):
     def setSequence(self, filename):
         """
         slot called to set the sequence file name
+
         :param filename: a string instance
         :return:
         """
@@ -330,6 +343,7 @@ class Hdf5Reader(Filter):
     def setTimeFactor(self, factor):
         """
         slot called to set the time factor
+
         :param factor: a float
         :return:
         """
@@ -357,6 +371,7 @@ class Hdf5Reader(Filter):
     def onOpen(self):
         """
         overloaded from Filter
+
         :return:
         """
         srv = Services.getService("PlaybackControl")
@@ -367,6 +382,7 @@ class Hdf5Reader(Filter):
     def onStart(self):
         """
         overloaded from Filter
+
         :return:
         """
         if self._name is not None:
@@ -397,6 +413,7 @@ class Hdf5Reader(Filter):
     def onStop(self):
         """
         overloaded from Filter
+
         :return:
         """
         if self._currentFile is not None:
@@ -411,6 +428,7 @@ class Hdf5Reader(Filter):
     def onClose(self):
         """
         overloaded from Filter
+
         :return:
         """
         srv = Services.getService("PlaybackControl")
@@ -419,6 +437,7 @@ class Hdf5Reader(Filter):
     def onSuggestDynamicPorts(self):
         """
         overloaded from Filter
+
         :return:
         """
         try:
