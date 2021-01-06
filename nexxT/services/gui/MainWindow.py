@@ -365,7 +365,10 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         self.managedSubplots[title]["layout"].addWidget(widget, row, col)
         self.managedSubplots[title]["mdiSubWindow"].updateGeometry()
         widget.setParent(self.managedSubplots[title]["swwidget"])
-        QTimer.singleShot(0, lambda: (
+        # note: there seems to be a race condition when decreasing the single shot timeout to 0
+        #       sometimes the window size is then not correctly adjusted
+        #       with the 100 ms timeout this couldn't be reproduced
+        QTimer.singleShot(100, lambda: (
             self.managedSubplots[title]["mdiSubWindow"].adjustSize() if
             widget.parent().size().height() < widget.minimumSizeHint().height() or
             widget.parent().size().height() < widget.minimumSize().height() else None

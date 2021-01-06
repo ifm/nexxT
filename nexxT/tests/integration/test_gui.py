@@ -48,6 +48,7 @@ CM_FILTER_LIBRARY_HARDDISK = ContextMenuEntry("harddisk")
 CM_FILTER_LIBRARY_TESTS_NEXXT = ContextMenuEntry("nexxT")
 CM_FILTER_LIBRARY_CSIMPLESOURCE = ContextMenuEntry("CSimpleSource")
 CM_FILTER_LIBRARY_PYSIMPLESTATICFILTER = ContextMenuEntry("PySimpleStaticFilter")
+CM_FILTER_LIBRARY_PYSIMPLEVIEW = ContextMenuEntry("PySimpleView")
 CM_FILTER_LIBRARY_HDF5WRITER = ContextMenuEntry("HDF5Writer")
 CM_FILTER_LIBRARY_HDF5READER = ContextMenuEntry("HDF5Reader")
 CM_RENAME_NODE = ContextMenuEntry("Rename node ...")
@@ -58,6 +59,8 @@ CM_SUGGEST_DYNPORTS = ContextMenuEntry("Suggest dynamic ports ...")
 CM_SETTHREAD = ContextMenuEntry("Set thread ...")
 CM_RENAMEDYNPORT = ContextMenuEntry("Rename dynamic port ...")
 CM_REMOVEDYNPORT = ContextMenuEntry("Remove dynamic port ...")
+CONFIG_MENU_DEINITIALIZE = ContextMenuEntry("Deinitialize")
+CONFIG_MENU_INITIALIZE = ContextMenuEntry("Initialize")
 
 class GuiTestBase:
     def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir):
@@ -76,7 +79,7 @@ class GuiTestBase:
     """
     Class encapsulates useful method for gui testing the nexxT application.
     """
-    def activateContextMenu(self, *menuItems):
+    def activateContextMenu(self, *menuItems, **kwargs):
         """
         In a given context menu navigate to the given index using key presses and activate it using return
         :param menuItems: Might be either integers referencing the position in the menu or (better) strings referencing
@@ -98,23 +101,27 @@ class GuiTestBase:
                 act = act.menu().activeAction()
             return act.text()
 
+        if kwargs.get("debug", False):
+            logger_debug = logger.info
+        else:
+            logger_debug = logger.debug
         try:
             # navigate to the requested menu item
             for j in range(len(menuItems)):
                 if isinstance(menuItems[j], int):
                     for i in range(menuItems[j]):
                         self.qtbot.keyClick(None, Qt.Key_Down, delay=self.delay)
-                    logger.debug("(int) Current action: '%s'", activeMenuEntry())
+                    logger_debug("(int) Current action: '%s'", activeMenuEntry())
                 else:
                     nonNoneAction = None
                     while activeMenuEntry() is None or activeMenuEntry() != menuItems[j]:
-                        logger.debug("(str) Current action: '%s' != '%s'", activeMenuEntry(), menuItems[j])
+                        logger_debug("(str) Current action: '%s' != '%s'", activeMenuEntry(), menuItems[j])
                         self.qtbot.keyClick(None, Qt.Key_Down, delay=self.delay)
                         if nonNoneAction is None:
                             nonNoneAction = activeMenuEntry()
                         else:
                             assert nonNoneAction != activeMenuEntry()
-                    logger.debug("(str) Current action: '%s'", activeMenuEntry())
+                    logger_debug("(str) Current action: '%s'", activeMenuEntry())
                 if j < len(menuItems) - 1:
                     self.qtbot.keyClick(None, Qt.Key_Right, delay=self.delay)
             self.qtbot.keyClick(None, Qt.Key_Return, delay=self.delay)
@@ -165,7 +172,7 @@ class GuiTestBase:
         self.qtbot.mouseMove(graphView.viewport(), graphView.mapFromScene(ev.scenePos()))
         graphView.scene().contextMenuEvent(ev)
 
-    def cmContextMenu(self, conf, idx, *contextMenuIndices):
+    def cmContextMenu(self, conf, idx, *contextMenuIndices, **kwargs):
         """
         This function executes a context menu on the configuration tree view
         :param conf: The configuration gui service
@@ -183,13 +190,16 @@ class GuiTestBase:
         self.qtbot.mouseMove(treeView.viewport(), pos=pos, delay=self.delay)
         try:
             intIdx = max([i for i in range(-1, -len(contextMenuIndices)-1, -1)
-                          if isinstance(contextMenuIndices[i], int)])
+                          if isinstance(contextMenuIndices[i], (int,ContextMenuEntry))])
             intIdx += len(contextMenuIndices)
         except ValueError:
+            logger.exception("exception contextMenuIndices:%s empty?!?", contextMenuIndices)
             intIdx = -1
         cmIdx = contextMenuIndices[:intIdx+1]
         texts = contextMenuIndices[intIdx+1:]
-        QTimer.singleShot(self.delay, lambda: self.activateContextMenu(*cmIdx))
+        if kwargs.get("debug", False):
+            logger.info("contextMenuIndices:%s cmIdx:%s texts:%s", contextMenuIndices, cmIdx, texts)
+        QTimer.singleShot(self.delay, lambda: self.activateContextMenu(*cmIdx, **kwargs))
         for i, t in enumerate(texts):
             QTimer.singleShot(self.delay*(i+2), lambda text=t: self.enterText(text))
         conf._execTreeViewContextMenu(pos)
@@ -563,9 +573,7 @@ class BasicTest(GuiTestBase):
                 conf.configuration().activate("application")
             self.aw()
             self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
-            for i in range(2):
-                self.qtbot.keyClick(None, Qt.Key_Up, delay=self.delay)
-            self.qtbot.keyClick(None, Qt.Key_Return, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_INITIALIZE)
             rec.dockWidget.raise_()
             # application runs for 2 seconds
             self.qtbot.wait(2000)
@@ -583,9 +591,7 @@ class BasicTest(GuiTestBase):
             self.qtbot.wait(2000)
             # de-initialize application
             self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
-            for i in range(2):
-                self.qtbot.keyClick(None, Qt.Key_Up, delay=self.delay)
-            self.qtbot.keyClick(None, Qt.Key_Return, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
             # check that the last log message is from the SimpleStaticFilter and it should have received more than 60
             # samples
             assert self.getLastLogFrameIdx(log) >= 60
@@ -655,9 +661,7 @@ class BasicTest(GuiTestBase):
             with self.qtbot.waitSignal(conf.configuration().appActivated):
                 conf.configuration().activate("application_2")
             self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
-            for i in range(2):
-                self.qtbot.keyClick(None, Qt.Key_Up, delay=self.delay)
-            self.qtbot.keyClick(None, Qt.Key_Return, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_INITIALIZE)
             # turn off load monitoring
             self.qtbot.keyClick(self.aw(), Qt.Key_O, Qt.AltModifier, delay=self.delay)
             self.qtbot.keyClick(None, Qt.Key_Return, delay=self.delay)
@@ -699,9 +703,8 @@ class BasicTest(GuiTestBase):
             assert self.getLastLogFrameIdx(log) == lastFrame
             # de-initialize application
             self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
-            for i in range(2):
-                self.qtbot.keyClick(None, Qt.Key_Up, delay=self.delay)
-            self.qtbot.keyClick(None, Qt.Key_Return, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+
             conf.actSave.trigger()
             self.qtbot.wait(1000)
             self.noWarningsInLog(log)
@@ -885,7 +888,7 @@ class TheFilter(Filter):
 
     def test(self):
         """
-        first start of nexxT in a clean environment, click through a pretty exhaustive scenario.
+        test property editing in config editor
         :return:
         """
         QTimer.singleShot(self.delay, self._properties)
@@ -895,4 +898,174 @@ class TheFilter(Filter):
 @pytest.mark.parametrize("delay", [300])
 def test_properties(qtbot, xvfb, keep_open, delay, tmpdir):
     test = PropertyTest(qtbot, xvfb, keep_open, delay, tmpdir)
+    test.test()
+
+class GuiStateTest(GuiTestBase):
+    """
+    Concrete test class for the guistate test case
+    """
+    def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir):
+        super().__init__(qtbot, xvfb, keep_open, delay, tmpdir)
+        self.prjfile = self.tmpdir / "test_guistate.json"
+        self.guistatefile = self.tmpdir / "test_guistate.json.guistate"
+
+    def getMdiWindow(self):
+        mw = Services.getService("MainWindow")
+        assert len(mw.managedSubplots) == 1
+        title = list(mw.managedSubplots.keys())[0]
+        return mw.managedSubplots[title]["mdiSubWindow"]
+
+    def _stage0(self):
+        conf = None
+        mw = None
+        try:
+            # load last config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            idxApplications = conf.model.index(1, 0)
+            # add application
+            conf.treeView.setMinimumSize(QSize(300,300))
+            conf.treeView.scrollTo(idxApplications)
+            region = conf.treeView.visualRegionForSelection(QItemSelection(idxApplications, idxApplications))
+            self.qtbot.mouseMove(conf.treeView.viewport(), region.boundingRect().center(), delay=self.delay)
+            # mouse click does not trigger context menu :(
+            #qtbot.mouseClick(conf.treeView.viewport(), Qt.RightButton, pos=region.boundingRect().center())
+            QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_ADD_APPLICATION))
+            conf._execTreeViewContextMenu(region.boundingRect().center())
+            app = conf.configuration().applicationByName("application")
+            # start graph editor
+            gev = self.startGraphEditor(conf, mw, "application")
+            self.qtbot.wait(self.delay)
+            # create a visualization node
+            pysimpleview = self.addNodeToGraphEditor(gev, QPoint(20,20),
+                                                     CM_FILTER_LIBRARY, CM_FILTER_LIBRARY_TESTS,
+                                                     CM_FILTER_LIBRARY_TESTS_NEXXT, CM_FILTER_LIBRARY_PYSIMPLEVIEW)
+            self.qtbot.keyClick(self.aw(), Qt.Key_Return, delay=self.delay)
+            self.qtbot.keyClick(self.aw(), Qt.Key_Return, delay=self.delay)
+            # save the configuration file
+            QTimer.singleShot(self.delay, lambda: self.enterText(str(self.prjfile)))
+            conf.actSave.trigger()
+            self.prjfile_contents = self.prjfile.read_text("utf-8")
+            assert not self.guistatefile.exists()
+            # initialize the application, window is shown the first time
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(1000)
+            self.getMdiWindow().move(QPoint(37, 63))
+            self.qtbot.wait(1000)
+            self.mdigeom = self.getMdiWindow().geometry()
+            # de-initialize application
+            self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+            assert not self.guistatefile.exists()
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def _stage1(self):
+        conf = None
+        mw = None
+        try:
+            # load last config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            idxApplications = conf.model.index(1, 0)
+            # load recent config
+            self.qtbot.keyClick(self.aw(), Qt.Key_R, Qt.ControlModifier, delay=self.delay)
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(1000)
+            assert self.mdigeom == self.getMdiWindow().geometry()
+            # de-initialize application
+            self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def _stage2(self):
+        conf = None
+        mw = None
+        try:
+            # load last config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            idxApplications = conf.model.index(1, 0)
+            # load recent config
+            self.qtbot.keyClick(self.aw(), Qt.Key_R, Qt.ControlModifier, delay=self.delay)
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(1000)
+            # should be moved to default location
+            assert self.mdigeom != self.getMdiWindow().geometry()
+            self.getMdiWindow().move(QPoint(42, 51))
+            self.qtbot.wait(1000)
+            self.mdigeom = self.getMdiWindow().geometry()
+            # because the gui state is not correctly saved when an application is active, the action is disabled in
+            # active state
+            assert not conf.actSaveWithGuiState.isEnabled()
+            # de-initialize application
+            self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+            self.qtbot.wait(self.delay)
+            # action should be enabled in non-active state
+            assert conf.actSaveWithGuiState.isEnabled()
+            conf.actSaveWithGuiState.trigger()
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def test(self):
+        """
+        first start of nexxT in a clean environment, click through a pretty exhaustive scenario.
+        :return:
+        """
+        # create application and move window to non-default location
+        QTimer.singleShot(self.delay, self._stage0)
+        startNexT(None, None, [], [], True)
+        assert self.guistatefile.exists()
+        self.guistate_contents = self.guistatefile.read_text("utf-8")
+        logger.info("guistate_contents: %s", self.guistate_contents)
+
+        QTimer.singleShot(self.delay, self._stage1)
+        startNexT(None, None, [], [], True)
+        guistate_contents = self.guistatefile.read_text("utf-8")
+        logger.info("guistate_contents: %s", guistate_contents)
+        assert self.guistate_contents == guistate_contents
+
+        # remove gui state -> the window should be placed in default location
+        os.remove(str(self.guistatefile))
+        QTimer.singleShot(self.delay, self._stage2)
+        startNexT(None, None, [], [], True)
+        guistate_contents = self.guistatefile.read_text("utf-8")
+        logger.info("guistate_contents: %s", guistate_contents)
+        assert self.guistate_contents != guistate_contents
+        self.guistate_contents = guistate_contents
+
+        QTimer.singleShot(self.delay, self._stage1)
+        startNexT(None, None, [], [], True)
+        guistate_contents = self.guistatefile.read_text("utf-8")
+        logger.info("guistate_contents: %s", guistate_contents)
+        assert self.guistate_contents == guistate_contents
+
+        # remove gui state -> the window should still be placed in non-default location
+        os.remove(str(self.guistatefile))
+        QTimer.singleShot(self.delay, self._stage1)
+        startNexT(None, None, [], [], True)
+        guistate_contents = self.guistatefile.read_text("utf-8")
+        logger.info("guistate_contents: %s", guistate_contents)
+        assert self.guistate_contents == guistate_contents
+
+
+
+@pytest.mark.gui
+@pytest.mark.parametrize("delay", [300])
+def test_guistate(qtbot, xvfb, keep_open, delay, tmpdir):
+    test = GuiStateTest(qtbot, xvfb, keep_open, delay, tmpdir)
     test.test()

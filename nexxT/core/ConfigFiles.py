@@ -8,6 +8,7 @@
 This modules defines classes for nexxT config file handling.
 """
 
+import copy
 import json
 import logging
 from pathlib import Path
@@ -216,7 +217,7 @@ class ConfigFileLoader:
             return res
 
         guistate = {}
-        cfg = newCfg.copy()
+        cfg = copy.deepcopy(newCfg)
         guistate["_guiState"] = splitCommonGuiStateSections(cfg["_guiState"], oldCfg["_guiState"])
         cfg["_guiState"] = oldCfg["_guiState"]
 

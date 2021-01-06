@@ -199,6 +199,13 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
             lines = lines[1:]
         self._statusLabel.setText("\n".join(lines))
 
+    def _defineProperties(self):
+        propertyCollection = self._config.guiState()
+        propertyCollection.defineProperty("RecordingControl_directory",
+                                          str(Path('.').absolute()),
+                                          "Target directory for recordings")
+
+
     def _saveState(self):
         """
         Saves the state of the playback control
@@ -206,6 +213,7 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
         :return:
         """
         assertMainThread()
+        self._defineProperties()
         propertyCollection = self._config.guiState()
         try:
             propertyCollection.setProperty("RecordingControl_directory", self._directory)
@@ -219,10 +227,9 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
         :return:
         """
         assertMainThread()
+        self._defineProperties()
         propertyCollection = self._config.guiState()
         logger.debug("before restore dir=%s", self._directory)
-        propertyCollection.defineProperty("RecordingControl_directory", self._directory,
-                                          "Target directory for recordings")
         d = propertyCollection.getProperty("RecordingControl_directory")
         if Path(d).exists():
             self._directory = d

@@ -393,6 +393,12 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         """
         self._selectedStream = stream
 
+    def _defineProperties(self):
+        propertyCollection = self.config.guiState()
+        propertyCollection.defineProperty("PlaybackControl_showAllFiles", 0, "show all files setting")
+        propertyCollection.defineProperty("PlaybackControl_folder", "", "current folder name")
+        propertyCollection.defineProperty("PlaybackControl_recent", "", "recent opened sequences")
+
     def saveState(self):
         """
         Saves the state of the playback control
@@ -400,6 +406,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         :return:
         """
         assertMainThread()
+        self._defineProperties()
         propertyCollection = self.config.guiState()
         showAllFiles = self.actShowAllFiles.isChecked()
         folder = self.browser.folder()
@@ -420,16 +427,14 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         :return:
         """
         assertMainThread()
+        self._defineProperties()
         propertyCollection = self.config.guiState()
-        propertyCollection.defineProperty("PlaybackControl_showAllFiles", 0, "show all files setting")
         showAllFiles = propertyCollection.getProperty("PlaybackControl_showAllFiles")
         self.actShowAllFiles.setChecked(bool(showAllFiles))
-        propertyCollection.defineProperty("PlaybackControl_folder", "", "current folder name")
         folder = propertyCollection.getProperty("PlaybackControl_folder")
         if Path(folder).is_dir():
             logger.debug("Setting current file: %s", folder)
             self.browser.setFolder(folder)
-        propertyCollection.defineProperty("PlaybackControl_recent", "", "recent opened sequences")
         recentFiles = propertyCollection.getProperty("PlaybackControl_recent")
         idx = 0
         for f in recentFiles.split("|"):

@@ -401,10 +401,12 @@ class MVCConfigurationGUI(MVCConfigurationBase):
                     if startPlay:
                         pbsrv.playbackPaused.connect(self._singleShotPlay)
                         QTimer.singleShot(2000, self._disconnectSingleShotPlay)
-                    MethodInvoker(pbsrv.setSequence, Qt.QueuedConnection, pbfile)
+                    MethodInvoker(pbsrv.browser.setActive, Qt.QueuedConnection, pbfile)
             self.actDeactivate.setEnabled(True)
+            self.actSaveWithGuiState.setEnabled(False)
         else:
             self.actDeactivate.setEnabled(False)
+            self.actSaveWithGuiState.setEnabled(True)
 
     def restoreState(self):
         """
