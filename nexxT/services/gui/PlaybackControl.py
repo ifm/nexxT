@@ -10,7 +10,7 @@ This module provides the nexxT GUI service PlaybackControl
 import functools
 import logging
 from pathlib import Path
-from PySide2.QtCore import Signal, QDateTime, Qt, QTimer
+from PySide2.QtCore import Signal, QDateTime, Qt, QTimer, QDir
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (QWidget, QGridLayout, QLabel, QBoxLayout, QSlider, QToolBar, QAction, QApplication,
                                QStyle, QActionGroup)
@@ -67,17 +67,17 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
 
         # pylint: disable=unnecessary-lambda
         # let's stay on the safe side and do not use emit as a slot...
-        self.actStart.triggered.connect(lambda: self._startPlayback.emit())
-        self.actPause.triggered.connect(lambda: self._pausePlayback.emit())
-        self.actStepFwd.triggered.connect(lambda: self._stepForward.emit(self.selectedStream()))
-        self.actStepBwd.triggered.connect(lambda: self._stepBackward.emit(self.selectedStream()))
-        self.actSeekEnd.triggered.connect(lambda: self._seekEnd.emit())
-        self.actSeekBegin.triggered.connect(lambda: self._seekBeginning.emit())
+        self.actStart.triggered.connect(self.startPlayback)
+        self.actPause.triggered.connect(self.pausePlayback)
+        self.actStepFwd.triggered.connect(lambda: self.stepForward(self.selectedStream()))
+        self.actStepBwd.triggered.connect(lambda: self.stepBackward(self.selectedStream()))
+        self.actSeekEnd.triggered.connect(self.seekEnd)
+        self.actSeekBegin.triggered.connect(self.seekBeginning)
         # pylint: enable=unnecessary-lambda
 
         def setTimeFactor(newFactor):
             logger.debug("new time factor %f", newFactor)
-            self._setTimeFactor.emit(newFactor)
+            self.setTimeFactor(newFactor)
 
         for r in self.actSetTimeFactor:
             logger.debug("adding action for time factor %f", r)
@@ -163,6 +163,12 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
 
     def _onNameFiltersChanged(self, nameFilt):
         self.browser.setFilter(nameFilt)
+        if isinstance(nameFilt, str):
+            nameFilt = [nameFilt]
+        for a in self.recentSeqs:
+            if a.isVisible():
+                m = QDir.match(nameFilt, Path(a.data()).name)
+                a.setEnabled(m)
 
     def _onShowAllFiles(self, enabled):
         self.fileSystemModel.setNameFilterDisables(enabled)
@@ -280,7 +286,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
             return
         if self.actStart.isEnabled():
             ts = QDateTime.fromMSecsSinceEpoch(self.beginTime.toMSecsSinceEpoch() + value, self.beginTime.timeSpec())
-            self._seekTime.emit(ts)
+            self.seekTime(ts)
         else:
             logger.warning("Can't seek while playing.")
 
@@ -357,7 +363,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
             self.recentSeqs[0].setText(self.compressFileName(filename))
             self.recentSeqs[0].setData(filename)
             self.recentSeqs[0].setVisible(True)
-            self._setSequence.emit(filename)
+            self.setSequence(filename)
 
     def _timeRatioChanged(self, newRatio):
         """
@@ -442,6 +448,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
                 self.recentSeqs[idx].setData(f)
                 self.recentSeqs[idx].setText(self.compressFileName(f))
                 self.recentSeqs[idx].setVisible(True)
+                self.recentSeqs[idx].setEnabled(False)
                 idx += 1
                 if idx >= len(self.recentSeqs):
                     break

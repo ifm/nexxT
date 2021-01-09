@@ -353,7 +353,7 @@ class GuiTestBase:
                 return int(lastmsg.strip().split(" ")[-1])
 
     @staticmethod
-    def noWarningsInLog(log):
+    def noWarningsInLog(log, ignore=[]):
         """
         assert that there are no warnings logged
         :param log: the logging service
@@ -365,7 +365,8 @@ class GuiTestBase:
             level = model.data(model.index(row, 1, QModelIndex()), Qt.DisplayRole)
             if level not in ["INFO", "DEBUG", "INTERNAL"]:
                 msg = model.data(model.index(row, 2, QModelIndex()), Qt.DisplayRole)
-                raise RuntimeError("Warnings or errors found in log: %s(%s)", level, msg)
+                if not msg in ignore:
+                    raise RuntimeError("Warnings or errors found in log: %s(%s)", level, msg)
 
     def clickDiscardChanges(self):
         """
@@ -749,7 +750,7 @@ class BasicTest(GuiTestBase):
             self.qtbot.wait(2000)
             self.cmContextMenu(conf, appidx, CM_INIT_APP_AND_PLAY, 0)
             self.qtbot.wait(2000)
-            self.noWarningsInLog(log)
+            self.noWarningsInLog(log, ignore = ["did not find a playback device taking control"])
         finally:
             if not self.keep_open:
                 if conf.configuration().dirty():
