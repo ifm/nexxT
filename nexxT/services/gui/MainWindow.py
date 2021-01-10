@@ -160,7 +160,7 @@ class MainWindow(QMainWindow):
     Main Window service for the nexxT frameworks. Other services usually create dock windows, filters use the
     subplot functionality to create grid-layouted views.
     """
-    mdiSubWindowCreated = Signal(QMdiSubWindow) # TODO: remove, is not necessary anymore with subplot feature
+    mdiSubWindowCreated = Signal(QMdiSubWindow) # TODO: deprecated, can be removed in later versions
     aboutToClose = Signal(object)
 
     def __init__(self, config):
@@ -241,7 +241,6 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         if v is not None:
             self.restoreGeometry(v)
         if self.toolbar is not None:
-            # TODO: add toolbar to windows menu, so we don't need this
             self.toolbar.show()
 
     def saveState(self):

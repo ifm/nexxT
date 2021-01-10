@@ -54,47 +54,90 @@ class PlaybackDeviceProxy(QObject):
                 self._featureSet.add(feature)
 
     def startPlayback(self):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+        """
         if self._controlsFile:
             self._startPlayback.emit()
 
     def pausePlayback(self):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+       """
         if self._controlsFile:
             self._pausePlayback.emit()
 
     def stepForward(self, stream):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+        """
         if self._controlsFile:
             self._stepForward.emit(stream)
 
     def stepBackward(self, stream):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+        """
         if self._controlsFile:
             self._stepBackward.emit(stream)
 
     def seekBeginning(self):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+        """
         if self._controlsFile:
             self._seekBeginning.emit()
 
     def seekEnd(self):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+        """
         if self._controlsFile:
             self._seekEnd.emit()
 
     def seekTime(self, qdatetime):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+
+        :param qdatetime: a QDateTime instance
+        """
         if self._controlsFile:
             self._seekTime.emit(qdatetime)
 
     def setSequence(self, filename):
+        """
+        Proxy function, checks whether filename matches the filter's name filter list and takes control if necessary.
+
+        :param filename: a string instance or None
+        """
         if filename is not None and not QDir.match(self._nameFilters, pathlib.Path(filename).name):
             filename = None
         self._controlsFile = filename is not None
         self._setSequence.emit(filename)
 
     def setTimeFactor(self, factor):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+
+        :param factor: time factor as a float
+        """
         if self._controlsFile:
             self._setTimeFactor.emit(factor)
 
     def hasControl(self):
+        """
+        Returns whether this proxy object has control over the player
+
+        :return: true if this proxy object has control
+        """
         return self._controlsFile
 
     def featureSet(self):
+        """
+        Returns the player device's feature set
+
+        :return: a set of strings
+        """
         return self._featureSet
 
     _startPlayback = Signal()
@@ -135,8 +178,9 @@ class PlaybackDeviceProxy(QObject):
 
 class MVCPlaybackControlBase(QObject):
     """
-    Base class for interacting with playback controller, usually this is connected to a
-    harddisk player.
+    Base class for interacting with playback controller, usually this is connected to a harddisk player. This class
+    provides the functions setupConnections and removeConnections which can be called by filters to register and
+    deregister themselfs as a playback device.
     """
     _startPlayback = Signal()
     _pausePlayback = Signal()
@@ -216,31 +260,6 @@ class MVCPlaybackControlBase(QObject):
             self._deviceId += 1
             MethodInvoker(dict(object=self, method="_updateFeatureSet", thread=mainThread()), Qt.QueuedConnection)
 
-    @handleException
-    def _stopSetSequenceStart(self, filename):
-        assertMainThread()
-        if Application.activeApplication is None:
-            logger.warning("playbackControl.setSequence is called without an active application.")
-            return
-        state = Application.activeApplication.getState()
-        if state not in [FilterState.ACTIVE, FilterState.OPENED]:
-            logger.warning("playbackControl.setSequence is called with unexpected application state %s",
-                           FilterState.state2str(state))
-            return
-        if state == FilterState.ACTIVE:
-            Application.activeApplication.stop()
-        assert Application.activeApplication.getState() == FilterState.OPENED
-        for devId, spec in self._registeredDevices.items():
-            spec["proxy"].setSequence(filename)
-            # only one filter will get the playback control
-            if spec["proxy"].hasControl():
-                filename = None
-                logger.debug("found playback device with explicit control")
-        if filename is not None:
-            logger.warning("did not find a playback device taking control")
-        Application.activeApplication.start()
-        assert Application.activeApplication.getState() == FilterState.ACTIVE
-
     @Slot(QObject)
     def removeConnections(self, playbackDevice):
         """
@@ -261,6 +280,31 @@ class MVCPlaybackControlBase(QObject):
                 logger.debug("disconnected connections of playback device. number of devices left: %d",
                              len(self._registeredDevices))
                 MethodInvoker(dict(object=self, method="_updateFeatureSet", thread=mainThread()), Qt.QueuedConnection)
+
+    @handleException
+    def _stopSetSequenceStart(self, filename):
+        assertMainThread()
+        if Application.activeApplication is None:
+            logger.warning("playbackControl.setSequence is called without an active application.")
+            return
+        state = Application.activeApplication.getState()
+        if state not in [FilterState.ACTIVE, FilterState.OPENED]:
+            logger.warning("playbackControl.setSequence is called with unexpected application state %s",
+                           FilterState.state2str(state))
+            return
+        if state == FilterState.ACTIVE:
+            Application.activeApplication.stop()
+        assert Application.activeApplication.getState() == FilterState.OPENED
+        for _, spec in self._registeredDevices.items():
+            spec["proxy"].setSequence(filename)
+            # only one filter will get the playback control
+            if spec["proxy"].hasControl():
+                filename = None
+                logger.debug("found playback device with explicit control")
+        if filename is not None:
+            logger.warning("did not find a playback device taking control")
+        Application.activeApplication.start()
+        assert Application.activeApplication.getState() == FilterState.ACTIVE
 
     def _updateFeatureSet(self):
         assertMainThread()

@@ -9,6 +9,8 @@ This module defines exceptions used in the nexxT framework.
 """
 
 def _factoryToString(factory):
+    # pylint: disable=import-outside-toplevel
+    # needed to avoid recursive import
     from nexxT.interface.Ports import InputPortInterface, OutputPortInterface
     if isinstance(factory, str):
         return factory
@@ -95,6 +97,8 @@ class UnexpectedFilterState(NexTRuntimeError):
     raised when operations are performed in unexpected filter states
     """
     def __init__(self, state, operation):
+        # pylint: disable=import-outside-toplevel
+        # needed to avoid recursive import
         from nexxT.interface.Filters import FilterState
         super().__init__("Operation '%s' cannot be performed in state %s" % (operation, FilterState.state2str(state)))
 
@@ -103,6 +107,8 @@ class FilterStateMachineError(UnexpectedFilterState):
     raised when a state transition is invalid.
     """
     def __init__(self, oldState, newState):
+        # pylint: disable=import-outside-toplevel
+        # needed to avoid recursive import
         from nexxT.interface.Filters import FilterState
         super().__init__(oldState, "Transition to " + FilterState.state2str(newState))
 
