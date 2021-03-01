@@ -348,3 +348,5 @@ Next step is to create the launch.json file for our debug session (manually or v
 
 The "module" setting is the critical part. Under the hood VS code will invoke :code:`python -m <module>`.
 With the "justMyCode" setting, we can extend debugging to external code loaded by our application.
+
+We're all set, now we can run our debug session by pressing F5 or the "Run" menu.
