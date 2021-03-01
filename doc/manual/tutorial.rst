@@ -323,7 +323,7 @@ Btw, with these settings at hand, the venv will also be started automatically wh
 
 Next step is to create the launch.json file for our debug session (manually or via "Run/Add configuration"). Your launch.json file in .vscode folder should look like this:
 
-.. code-block:: JSON
+.. code-block::
     {
         "version": "0.2.0",
         "configurations": [
