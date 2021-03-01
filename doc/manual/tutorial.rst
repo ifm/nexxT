@@ -311,3 +311,4 @@ Debugging
 
 Visual Studio Code
 ^^^^^^^^^^^^^^^^^^
+To start with VS Code make sure the Python extension for VS Code is installed (`see here <https://code.visualstudio.com/docs/languages/python>`_).
