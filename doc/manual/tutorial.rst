@@ -306,3 +306,8 @@ For being able to announce the C++ filters, the plugin needs to be defined. This
     .. literalinclude:: ../../nexxT/tests/src/Plugins.cpp
         :language: c
 
+Debugging
++++++++++
+
+Visual Studio Code
+^^^^^^^^^^^^^^^^^^
