@@ -317,20 +317,21 @@ Open VS Code in your source code directory via menu ("File/Open Folder") or cd i
 
 Setting virtual environment
 ***************************
-If you're not using venv, continue to the next section. In case you are using a virtual environment, we need to tell VS Code which python interpreter to use. Use the python executable in that particular venv.
-Open the settings.json file in your .vscode directory (or create it) and add following variable definition:
+If you're not using venv, continue to the next section. In case you are using a virtual environment, we need to provide VS Code some information.
+Open the settings.json file in your .vscode directory (or create it). Your settings should include following information:
 
 .. code-block:: JSON
 
     {
-        "python.pythonPath": "/folder/of/to/python/interpreter/python.exe"
+        "python.pythonPath": "/path/to/your/python/interpreter/python.exe",
+        "python.venvPath": "/path/to/your/venv",
+        "python.terminal.activateEnvironment": true
     }
 
-The path should be an absolute path.
+The paths should be an absolute path. If :code:`"python.pythonPath"` is inside your venv, :code:`"python.venvPath"` is not required, VS Code will recognize it and activate venv automatically.
+Important: Make sure that at least one .py file is opened in the editor when starting debugging, otherwise the venv may not be activated (the author does not know exactly under which circumstances this is required, but this information may safe you some time searching the internet).
 
-If the interpreter is located in a virtual environment, VS Code will recognize it and activate it automatically.
-Important: Make sure that at least one .py file is opened in the editor when starting debugging, otherwise the venv will not be activated.
-Btw, with these settings at hand, the venv will also be started automatically when we open a new terminal ("Terminal/New Terminal").
+With these settings at hand, venv will also be started automatically when we create a new terminal in VS Code ("Terminal/New Terminal").
 
 Configuring launch file
 ***********************
