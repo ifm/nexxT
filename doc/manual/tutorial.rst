@@ -312,3 +312,29 @@ Debugging
 Visual Studio Code
 ^^^^^^^^^^^^^^^^^^
 To start with VS Code make sure the Python extension for VS Code is installed (`see here <https://code.visualstudio.com/docs/languages/python>`_).
+
+Open VS Code in your source code directory via menu ("File/Open Folder") or cd in your terminal of choice to your folder and start VS Code by typing :code:`code .`.
+First we need to tell VS Code which python interpreter to use.
+Open the settings.json file in your .vscode directory (or create it) and add following variable definition: :code:`"python.pythonPath": "/folder/of/to/python/interpreter/python.exe"
+The path should be an absolute path.
+
+If the interpreter is located in a virtual environment, VS Code will recognize it and activate it automatically.
+Important: Make sure at least one .py file is opened in the editor, otherwise the venv will not be activated.
+
+Next step is to create the launch.json file for our debug session (manually or via "Run/Add configuration"). Your launch.json file in .vscode folder should look like this:
+:code:`
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Modul",
+            "type": "python",
+            "request": "launch",
+            "module": "nexxT.core.AppConsole",
+            "justMyCode": false
+        }
+    ]
+}
+`
+The module information is the critical part. Under the hood VS code will invoke :code:`python -m <module>`.
+With the "justMyCode" setting, we can extend debugging to external code.
