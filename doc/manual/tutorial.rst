@@ -329,7 +329,7 @@ Open the settings.json file in your .vscode directory (or create it). Your setti
     }
 
 The paths should be an absolute path. If :code:`"python.pythonPath"` is inside your venv, :code:`"python.venvPath"` is not required, VS Code will recognize it and activate venv automatically.
-Important: Make sure that at least one .py file is opened in the editor when starting debugging, otherwise the venv may not be activated (the author does not know exactly under which circumstances this is required, but this information may safe you some time searching the internet).
+Important: Make sure that at least one .py file is opened in the editor when starting debugging, otherwise the venv may not be activated (the author does not know exactly under which circumstances this is required, but this information may safe you some time searching the internet when things don't go as expected).
 
 With these settings at hand, venv will also be started automatically when we create a new terminal in VS Code ("Terminal/New Terminal").
 
