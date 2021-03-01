@@ -309,7 +309,7 @@ For being able to announce the C++ filters, the plugin needs to be defined. This
 Debugging
 +++++++++
 
-Python with Visual Studio Code
+Python debugging with Visual Studio Code
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 To start with VS Code make sure the Python extension for VS Code is installed (`see here <https://code.visualstudio.com/docs/languages/python>`_).
 
