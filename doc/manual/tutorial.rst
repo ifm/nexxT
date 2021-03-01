@@ -310,11 +310,14 @@ Debugging
 +++++++++
 
 Python debugging with Visual Studio Code
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 To start with VS Code make sure the Python extension for VS Code is installed (`see here <https://code.visualstudio.com/docs/languages/python>`_).
 
 Open VS Code in your source code directory via menu ("File/Open Folder") or cd in your terminal of choice to your folder and start VS Code by typing :code:`code .` (dot for the current directory).
-First we need to tell VS Code which python interpreter to use.
+
+Setting virtual environment
+***************************
+If you're not using venv, continue to the next section. In case you are using a virtual environment, we need to tell VS Code which python interpreter to use. Use the python executable in that particular venv.
 Open the settings.json file in your .vscode directory (or create it) and add following variable definition:
 
 .. code-block:: JSON
@@ -329,7 +332,9 @@ If the interpreter is located in a virtual environment, VS Code will recognize i
 Important: Make sure that at least one .py file is opened in the editor when starting debugging, otherwise the venv will not be activated.
 Btw, with these settings at hand, the venv will also be started automatically when we open a new terminal ("Terminal/New Terminal").
 
-Next step is to create the launch.json file for our debug session (manually or via "Run/Add configuration"). Your launch.json file in .vscode folder should look like this:
+Configuring launch file
+***********************
+The next step is to create the launch.json file for our debug session (manually or via "Run/Add configuration"). Your launch.json file in .vscode folder should look like this:
 
 .. code-block:: JSON
 
