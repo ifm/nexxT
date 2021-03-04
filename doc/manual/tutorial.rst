@@ -308,6 +308,7 @@ For being able to announce the C++ filters, the plugin needs to be defined. This
 
 Debugging
 +++++++++
+Debugging can be achieved with any IDE of your choice which supports starting python modules (a.k.a. python -m ). The nexxT-gui start script can be replaced by python -m nexxT.core.AppConsole. See specific examples below.
 
 Python debugging with Visual Studio Code
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
