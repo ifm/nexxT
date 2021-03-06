@@ -259,6 +259,9 @@ class Hdf5File(GenericReaderFile):
         :return: (content: QByteArray, dataType: str, dataTimestamp: int, receiveTimestamp: int)
         """
         content, dataType, dataTimestamp, receiveTimestamp = self._file["streams"][stream][streamIdx]
+        if isinstance(dataType, bytes):
+            # this is happening now with h5py >= 3.x
+            dataType = dataType.decode()
         return content.tobytes(), dataType, dataTimestamp, receiveTimestamp
 
     def getRcvTimestamp(self, stream, streamIdx):
