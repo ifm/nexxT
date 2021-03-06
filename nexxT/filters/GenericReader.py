@@ -22,7 +22,12 @@ class GenericReaderFile:
     """
     Interface for adaptations of new file formats.
 
-    See :py:class:`nexxT.filters.hdf5.Hdf5File` for an example.
+    For supporting new file formats, inherit from this class and overwrite all of the methods listed here. The
+    constructor of the inherited class usually takes a filename argument. Inherit also from GenericReader to provide
+    a new Filter class and overwrite the methods getNameFilter and openFile, which returns an instance of the
+    GenericReaderFile implementation.
+
+    See :py:class:`nexxT.filters.hdf5.Hdf5File` and :py:class:`nexxT.filters.hdf5.Hdf5Reader` for an example.
     """
 
     # pylint: disable=no-self-use
@@ -281,6 +286,8 @@ class GenericReader(Filter):
         """
         if self._name is not None:
             self._file = self.openFile(self._name) # pylint: disable=assignment-from-no-return
+            if not isinstance(self._file, GenericReaderFile):
+                logger.error("Unexpected instance returned from openFile(...) method of instance %s", (repr(self)))
             self._portToIdx = {}
             self._ports = self.getDynamicOutputPorts()
             for s in self._file.allStreams():
@@ -339,6 +346,8 @@ class GenericReader(Filter):
                                                  filter="Support files (%s)" % (" ".join(self.getNameFilter())))
             if ok:
                 f = self.openFile(fn) # pylint: disable=assignment-from-no-return
+                if not isinstance(f, GenericReaderFile):
+                    logger.error("Unexpected instance returned from openFile(...) method of instance %s", (repr(self)))
                 return [], list(f.allStreams())
         except Exception: # pylint: disable=broad-except
             logger.exception("Caught exception during onSuggestDynamicPorts")

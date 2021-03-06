@@ -750,7 +750,9 @@ class BasicTest(GuiTestBase):
             self.qtbot.wait(2000)
             self.cmContextMenu(conf, appidx, CM_INIT_APP_AND_PLAY, 0)
             self.qtbot.wait(2000)
-            self.noWarningsInLog(log, ignore = ["did not find a playback device taking control"])
+            self.noWarningsInLog(log, ignore=[
+                "did not find a playback device taking control",
+                "The inter-thread connection is set to stopped mode; data sample discarded."])
         finally:
             if not self.keep_open:
                 if conf.configuration().dirty():
