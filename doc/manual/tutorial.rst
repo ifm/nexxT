@@ -306,3 +306,55 @@ For being able to announce the C++ filters, the plugin needs to be defined. This
     .. literalinclude:: ../../nexxT/tests/src/Plugins.cpp
         :language: c
 
+Debugging
++++++++++
+Debugging can be achieved with any IDE of your choice which supports starting python modules (a.k.a. python -m ). The nexxT-gui start script can be replaced by python -m nexxT.core.AppConsole. See specific examples below.
+
+Python debugging with Visual Studio Code
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To start with VS Code make sure the Python extension for VS Code is installed (`see here <https://code.visualstudio.com/docs/languages/python>`_).
+
+Open VS Code in your source code directory via menu ("File/Open Folder") or cd in your terminal of choice to your folder and start VS Code by typing :code:`code .` (dot for the current directory).
+
+Setting virtual environment
+***************************
+If you're not using venv, continue to the next section. In case you are using a virtual environment, we need to provide VS Code some information.
+Open the settings.json file in your .vscode directory (or create it). Your settings should include following information:
+
+.. code-block:: JSON
+
+    {
+        "python.pythonPath": "/path/to/your/python/interpreter/python.exe",
+        "python.venvPath": "/path/to/your/venv",
+        "python.terminal.activateEnvironment": true
+    }
+
+The paths should be absolute. If :code:`"python.pythonPath"` is inside your venv, :code:`"python.venvPath"` is not required, VS Code will recognize it and activate venv automatically.
+
+**Note**: Make sure that at least one .py file is opened in the editor when starting debugging, otherwise the venv may not be activated (the author does not know exactly under which circumstances this is required, but this information may safe you some time searching the internet when things don't go as expected).
+
+With these settings at hand, venv will also be started automatically when we create a new terminal in VS Code ("Terminal/New Terminal").
+
+Configuring launch file
+***********************
+The next step is to create the launch.json file for our debug session (manually or via "Run/Add configuration"). Your launch.json file in .vscode folder should look like this:
+
+.. code-block:: JSON
+
+    {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: Modul",
+                "type": "python",
+                "request": "launch",
+                "module": "nexxT.core.AppConsole",
+                "justMyCode": false
+            }
+        ]
+    }
+
+The "module" setting is the critical part. Under the hood VS code will invoke :code:`python -m <module>`.
+With the "justMyCode" setting, we can extend debugging to external code loaded by our application.
+
+We're all set, now we can run our debug session by pressing F5 or the "Run" menu.
