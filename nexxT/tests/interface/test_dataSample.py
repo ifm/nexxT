@@ -27,13 +27,17 @@ def test_currentTime():
     ts = time.time()
     lastT = DataSample.currentTime()
     factor = round(DataSample.TIMESTAMP_RES / 1e-9)
+    deltas = []
     while time.time() - ts < 3:
         t = DataSample.currentTime()
         # assert that the impementation is consistent with time.time()
-        assert abs(t - (time.time_ns() // factor))*DataSample.TIMESTAMP_RES < 1e-3
+        deltas.append(abs(t - (time.time_ns() // factor))*DataSample.TIMESTAMP_RES)
         if t != lastT:
             shortestDelta = min(t - lastT, shortestDelta)
         lastT = t
+
+    # make sure that the average delta is smaller than 1 millisecond
+    assert sum(deltas)/len(deltas) < 1e-3
     shortestDelta = shortestDelta * DataSample.TIMESTAMP_RES
     # we want at least 10 microseconds resolution
     print("shortestDelta: %s" % shortestDelta)
