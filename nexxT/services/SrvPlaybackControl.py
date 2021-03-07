@@ -10,7 +10,7 @@ This module provides the playback control console service for the nexxT framewor
 
 import pathlib
 import logging
-from PySide2.QtCore import QObject, Signal, Slot, QDateTime, Qt, QDir, QMutex, QMutexLocker
+from PySide2.QtCore import QObject, Signal, Slot, Qt, QDir, QMutex, QMutexLocker
 from nexxT.interface import FilterState
 from nexxT.core.Exceptions import NexTRuntimeError
 from nexxT.core.Application import Application
@@ -95,14 +95,14 @@ class PlaybackDeviceProxy(QObject):
         if self._controlsFile:
             self._seekEnd.emit()
 
-    def seekTime(self, qdatetime):
+    def seekTime(self, timestamp_ns):
         """
         Proxy function, checks whether this proxy has control and emits the signal if necessary
 
-        :param qdatetime: a QDateTime instance
+        :param timestamp_ns: the timestamp in nanoseconds
         """
         if self._controlsFile:
-            self._seekTime.emit(qdatetime)
+            self._seekTime.emit(timestamp_ns)
 
     def setSequence(self, filename):
         """
@@ -146,11 +146,11 @@ class PlaybackDeviceProxy(QObject):
     _stepBackward = Signal(str)
     _seekBeginning = Signal()
     _seekEnd = Signal()
-    _seekTime = Signal(QDateTime)
+    _seekTime = Signal('qint64')
     _setSequence = Signal(object)
     _setTimeFactor = Signal(float)
-    sequenceOpened = Signal(str, QDateTime, QDateTime, object)
-    currentTimestampChanged = Signal(QDateTime)
+    sequenceOpened = Signal(str, 'qint64', 'qint64', object)
+    currentTimestampChanged = Signal('qint64')
     playbackStarted = Signal()
     playbackPaused = Signal()
     timeRatioChanged = Signal(float)
@@ -188,7 +188,7 @@ class MVCPlaybackControlBase(QObject):
     _stepBackward = Signal(str)
     _seekBeginning = Signal()
     _seekEnd = Signal()
-    _seekTime = Signal(QDateTime)
+    _seekTime = Signal('qint64')
     _setSequence = Signal(object)
     _setTimeFactor = Signal(float)
 
@@ -215,14 +215,14 @@ class MVCPlaybackControlBase(QObject):
         - stepBackward(QString stream) (optional; see stepForward)
         - seekBeginning(QString stream) (optional; goes to the beginning of the sequence)
         - seekEnd() (optional; goes to the end of the stream)
-        - seekTime(QString QDateTime) (optional; goes to the specified time stamp)
+        - seekTime(qint64) (optional; goes to the specified time stamp)
         - setSequence(QString) (optional; opens the given sequence)
         - setTimeFactor(float) (optional; sets the playback time factor, factor > 0)
 
         It expects playbackDevice to provide the following signals (all signals are optional):
 
-        - sequenceOpened(QString filename, QDateTime begin, QDateTime end, QStringList streams)
-        - currentTimestampChanged(QDateTime currentTime)
+        - sequenceOpened(QString filename, qint64 begin, qint64 end, QStringList streams)
+        - currentTimestampChanged(qint64 currentTime)
         - playbackStarted()
         - playbackPaused()
         - timeRatioChanged(float)
@@ -372,8 +372,8 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     The GUI service inherits from this class, so that the GUI can also be scripted in the same way.
     """
     supportedFeaturesChanged = Signal(object, object)
-    sequenceOpened = Signal(str, QDateTime, QDateTime, object)
-    currentTimestampChanged = Signal(QDateTime)
+    sequenceOpened = Signal(str, 'qint64', 'qint64', object)
+    currentTimestampChanged = Signal('qint64')
     playbackStarted = Signal()
     playbackPaused = Signal()
     timeRatioChanged = Signal(float)
@@ -433,14 +433,14 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         """
         self._seekEnd.emit()
 
-    def seekTime(self, datetime):
+    def seekTime(self, timestamp_ns):
         """
         Seek to the specified time
 
-        :param datetime: a QDateTime instance
+        :param timestamp_ns: the timestamp in nanoseconds
         :return:
         """
-        self._seekTime.emit(datetime)
+        self._seekTime.emit(timestamp_ns)
 
     def setSequence(self, file):
         """

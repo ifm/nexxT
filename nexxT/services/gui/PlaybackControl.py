@@ -10,7 +10,7 @@ This module provides the nexxT GUI service PlaybackControl
 import functools
 import logging
 from pathlib import Path
-from PySide2.QtCore import Signal, QDateTime, Qt, QTimer, QDir
+from PySide2.QtCore import Signal, Qt, QTimer, QDir
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (QWidget, QGridLayout, QLabel, QBoxLayout, QSlider, QToolBar, QAction, QApplication,
                                QStyle, QActionGroup)
@@ -229,10 +229,10 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         assertMainThread()
         self.beginTime = begin
         self.preventSeek = True
-        self.positionSlider.setRange(0, end.toMSecsSinceEpoch() - begin.toMSecsSinceEpoch())
+        self.positionSlider.setRange(0, (end - begin)//1000000)
         self.preventSeek = False
-        self.beginLabel.setText(begin.toString("hh:mm:ss.zzz"))
-        self.endLabel.setText(end.toString("hh:mm:ss.zzz"))
+        self.beginLabel.setText(self._timeToString(0))
+        self.endLabel.setText(self._timeToString((end - begin)//1000000))
         self._currentTimestampChanged(begin)
         try:
             self.browser.blockSignals(True)
@@ -254,6 +254,20 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         QTimer.singleShot(250, self.scrollToCurrent)
         super()._sequenceOpened(filename, begin, end, streams)
 
+    @staticmethod
+    def _splitTime(milliseconds):
+        hours = milliseconds // (60 * 60 * 1000)
+        milliseconds -= hours * (60 * 60 * 1000)
+        minutes = milliseconds // (60 * 1000)
+        milliseconds -= minutes * (60 * 1000)
+        seconds = milliseconds // 1000
+        milliseconds -= seconds * 1000
+        return hours, minutes, seconds, milliseconds
+
+    @staticmethod
+    def _timeToString(milliseconds):
+        return "%02d:%02d:%02d.%03d" % (MVCPlaybackControlGUI._splitTime(milliseconds))
+
     def _currentTimestampChanged(self, currentTime):
         """
         Notifies about a changed timestamp
@@ -265,13 +279,13 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         if self.beginTime is None:
             self.currentLabel.setText("")
         else:
-            sliderVal = currentTime.toMSecsSinceEpoch() - self.beginTime.toMSecsSinceEpoch()
+            sliderVal = (currentTime - self.beginTime) // 1000000 # nanoseconds to milliseconds
             self.preventSeek = True
             self.positionSlider.setValue(sliderVal)
             self.preventSeek = False
             self.positionSlider.blockSignals(False)
             self.currentLabel.setEnabled(True)
-            self.currentLabel.setText(currentTime.toString("hh:mm:ss.zzz"))
+            self.currentLabel.setText(self._timeToString(sliderVal))
         super()._currentTimestampChanged(currentTime)
 
     def onSliderValueChanged(self, value):
@@ -285,7 +299,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         if self.beginTime is None or self.preventSeek:
             return
         if self.actStart.isEnabled():
-            ts = QDateTime.fromMSecsSinceEpoch(self.beginTime.toMSecsSinceEpoch() + value, self.beginTime.timeSpec())
+            ts = self.beginTime + value * 1000000
             self.seekTime(ts)
         else:
             logger.warning("Can't seek while playing.")
@@ -301,9 +315,9 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         if self.beginTime is None:
             return
         if self.positionSlider.isSliderDown():
-            ts = QDateTime.fromMSecsSinceEpoch(self.beginTime.toMSecsSinceEpoch() + value, self.beginTime.timeSpec())
+            ts = self.beginTime // 1000000 + value
             self.currentLabel.setEnabled(False)
-            self.currentLabel.setText(ts.toString("hh:mm:ss.zzz"))
+            self.currentLabel.setText(self._timeToString(ts))
 
     def _playbackStarted(self):
         """

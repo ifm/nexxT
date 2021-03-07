@@ -11,7 +11,7 @@ This module provides a generic reader which can be inherited to use new data for
 import time
 import logging
 import math
-from PySide2.QtCore import Signal, QDateTime, QTimer
+from PySide2.QtCore import Signal, QTimer
 from PySide2.QtWidgets import QFileDialog
 from nexxT.interface import Filter, Services, DataSample
 from nexxT.core.Utils import handleException, isMainThread
@@ -99,8 +99,8 @@ class GenericReader(Filter):
     # signals for playback device
     playbackStarted = Signal()
     playbackPaused = Signal()
-    sequenceOpened = Signal(str, QDateTime, QDateTime, list)
-    currentTimestampChanged = Signal(QDateTime)
+    sequenceOpened = Signal(str, 'qint64', 'qint64', list)
+    currentTimestampChanged = Signal('qint64')
     timeRatioChanged = Signal(float)
 
     # methods to be overloaded
@@ -197,14 +197,14 @@ class GenericReader(Filter):
         self._dir = +1
         self._updateCurrentTimestamp()
 
-    def seekTime(self, tgtDatetime):
+    def seekTime(self, timestamp):
         """
         slot called to go to the specified time
 
-        :param tgtDatetime: a QDateTime instance
+        :param timestamp: a timestamp in nanosecond resolution
         :return:
         """
-        t = (tgtDatetime.toMSecsSinceEpoch()*self._file.getTimestampResolution())//1000
+        t = timestamp // (1000000000//self._file.getTimestampResolution())
         nValid = 0
         for p in self._portToIdx:
             # binary search
@@ -288,6 +288,18 @@ class GenericReader(Filter):
             self._file = self.openFile(self._name) # pylint: disable=assignment-from-no-return
             if not isinstance(self._file, GenericReaderFile):
                 logger.error("Unexpected instance returned from openFile(...) method of instance %s", (repr(self)))
+            # sanity checks for the timestamp resolutions
+            # spit out some errors because when these checks fail, the timestamp logic doesn't work
+            # note that nexxT tries to avoid applying floating point arithmetics to timestamps due to possible loss
+            # of accuracy
+            tsResolution = self._file.getTimestampResolution()
+            f = DataSample.TIMESTAMP_RES*tsResolution
+            if (f > 1 and f % 1.0 != 0.0) or (f < 1 and (1/f) % 1.0 != 0.0):
+                logger.error("timestamp resolution of opened instance %s is no integer multiple of internal resolution",
+                             repr(self._file))
+            if (1000000000/tsResolution) % 1.0 != 0.0:
+                logger.error("timestamp resolution of opened instance %s is no integer multiple of nanoseconds",
+                             repr(self._file))
             self._portToIdx = {}
             self._ports = self.getDynamicOutputPorts()
             for s in self._file.allStreams():
@@ -363,8 +375,8 @@ class GenericReader(Filter):
             tmin = min(t, tmin)
             t = self._file.getRcvTimestamp(p, self._file.getNumberOfSamples(p)-1)
             tmax = max(t, tmax)
-        return (QDateTime.fromMSecsSinceEpoch((tmin*1000)//self._file.getTimestampResolution()),
-                QDateTime.fromMSecsSinceEpoch((tmax*1000)//self._file.getTimestampResolution()))
+        return (tmin*(1000000000//self._file.getTimestampResolution()),
+                tmax*(1000000000//self._file.getTimestampResolution()))
 
     def _getNextSample(self):
         # check which port has the next sample to deliver according to rcv timestamps
@@ -414,13 +426,18 @@ class GenericReader(Filter):
         # read data sample from HDF5 file
         content, dataType, dataTimestamp, rcvTimestamp = self._file.readSample(pname, idx)
         # create sample to transmit
-        sample = DataSample(content, dataType, int(dataTimestamp/(DataSample.TIMESTAMP_RES *
-                                                                  self._file.getTimestampResolution())))
+        f = 1/(DataSample.TIMESTAMP_RES * self._file.getTimestampResolution())
+        if f >= 1:
+            f = round(f)
+            tsData = dataTimestamp * f
+        else:
+            f = round(1/f)
+            tsData = dataTimestamp // f
+        sample = DataSample(content, dataType, tsData)
         res = time.perf_counter_ns()
         # transmit sample over corresponding port
         self._ports[[p.name() for p in self._ports].index(pname)].transmit(sample)
-        self._currentTimestampChanged(QDateTime.fromMSecsSinceEpoch(rcvTimestamp*1000//
-                                                                    self._file.getTimestampResolution()))
+        self._currentTimestampChanged(rcvTimestamp*(1000000000//self._file.getTimestampResolution()))
         if self._untilStream is not None:
             if self._untilStream == pname or self._untilStream == '':
                 self.pausePlayback()

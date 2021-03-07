@@ -41,10 +41,10 @@ signals:
     void playbackStarted();
     void playbackPaused();
     void sequenceOpened(const QString &file,
-                        const QDateTime &begin,
-                        const QDateTime &end,
+                        const qint64 begin,
+                        const qint64 end,
                         const QStringList &streams);
-    void currentTimestampChanged(const QDateTime &);
+    void currentTimestampChanged(qint64);
     void timeRatioChanged(double);
 
 public slots:
@@ -61,7 +61,7 @@ public slots:
     void stepForward(const QString &stream);
     void seekBeginning();
     void seekEnd();
-    void seekTime(const QDateTime &pos);
+    void seekTime(qint64);
     void setSequence(const QString &_filename);
     void setTimeFactor(double factor);
 protected:
