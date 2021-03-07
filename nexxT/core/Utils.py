@@ -420,36 +420,37 @@ class ElidedLabel(QFrame):
         :param event: a QPaintEvent instance
         :return:
         """
+        self._paintEvent(event)
+
+    @handleException
+    def _paintEvent(self, event):
         super().paintEvent(event)
         painter = QPainter(self)
-        try:
-            fontMetrics = painter.fontMetrics()
-            lineSpacing = self.fontMetrics().lineSpacing()
-            y = 0
-            textLayout = QTextLayout(self._content, painter.font())
-            textLayout.setTextOption(self._textOption)
-            textLayout.beginLayout()
-            while True:
-                line = textLayout.createLine()
-                if not line.isValid():
-                    break
-                line.setLineWidth(self.width())
-                nextLineY = y + lineSpacing
-                if self.height() >= nextLineY + lineSpacing:
-                    # not the last line
-                    elidedLine = self._content[line.textStart():line.textStart() + line.textLength()]
-                    elidedLine = fontMetrics.elidedText(elidedLine, self._elideMode, self.width())
-                    painter.drawText(QPoint(0, y + fontMetrics.ascent()), elidedLine)
-                    y = nextLineY
-                else:
-                    # last line, check if we are to elide here to the end
-                    lastLine = self._content[line.textStart():]
-                    elidedLastLine = fontMetrics.elidedText(lastLine, self._elideMode, self.width())
-                    painter.drawText(QPoint(0, y + fontMetrics.ascent()), elidedLastLine)
-                    break
-            textLayout.endLayout()
-        except Exception as e:
-            logger.exception("Exception during paint: %s", e)
+        fontMetrics = painter.fontMetrics()
+        lineSpacing = self.fontMetrics().lineSpacing()
+        y = 0
+        textLayout = QTextLayout(self._content, painter.font())
+        textLayout.setTextOption(self._textOption)
+        textLayout.beginLayout()
+        while True:
+            line = textLayout.createLine()
+            if not line.isValid():
+                break
+            line.setLineWidth(self.width())
+            nextLineY = y + lineSpacing
+            if self.height() >= nextLineY + lineSpacing:
+                # not the last line
+                elidedLine = self._content[line.textStart():line.textStart() + line.textLength()]
+                elidedLine = fontMetrics.elidedText(elidedLine, self._elideMode, self.width())
+                painter.drawText(QPoint(0, y + fontMetrics.ascent()), elidedLine)
+                y = nextLineY
+            else:
+                # last line, check if we are to elide here to the end
+                lastLine = self._content[line.textStart():]
+                elidedLastLine = fontMetrics.elidedText(lastLine, self._elideMode, self.width())
+                painter.drawText(QPoint(0, y + fontMetrics.ascent()), elidedLastLine)
+                break
+        textLayout.endLayout()
 
 if __name__ == "__main__": # pragma: no cover
     def _smokeTestBarrier():

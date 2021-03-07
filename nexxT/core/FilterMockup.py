@@ -66,8 +66,6 @@ class FilterMockup(FilterEnvironment):
         Creates the filter, performs init() operation and updates the port information.
         :return: None
         """
-        # TODO is it really a good idea to use queued connections for dynamic port changes?
-        #      maybe there is a better way to prevent too many calls to _createFilterAndUpdate
         if immediate:
             self._createFilterAndUpdate()
             self._createFilterAndUpdatePending = None

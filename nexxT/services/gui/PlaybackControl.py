@@ -10,7 +10,7 @@ This module provides the nexxT GUI service PlaybackControl
 import functools
 import logging
 from pathlib import Path
-from PySide2.QtCore import Signal, QDateTime, Qt, QTimer
+from PySide2.QtCore import Signal, Qt, QTimer, QDir
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (QWidget, QGridLayout, QLabel, QBoxLayout, QSlider, QToolBar, QAction, QApplication,
                                QStyle, QActionGroup)
@@ -67,17 +67,17 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
 
         # pylint: disable=unnecessary-lambda
         # let's stay on the safe side and do not use emit as a slot...
-        self.actStart.triggered.connect(lambda: self._startPlayback.emit())
-        self.actPause.triggered.connect(lambda: self._pausePlayback.emit())
-        self.actStepFwd.triggered.connect(lambda: self._stepForward.emit(self.selectedStream()))
-        self.actStepBwd.triggered.connect(lambda: self._stepBackward.emit(self.selectedStream()))
-        self.actSeekEnd.triggered.connect(lambda: self._seekEnd.emit())
-        self.actSeekBegin.triggered.connect(lambda: self._seekBeginning.emit())
+        self.actStart.triggered.connect(self.startPlayback)
+        self.actPause.triggered.connect(self.pausePlayback)
+        self.actStepFwd.triggered.connect(lambda: self.stepForward(self.selectedStream()))
+        self.actStepBwd.triggered.connect(lambda: self.stepBackward(self.selectedStream()))
+        self.actSeekEnd.triggered.connect(self.seekEnd)
+        self.actSeekBegin.triggered.connect(self.seekBeginning)
         # pylint: enable=unnecessary-lambda
 
         def setTimeFactor(newFactor):
             logger.debug("new time factor %f", newFactor)
-            self._setTimeFactor.emit(newFactor)
+            self.setTimeFactor(newFactor)
 
         for r in self.actSetTimeFactor:
             logger.debug("adding action for time factor %f", r)
@@ -163,6 +163,12 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
 
     def _onNameFiltersChanged(self, nameFilt):
         self.browser.setFilter(nameFilt)
+        if isinstance(nameFilt, str):
+            nameFilt = [nameFilt]
+        for a in self.recentSeqs:
+            if a.isVisible():
+                m = QDir.match(nameFilt, Path(a.data()).name)
+                a.setEnabled(m)
 
     def _onShowAllFiles(self, enabled):
         self.fileSystemModel.setNameFilterDisables(enabled)
@@ -223,10 +229,10 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         assertMainThread()
         self.beginTime = begin
         self.preventSeek = True
-        self.positionSlider.setRange(0, end.toMSecsSinceEpoch() - begin.toMSecsSinceEpoch())
+        self.positionSlider.setRange(0, (end - begin)//1000000)
         self.preventSeek = False
-        self.beginLabel.setText(begin.toString("hh:mm:ss.zzz"))
-        self.endLabel.setText(end.toString("hh:mm:ss.zzz"))
+        self.beginLabel.setText(self._timeToString(0))
+        self.endLabel.setText(self._timeToString((end - begin)//1000000))
         self._currentTimestampChanged(begin)
         try:
             self.browser.blockSignals(True)
@@ -248,6 +254,20 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         QTimer.singleShot(250, self.scrollToCurrent)
         super()._sequenceOpened(filename, begin, end, streams)
 
+    @staticmethod
+    def _splitTime(milliseconds):
+        hours = milliseconds // (60 * 60 * 1000)
+        milliseconds -= hours * (60 * 60 * 1000)
+        minutes = milliseconds // (60 * 1000)
+        milliseconds -= minutes * (60 * 1000)
+        seconds = milliseconds // 1000
+        milliseconds -= seconds * 1000
+        return hours, minutes, seconds, milliseconds
+
+    @staticmethod
+    def _timeToString(milliseconds):
+        return "%02d:%02d:%02d.%03d" % (MVCPlaybackControlGUI._splitTime(milliseconds))
+
     def _currentTimestampChanged(self, currentTime):
         """
         Notifies about a changed timestamp
@@ -259,13 +279,13 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         if self.beginTime is None:
             self.currentLabel.setText("")
         else:
-            sliderVal = currentTime.toMSecsSinceEpoch() - self.beginTime.toMSecsSinceEpoch()
+            sliderVal = (currentTime - self.beginTime) // 1000000 # nanoseconds to milliseconds
             self.preventSeek = True
             self.positionSlider.setValue(sliderVal)
             self.preventSeek = False
             self.positionSlider.blockSignals(False)
             self.currentLabel.setEnabled(True)
-            self.currentLabel.setText(currentTime.toString("hh:mm:ss.zzz"))
+            self.currentLabel.setText(self._timeToString(sliderVal))
         super()._currentTimestampChanged(currentTime)
 
     def onSliderValueChanged(self, value):
@@ -279,8 +299,8 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         if self.beginTime is None or self.preventSeek:
             return
         if self.actStart.isEnabled():
-            ts = QDateTime.fromMSecsSinceEpoch(self.beginTime.toMSecsSinceEpoch() + value, self.beginTime.timeSpec())
-            self._seekTime.emit(ts)
+            ts = self.beginTime + value * 1000000
+            self.seekTime(ts)
         else:
             logger.warning("Can't seek while playing.")
 
@@ -295,9 +315,9 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         if self.beginTime is None:
             return
         if self.positionSlider.isSliderDown():
-            ts = QDateTime.fromMSecsSinceEpoch(self.beginTime.toMSecsSinceEpoch() + value, self.beginTime.timeSpec())
+            ts = self.beginTime // 1000000 + value
             self.currentLabel.setEnabled(False)
-            self.currentLabel.setText(ts.toString("hh:mm:ss.zzz"))
+            self.currentLabel.setText(self._timeToString(ts))
 
     def _playbackStarted(self):
         """
@@ -357,7 +377,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
             self.recentSeqs[0].setText(self.compressFileName(filename))
             self.recentSeqs[0].setData(filename)
             self.recentSeqs[0].setVisible(True)
-            self._setSequence.emit(filename)
+            self.setSequence(filename)
 
     def _timeRatioChanged(self, newRatio):
         """
@@ -442,6 +462,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
                 self.recentSeqs[idx].setData(f)
                 self.recentSeqs[idx].setText(self.compressFileName(f))
                 self.recentSeqs[idx].setVisible(True)
+                self.recentSeqs[idx].setEnabled(False)
                 idx += 1
                 if idx >= len(self.recentSeqs):
                     break

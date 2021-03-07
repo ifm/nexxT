@@ -218,7 +218,8 @@ class SubConfiguration(QObject):
         :param mockup:
         :return: set of strings
         """
-        # avoid recursive import
+        # pylint: disable=import-outside-toplevel
+        # needed to avoid recursive import
         from nexxT.core.CompositeFilter import CompositeFilter
         from nexxT.core.FilterMockup import FilterMockup
         if isinstance(item, FilterMockup):

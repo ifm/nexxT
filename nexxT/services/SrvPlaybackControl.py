@@ -10,7 +10,7 @@ This module provides the playback control console service for the nexxT framewor
 
 import pathlib
 import logging
-from PySide2.QtCore import QObject, Signal, Slot, QDateTime, Qt, QDir, QMutex, QMutexLocker
+from PySide2.QtCore import QObject, Signal, Slot, Qt, QDir, QMutex, QMutexLocker
 from nexxT.interface import FilterState
 from nexxT.core.Exceptions import NexTRuntimeError
 from nexxT.core.Application import Application
@@ -18,10 +18,169 @@ from nexxT.core.Utils import assertMainThread, MethodInvoker, handleException, m
 
 logger = logging.getLogger(__name__)
 
+class PlaybackDeviceProxy(QObject):
+    """
+    This class acts as a proxy and is connected to exactly one playback device over QT signals slots for providing
+    thread safety.
+    """
+    def __init__(self, playbackControl, playbackDevice, nameFilters):
+        super().__init__()
+        # private variables
+        self._playbackControl = playbackControl
+        self._nameFilters = nameFilters
+        self._controlsFile = False # is set to True when setSequence is called with a matching file name
+        self._featureSet = {}
+        # this instance is called in the playbackDevice's thread, move it to the playbackControl thread (= main thread)
+        self.moveToThread(playbackControl.thread())
+        # setup mandatory connections from control to playback
+        if not self._startPlayback.connect(playbackDevice.startPlayback):
+            raise NexTRuntimeError("cannot connect to slot startPlayback()")
+        if not self._pausePlayback.connect(playbackDevice.pausePlayback):
+            raise NexTRuntimeError("cannot connect to slot pausePlayback()")
+        # setup optional connections from control to playback
+        self._featureSet = set(["startPlayback", "pausePlayback"])
+        for feature in ["stepForward", "stepBackward", "seekTime", "seekBeginning", "seekEnd",
+                        "setTimeFactor", "setSequence"]:
+            signal = getattr(self, "_" + feature)
+            slot = getattr(playbackDevice, feature, None)
+            if slot is not None and signal.connect(slot):
+                self._featureSet.add(feature)
+        # setup optional connections from playback to control
+        for feature in ["sequenceOpened", "currentTimestampChanged", "playbackStarted", "playbackPaused",
+                        "timeRatioChanged"]:
+            slot = getattr(self, "_" + feature)
+            signal = getattr(playbackDevice, feature, None)
+            if signal is not None and signal.connect(slot):
+                self._featureSet.add(feature)
+
+    def startPlayback(self):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+        """
+        if self._controlsFile:
+            self._startPlayback.emit()
+
+    def pausePlayback(self):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+       """
+        if self._controlsFile:
+            self._pausePlayback.emit()
+
+    def stepForward(self, stream):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+        """
+        if self._controlsFile:
+            self._stepForward.emit(stream)
+
+    def stepBackward(self, stream):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+        """
+        if self._controlsFile:
+            self._stepBackward.emit(stream)
+
+    def seekBeginning(self):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+        """
+        if self._controlsFile:
+            self._seekBeginning.emit()
+
+    def seekEnd(self):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+        """
+        if self._controlsFile:
+            self._seekEnd.emit()
+
+    def seekTime(self, timestamp_ns):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+
+        :param timestamp_ns: the timestamp in nanoseconds
+        """
+        if self._controlsFile:
+            self._seekTime.emit(timestamp_ns)
+
+    def setSequence(self, filename):
+        """
+        Proxy function, checks whether filename matches the filter's name filter list and takes control if necessary.
+
+        :param filename: a string instance or None
+        """
+        if filename is not None and not QDir.match(self._nameFilters, pathlib.Path(filename).name):
+            filename = None
+        self._controlsFile = filename is not None
+        self._setSequence.emit(filename)
+
+    def setTimeFactor(self, factor):
+        """
+        Proxy function, checks whether this proxy has control and emits the signal if necessary
+
+        :param factor: time factor as a float
+        """
+        if self._controlsFile:
+            self._setTimeFactor.emit(factor)
+
+    def hasControl(self):
+        """
+        Returns whether this proxy object has control over the player
+
+        :return: true if this proxy object has control
+        """
+        return self._controlsFile
+
+    def featureSet(self):
+        """
+        Returns the player device's feature set
+
+        :return: a set of strings
+        """
+        return self._featureSet
+
+    _startPlayback = Signal()
+    _pausePlayback = Signal()
+    _stepForward = Signal(str)
+    _stepBackward = Signal(str)
+    _seekBeginning = Signal()
+    _seekEnd = Signal()
+    _seekTime = Signal('qint64')
+    _setSequence = Signal(object)
+    _setTimeFactor = Signal(float)
+    sequenceOpened = Signal(str, 'qint64', 'qint64', object)
+    currentTimestampChanged = Signal('qint64')
+    playbackStarted = Signal()
+    playbackPaused = Signal()
+    timeRatioChanged = Signal(float)
+
+    def _sequenceOpened(self, filename, begin, end, streams):
+        if self._controlsFile:
+            self.sequenceOpened.emit(filename, begin, end, streams)
+
+    def _currentTimestampChanged(self, currentTime):
+        if self._controlsFile:
+            self.currentTimestampChanged.emit(currentTime)
+
+    def _playbackStarted(self):
+        if self._controlsFile:
+            self.playbackStarted.emit()
+
+    def _playbackPaused(self):
+        if self._controlsFile:
+            self.playbackPaused.emit()
+
+    def _timeRatioChanged(self, newRatio):
+        if self._controlsFile:
+            self.timeRatioChanged.emit(newRatio)
+
+
 class MVCPlaybackControlBase(QObject):
     """
-    Base class for interacting with playback controller, usually this is connected to a
-    harddisk player.
+    Base class for interacting with playback controller, usually this is connected to a harddisk player. This class
+    provides the functions setupConnections and removeConnections which can be called by filters to register and
+    deregister themselfs as a playback device.
     """
     _startPlayback = Signal()
     _pausePlayback = Signal()
@@ -29,8 +188,8 @@ class MVCPlaybackControlBase(QObject):
     _stepBackward = Signal(str)
     _seekBeginning = Signal()
     _seekEnd = Signal()
-    _seekTime = Signal(QDateTime)
-    _setSequence = Signal(str)
+    _seekTime = Signal('qint64')
+    _setSequence = Signal(object)
     _setTimeFactor = Signal(float)
 
     def __init__(self):
@@ -38,6 +197,7 @@ class MVCPlaybackControlBase(QObject):
         self._deviceId = 0
         self._registeredDevices = {}
         self._mutex = QMutex()
+        self._setSequence.connect(self._stopSetSequenceStart)
 
     @Slot(QObject, "QStringList")
     def setupConnections(self, playbackDevice, nameFilters):
@@ -50,19 +210,19 @@ class MVCPlaybackControlBase(QObject):
         - startPlayback() (starts generating DataSamples)
         - pausePlayback() (pause mode, stop generating DataSamples)
         - stepForward(QString stream) (optional; in case given, a single step operation shall be performed.
-                               if stream is not None, the playback shall stop when receiving the next data sample
-                               of stream; otherwise the playback shall proceed to the next data sample of any stream)
+            if stream is not None, the playback shall stop when receiving the next data sample
+            of stream; otherwise the playback shall proceed to the next data sample of any stream)
         - stepBackward(QString stream) (optional; see stepForward)
         - seekBeginning(QString stream) (optional; goes to the beginning of the sequence)
         - seekEnd() (optional; goes to the end of the stream)
-        - seekTime(QString QDateTime) (optional; goes to the specified time stamp)
+        - seekTime(qint64) (optional; goes to the specified time stamp)
         - setSequence(QString) (optional; opens the given sequence)
         - setTimeFactor(float) (optional; sets the playback time factor, factor > 0)
 
         It expects playbackDevice to provide the following signals (all signals are optional):
 
-        - sequenceOpened(QString filename, QDateTime begin, QDateTime end, QStringList streams)
-        - currentTimestampChanged(QDateTime currentTime)
+        - sequenceOpened(QString filename, qint64 begin, qint64 end, QStringList streams)
+        - currentTimestampChanged(qint64 currentTime)
         - playbackStarted()
         - playbackPaused()
         - timeRatioChanged(float)
@@ -76,56 +236,27 @@ class MVCPlaybackControlBase(QObject):
                 if self._registeredDevices[devid]["object"] is playbackDevice:
                     raise NexTRuntimeError("Trying to register a playbackDevice object twice.")
 
-            if not self._startPlayback.connect(playbackDevice.startPlayback):
-                raise NexTRuntimeError("cannot connect to slot startPlayback()")
-            if not self._pausePlayback.connect(playbackDevice.pausePlayback):
-                raise NexTRuntimeError("cannot connect to slot pausePlayback()")
+            proxy = PlaybackDeviceProxy(self, playbackDevice, nameFilters)
+            featureset = proxy.featureSet()
 
-            connections = [(self._startPlayback, playbackDevice.startPlayback),
-                           (self._pausePlayback, playbackDevice.pausePlayback)]
-            featureset = set(["startPlayback", "pausePlayback"])
             for feature in ["stepForward", "stepBackward", "seekTime", "seekBeginning", "seekEnd",
-                            "setTimeFactor"]:
+                            "setTimeFactor", "startPlayback", "pausePlayback"]:
                 signal = getattr(self, "_" + feature)
-                slot = getattr(playbackDevice, feature, None)
-                if slot is not None and signal.connect(slot, Qt.UniqueConnection):
-                    featureset.add(feature)
-                    connections.append((signal, slot))
+                slot = getattr(proxy, feature, None)
+                if slot is not None:
+                    signal.connect(slot)
 
-            @handleException
-            def setSequenceWrapper(filename):
-                assertMainThread()
-                if Application.activeApplication is None:
-                    return
-                if Application.activeApplication.getState() not in [FilterState.ACTIVE, FilterState.OPENED]:
-                    return
-                if QDir.match(nameFilters, pathlib.Path(filename).name):
-                    logger.debug("setSequence %s", filename)
-                    if Application.activeApplication.getState() == FilterState.ACTIVE:
-                        Application.activeApplication.stop()
-                    MethodInvoker(dict(object=playbackDevice, method="setSequence"), Qt.QueuedConnection, filename)
-                    Application.activeApplication.start()
-                    logger.debug("setSequence done")
-                else:
-                    logger.debug("%s does not match filters: %s", filename, nameFilters)
-                    MethodInvoker(dict(object=playbackDevice, method="setSequence"), Qt.QueuedConnection, None)
-
-            # setSequence is called only if filename matches the given filters
-            if self._setSequence.connect(setSequenceWrapper, Qt.DirectConnection):
-                featureset.add("setSequence")
-                connections.append((self._setSequence, setSequenceWrapper))
             for feature in ["sequenceOpened", "currentTimestampChanged", "playbackStarted", "playbackPaused",
                             "timeRatioChanged"]:
                 slot = getattr(self, "_" + feature)
-                signal = getattr(playbackDevice, feature, None)
-                if signal is not None and signal.connect(slot, Qt.UniqueConnection):
-                    featureset.add(feature)
-                    connections.append((signal, slot))
+                signal = getattr(proxy, feature, None)
+                if signal is not None:
+                    signal.connect(slot, Qt.UniqueConnection)
 
             self._registeredDevices[self._deviceId] = dict(object=playbackDevice,
                                                            featureset=featureset,
                                                            nameFilters=nameFilters,
-                                                           connections=connections)
+                                                           proxy=proxy)
             self._deviceId += 1
             MethodInvoker(dict(object=self, method="_updateFeatureSet", thread=mainThread()), Qt.QueuedConnection)
 
@@ -145,29 +276,43 @@ class MVCPlaybackControlBase(QObject):
                     found.append(devid)
             if len(found) > 0:
                 for devid in found:
-                    for signal, slot in self._registeredDevices[devid]["connections"]:
-                        signal.disconnect(slot)
                     del self._registeredDevices[devid]
                 logger.debug("disconnected connections of playback device. number of devices left: %d",
                              len(self._registeredDevices))
                 MethodInvoker(dict(object=self, method="_updateFeatureSet", thread=mainThread()), Qt.QueuedConnection)
 
+    @handleException
+    def _stopSetSequenceStart(self, filename):
+        assertMainThread()
+        if Application.activeApplication is None:
+            logger.warning("playbackControl.setSequence is called without an active application.")
+            return
+        state = Application.activeApplication.getState()
+        if state not in [FilterState.ACTIVE, FilterState.OPENED]:
+            logger.warning("playbackControl.setSequence is called with unexpected application state %s",
+                           FilterState.state2str(state))
+            return
+        if state == FilterState.ACTIVE:
+            Application.activeApplication.stop()
+        assert Application.activeApplication.getState() == FilterState.OPENED
+        for _, spec in self._registeredDevices.items():
+            spec["proxy"].setSequence(filename)
+            # only one filter will get the playback control
+            if spec["proxy"].hasControl():
+                filename = None
+                logger.debug("found playback device with explicit control")
+        if filename is not None:
+            logger.warning("did not find a playback device taking control")
+        Application.activeApplication.start()
+        assert Application.activeApplication.getState() == FilterState.ACTIVE
+
     def _updateFeatureSet(self):
         assertMainThread()
         featureset = set()
         nameFilters = set()
-        featureCount = {}
         for devid in self._registeredDevices:
-            for f in self._registeredDevices[devid]["featureset"]:
-                if not f in featureCount:
-                    featureCount[f] = 0
-                featureCount[f] += 1
             featureset = featureset.union(self._registeredDevices[devid]["featureset"])
             nameFilters = nameFilters.union(self._registeredDevices[devid]["nameFilters"])
-        for f in featureCount:
-            if featureCount[f] > 1 and f in ["seekTime", "setSequence", "setTimeFactor"]:
-                logger.warning("Multiple playback devices are providing slots intended for single usage."
-                               "Continuing anyways.")
         self._supportedFeaturesChanged(featureset, nameFilters)
 
     def _supportedFeaturesChanged(self, featureset, nameFilters):
@@ -227,8 +372,8 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     The GUI service inherits from this class, so that the GUI can also be scripted in the same way.
     """
     supportedFeaturesChanged = Signal(object, object)
-    sequenceOpened = Signal(str, QDateTime, QDateTime, object)
-    currentTimestampChanged = Signal(QDateTime)
+    sequenceOpened = Signal(str, 'qint64', 'qint64', object)
+    currentTimestampChanged = Signal('qint64')
     playbackStarted = Signal()
     playbackPaused = Signal()
     timeRatioChanged = Signal(float)
@@ -288,14 +433,14 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         """
         self._seekEnd.emit()
 
-    def seekTime(self, datetime):
+    def seekTime(self, timestamp_ns):
         """
         Seek to the specified time
 
-        :param datetime: a QDateTime instance
+        :param timestamp_ns: the timestamp in nanoseconds
         :return:
         """
-        self._seekTime.emit(datetime)
+        self._seekTime.emit(timestamp_ns)
 
     def setSequence(self, file):
         """

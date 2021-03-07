@@ -158,6 +158,10 @@ NEXXT_DISABLE_CIMPL:
 
 NEXXT_CEXT_PATH:
     Can be set to override the default search path for the nexxT C extension.
+    
+NEXXT_BLACKLISTED_PACKAGES:
+    List of additional python packages (seperated by a ';') which are not unloaded by nexxT when configuration files
+    are switched. Use "*" or "__all__" to blacklist all modules.
 """)
     parser.add_argument("cfg", nargs='?', help=".json configuration file of the project to be loaded.")
     parser.add_argument("-a", "--active", default=None, type=str,

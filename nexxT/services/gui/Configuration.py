@@ -47,7 +47,8 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self.actSave = QAction(QIcon.fromTheme("document-save", style.standardIcon(QStyle.SP_DialogSaveButton)),
                                "Save config", self)
         self.actSave.triggered.connect(self._execSaveConfig)
-        self.actSaveWithGuiState = QAction(QIcon.fromTheme("document-save", style.standardIcon(QStyle.SP_DialogSaveButton)),
+        self.actSaveWithGuiState = QAction(QIcon.fromTheme("document-save",
+                                                           style.standardIcon(QStyle.SP_DialogSaveButton)),
                                            "Save config sync gui state", self)
         self.actSaveWithGuiState.triggered.connect(self._execSaveConfigWithGuiState)
         self.actNew = QAction(QIcon.fromTheme("document-new", style.standardIcon(QStyle.SP_FileIcon)),
