@@ -6,7 +6,9 @@
 
 import logging
 import math
+import platform
 import time
+import pytest
 from nexxT.interface import DataSample
 
 logging.getLogger(__name__).debug("executing test_dataSample.py")
@@ -22,6 +24,8 @@ def test_basic():
     # but the modification is not affecting the original data
     assert dataSample.getContent().data() == b'Hello'
 
+@pytest.mark.skipif(platform.system() == "Windows" and platform.release() == "7", 
+                    reason="windows 10 or higher, windows 7 seems to have millisecond resolution on timestamps.")
 def test_currentTime():
     shortestDelta = math.inf
     ts = time.time()
