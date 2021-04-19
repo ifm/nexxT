@@ -291,6 +291,8 @@ class InputPortImpl(InputPortInterface):
         """
         if enabled != self._interthreadDynamicQueue:
             state = self.environment().state()
+            # pylint: disable=import-outside-toplevel
+            # needed to avoid recursive import
             from nexxT.interface.Filters import FilterState # avoid recursive import
             if state not in [FilterState.CONSTRUCTING, FilterState.CONSTRUCTED,
                              FilterState.INITIALIZING, FilterState.INITIALIZED]:

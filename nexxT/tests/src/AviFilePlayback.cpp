@@ -10,7 +10,6 @@
 #include "PropertyCollection.hpp"
 #include "Logger.hpp"
 #include "ImageFormat.h"
-#include <QtCore/QDateTime>
 #include <QtCore/QThread>
 #include <QtCore/QBuffer>
 #include <QtGui/QImageWriter>
@@ -155,14 +154,14 @@ void VideoPlaybackDevice::newDuration(qint64 duration)
 {
     NEXXT_LOG_DEBUG(QString("newDuration %1").arg(duration));
     emit sequenceOpened(filename,
-                        QDateTime::fromMSecsSinceEpoch(0, Qt::UTC),
-                        QDateTime::fromMSecsSinceEpoch(duration, Qt::UTC),
+                        0,
+                        duration*1000000,
                         QStringList() << "video");
 }
 
 void VideoPlaybackDevice::newPosition(qint64 position)
 {
-    emit currentTimestampChanged(QDateTime::fromMSecsSinceEpoch(position, Qt::UTC));
+    emit currentTimestampChanged(position*1000000);
 }
 
 void VideoPlaybackDevice::currentMediaChanged(const QMediaContent &)
@@ -205,10 +204,10 @@ void VideoPlaybackDevice::seekEnd()
     if(player) player->setPosition(player->duration()-1);
 }
 
-void VideoPlaybackDevice::seekTime(const QDateTime &pos)
+void VideoPlaybackDevice::seekTime(qint64 pos)
 {
     NEXXT_LOG_DEBUG("seekTime called");
-    if(player) player->setPosition(pos.toMSecsSinceEpoch());
+    if(player) player->setPosition(pos / 1000000);
 }
 
 void VideoPlaybackDevice::setSequence(const QString &_filename)

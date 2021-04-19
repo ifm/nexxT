@@ -165,7 +165,7 @@ class PropertyCollection(QObject):
     propertyChanged = Signal(object, str)
     """
     QT signal which is emitted after a property value of the collection has been changed by the user.
-    
+
     :param pc: the PropertyCollection instance (i.e., the same as self.sender())
     :param propName: the name of the property which has been changed.
     """

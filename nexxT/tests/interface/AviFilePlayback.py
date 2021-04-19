@@ -6,7 +6,7 @@
 
 import logging
 import time
-from PySide2.QtCore import Signal, Slot, QTimer, QDateTime, QUrl
+from PySide2.QtCore import Signal, Slot, QTimer, QUrl
 from PySide2.QtMultimedia import QMediaPlayer, QMediaPlaylist, QAbstractVideoSurface, QVideoFrame
 from PySide2.QtMultimediaWidgets import QVideoWidget
 from nexxT.interface import Filter, OutputPort, DataSample, Services
@@ -53,8 +53,8 @@ class DummyVideoSurface(QAbstractVideoSurface):
 class VideoPlaybackDevice(Filter):
     playbackStarted = Signal()
     playbackPaused = Signal()
-    sequenceOpened = Signal(str, QDateTime, QDateTime, list)
-    currentTimestampChanged = Signal(QDateTime)
+    sequenceOpened = Signal(str, qint64, qint64, list)
+    currentTimestampChanged = Signal(qint64)
 
     def __init__(self, environment):
         super().__init__(False, False, environment)
@@ -67,8 +67,8 @@ class VideoPlaybackDevice(Filter):
     def newDuration(self, newDuration):
         logger.debug("newDuration %s", newDuration)
         self.sequenceOpened.emit(self.filename,
-                                 QDateTime.fromMSecsSinceEpoch(0),
-                                 QDateTime.fromMSecsSinceEpoch(newDuration),
+                                 0,
+                                 newDuration * 1000000,
                                  ["video"])
 
     def currentMediaChanged(self, media):

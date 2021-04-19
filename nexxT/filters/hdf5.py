@@ -16,10 +16,10 @@ import logging
 import os
 import numpy as np
 import h5py
-from PySide2.QtCore import Signal, QDateTime, QTimer
-from PySide2.QtWidgets import QFileDialog
-from nexxT.interface import Filter, Services, DataSample
+from PySide2.QtCore import Signal
+from nexxT.interface import Filter, Services
 from nexxT.core.Utils import handleException, isMainThread
+from nexxT.filters.GenericReader import GenericReader, GenericReaderFile
 
 logger = logging.getLogger(__name__)
 
@@ -210,325 +210,88 @@ class Hdf5Writer(Filter):
                                  os.POSIX_FADV_DONTNEED)
             self.statusUpdate.emit(self._name, rcvTimestamp*1e-6, self._currentFile.id.get_filesize())
 
-class Hdf5Reader(Filter):
+class Hdf5File(GenericReaderFile):
     """
-    Generic nexxT filter for reading HDF5 files created by Hdf5Writer
+    Adaptation of hdf5 file format
+    """
+    def __init__(self, filename):
+        self._file = h5py.File(filename, "r")
+
+    def close(self):
+        """
+        Closes the file.
+
+        :return:
+        """
+        self._file.close()
+
+    def getNumberOfSamples(self, stream):
+        """
+        Returns the number of samples in the given stream
+
+        :param stream: the name of the stream as a string
+        :return: the number of samples in the stream
+        """
+        return len(self._file["streams"][stream])
+
+    def getTimestampResolution(self):
+        """
+        Returns the resolution of the timestamps in ticks per second.
+
+        :return: ticks per second as an integer
+        """
+        return 1000000
+
+    def allStreams(self):
+        """
+        Returns the streams in this file.
+
+        :return: a list of strings
+        """
+        return list(self._file["streams"].keys())
+
+    def readSample(self, stream, streamIdx):
+        """
+        Returns the referenced sample as a tuple (content, dataType, dataTimestamp, rcvTimestamp).
+
+        :param stream: the stream
+        :param idx: the index of the sample in the stream
+        :return: (content: QByteArray, dataType: str, dataTimestamp: int, receiveTimestamp: int)
+        """
+        content, dataType, dataTimestamp, receiveTimestamp = self._file["streams"][stream][streamIdx]
+        if isinstance(dataType, bytes):
+            # this is happening now with h5py >= 3.x
+            dataType = dataType.decode()
+        return content.tobytes(), dataType, dataTimestamp, receiveTimestamp
+
+    def getRcvTimestamp(self, stream, streamIdx):
+        """
+        Returns the recevie timestamp of the given (stream, streamIdx) sample. The default implementation uses
+        readSample(...). It may be replaced by a more efficient implementation.
+
+        :param stream: the name of the stream as a string
+        :param streamIdx: the stream index as an integer
+        :return: the timestamp as an integer (see also getTimestampResolution)
+        """
+        return self._file["streams"][stream][streamIdx]["rcvTimestamp"]
+
+class Hdf5Reader(GenericReader):
+    """
+    Reader for the nexxT default file format based on hdf5.
     """
 
-    # signals for playback device
-    playbackStarted = Signal()
-    playbackPaused = Signal()
-    sequenceOpened = Signal(str, QDateTime, QDateTime, list)
-    currentTimestampChanged = Signal(QDateTime)
-    timeRatioChanged = Signal(float)
-
-    # slots for playback device
-
-    def startPlayback(self):
+    def getNameFilter(self):
         """
-        slot called when the playback shall be started
+        Returns the name filter associated with the input files.
 
-        :return:
+        :return: a list of strings, e.g. ["*.h5", "*.hdf5"]
         """
-        if not self._playing and self._timer is not None:
-            self._playing = True
-            self._timer.start(0)
-            self._updateTimer.start()
-            self.playbackStarted.emit()
+        return ["*.h5", "*.hdf5", "*.hdf"]
 
-    def pausePlayback(self):
+    def openFile(self, filename):
         """
-        slot called when the playback shall be paused
+        Opens the given file and return an instance of GenericReaderFile.
 
-        :return:
+        :return: an instance of GenericReaderFile
         """
-        if self._playing and self._timer is not None:
-            self._playing = False
-            self._untilStream = None
-            self._dir = 1
-            self._timer.stop()
-            self._updateTimer.stop()
-            self._updateCurrentTimestamp()
-            self.playbackPaused.emit()
-
-    def stepForward(self, stream):
-        """
-        slot called to step one frame in stream forward
-
-        :param stream: a string instance or None (all streams are selected)
-        :return:
-        """
-        self._untilStream = stream if stream is not None else ''
-        self.startPlayback()
-
-    def stepBackward(self, stream):
-        """
-        slot called to step one frame in stream backward
-
-        :param stream: a string instance or None (all streams are selected)
-        :return:
-        """
-        self._dir = -1
-        self._untilStream = stream if stream is not None else ''
-        self.startPlayback()
-
-    def seekBeginning(self):
-        """
-        slot called to go to the beginning of the file
-
-        :return:
-        """
-        self.pausePlayback()
-        for p in self._portToIdx:
-            self._portToIdx[p] = -1
-        self._transmitNextSample()
-        self._updateCurrentTimestamp()
-
-    def seekEnd(self):
-        """
-        slot called to go to the end of the file
-
-        :return:
-        """
-        self.pausePlayback()
-        for p in self._portToIdx:
-            self._portToIdx[p] = len(self._currentFile["streams"][p])
-        self._dir = -1
-        self._transmitNextSample()
-        self._dir = +1
-        self._updateCurrentTimestamp()
-
-    def seekTime(self, tgtDatetime):
-        """
-        slot called to go to the specified time
-
-        :param tgtDatetime: a QDateTime instance
-        :return:
-        """
-        t = tgtDatetime.toMSecsSinceEpoch()*1000
-        nValid = 0
-        for p in self._portToIdx:
-            s = self._currentFile["streams"][p]
-            # binary search
-            minIdx = -1
-            num = len(self._currentFile["streams"][p])
-            maxIdx = num
-            while maxIdx - minIdx > 1:
-                testIdx = max(0, min(num-1, (minIdx + maxIdx)//2))
-                vTest = s[testIdx]["rcvTimestamp"]
-                if vTest <= t:
-                    minIdx = testIdx
-                else:
-                    maxIdx = testIdx
-            self._portToIdx[p] = minIdx
-            if minIdx >= 0:
-                # note: minIdx is always below num
-                nValid += 1
-        if nValid > 0:
-            self._transmitCurrent()
-        else:
-            self._transmitNextSample()
-        self._updateCurrentTimestamp()
-
-    def setSequence(self, filename):
-        """
-        slot called to set the sequence file name
-
-        :param filename: a string instance
-        :return:
-        """
-        logger.debug("Set sequence filename=%s", filename)
-        self._name = filename
-
-    def setTimeFactor(self, factor):
-        """
-        slot called to set the time factor
-
-        :param factor: a float
-        :return:
-        """
-        self._timeFactor = factor
-        self.timeRatioChanged.emit(self._timeFactor)
-
-    # overwrites from Filter
-
-    def __init__(self, env):
-        super().__init__(False, True, env)
-        self._name = None
-        self._currentFile = None
-        self._portToIdx = None
-        self._timer = None
-        self._updateTimer = QTimer(self)
-        self._updateTimer.setInterval(1000) # update new position each second
-        self._updateTimer.timeout.connect(self._updateCurrentTimestamp)
-        self._currentTimestamp = None
-        self._playing = None
-        self._untilStream = None
-        self._dir = 1
-        self._ports = None
-        self._timeFactor = 1
-
-    def onOpen(self):
-        """
-        overloaded from Filter
-
-        :return:
-        """
-        srv = Services.getService("PlaybackControl")
-        srv.setupConnections(self, ["*.h5", "*.hdf5", "*.hdf"])
-        if isMainThread():
-            logger.warning("Hdf5Reader seems to run in GUI thread. Consider to move it to a seperate thread.")
-
-    def onStart(self):
-        """
-        overloaded from Filter
-
-        :return:
-        """
-        if self._name is not None:
-            self._currentFile = h5py.File(self._name, "r")
-            self._portToIdx = {}
-            self._ports = self.getDynamicOutputPorts()
-            for s in self._currentFile["streams"]:
-                if s in [p.name() for p in self._ports]:
-                    if len(self._currentFile["streams"][s]) > 0:
-                        self._portToIdx[s] = -1
-                    else:
-                        logger.warning("Stream %s does not contain any samples.", s)
-                else:
-                    logger.warning("No matching output port for stream %s. Consider to create a port for it.", s)
-            for p in self._ports:
-                if not p.name() in self._portToIdx:
-                    logger.warning("No matching stream for output port %s. HDF5 file not matching the configuration?",
-                                   p.name())
-            self._timer = QTimer(parent=self)
-            self._timer.timeout.connect(self._transmitNextSample)
-            self._playing = False
-            self._currentTimestamp = None
-            span = self._timeSpan()
-            self.sequenceOpened.emit(self._name, span[0], span[1], sorted(self._portToIdx.keys()))
-            self.timeRatioChanged.emit(self._timeFactor)
-            self.playbackPaused.emit()
-
-    def onStop(self):
-        """
-        overloaded from Filter
-
-        :return:
-        """
-        if self._currentFile is not None:
-            self._currentFile.close()
-            self._currentFile = None
-            self._portToIdx = None
-            self._timer.stop()
-            self._timer = None
-            self._playing = None
-            self._currentTimestamp = None
-
-    def onClose(self):
-        """
-        overloaded from Filter
-
-        :return:
-        """
-        srv = Services.getService("PlaybackControl")
-        srv.removeConnections(self)
-
-    def onSuggestDynamicPorts(self):
-        """
-        overloaded from Filter
-
-        :return:
-        """
-        try:
-            fn, ok = QFileDialog.getOpenFileName(caption="Choose template hdf5 file",
-                                                 filter="HDF5 files (*.h5 *.hdf5 *.hdf)")
-            if ok:
-                f = h5py.File(fn, "r")
-                return [], list(f["streams"].keys())
-        except Exception: # pylint: disable=broad-except
-            logger.exception("Caught exception during onSuggestDynamicPorts")
-        return [], []
-
-    # private slots and methods
-
-    def _timeSpan(self):
-        tmin = np.inf
-        tmax = -np.inf
-        for p in self._portToIdx:
-            t = self._currentFile["streams"][p][0]["rcvTimestamp"]
-            tmin = min(t, tmin)
-            t = self._currentFile["streams"][p][-1]["rcvTimestamp"]
-            tmax = max(t, tmax)
-        return QDateTime.fromMSecsSinceEpoch(tmin//1000), QDateTime.fromMSecsSinceEpoch(tmax//1000)
-
-    def _getNextSample(self):
-        # check which port has the next sample to deliver according to rcv timestamps
-        nextPort = None
-        for p in self._portToIdx:
-            idx = self._portToIdx[p]
-            idx = idx + self._dir
-            if 0 <= idx < len(self._currentFile["streams"][p]):
-                ts = self._currentFile["streams"][p][idx]["rcvTimestamp"]
-                # pylint: disable=unsubscriptable-object
-                # actually, nextPort can be either None or a 2-tuple
-                if nextPort is None or (ts < nextPort[0] and self._dir > 0) or (ts > nextPort[0] and self._dir < 0):
-                    nextPort = (ts, p)
-        return nextPort
-
-    @handleException
-    def _transmitNextSample(self):
-        startTime = time.perf_counter_ns()
-        nextPort = self._getNextSample()
-        # when next data sample arrives sooner than this threshold, do not use the QTimer but perform busy waiting
-        noSleepThreshold_ns = 0.005*1e9 # 5 ms
-        # maximum time in busy-wait strategy (measured from the beginning of the function)
-        maxTimeInMethod = 0.05*1e9 # yield all 50 ms
-        while nextPort is not None:
-            ts, pname = nextPort
-            self._portToIdx[pname] += self._dir
-            lastTransmit = self._transmit(pname)
-            if not self._playing:
-                return pname
-            nextPort = self._getNextSample()
-            if nextPort is not None:
-                newTs, _ = nextPort
-                nowTime = time.perf_counter_ns()
-                deltaT_ns = max(0, (newTs - ts) * 1000 / self._timeFactor - (nowTime - lastTransmit))
-                if deltaT_ns < noSleepThreshold_ns and nowTime - startTime + deltaT_ns < maxTimeInMethod:
-                    while time.perf_counter_ns() - nowTime < deltaT_ns:
-                        pass
-                else:
-                    self._timer.start(deltaT_ns//1000000)
-                    break
-            else:
-                self.pausePlayback()
-
-    def _transmit(self, pname):
-        idx = self._portToIdx[pname]
-        # read data sample from HDF5 file
-        content, dataType, dataTimestamp, rcvTimestamp = self._currentFile["streams"][pname][idx]
-        # create sample to transmit
-        sample = DataSample(content.tobytes(), dataType, dataTimestamp)
-        res = time.perf_counter_ns()
-        # transmit sample over corresponding port
-        self._ports[[p.name() for p in self._ports].index(pname)].transmit(sample)
-        self._currentTimestampChanged(QDateTime.fromMSecsSinceEpoch(rcvTimestamp//1000))
-        if self._untilStream is not None:
-            if self._untilStream == pname or self._untilStream == '':
-                self.pausePlayback()
-        return res
-
-    def _transmitCurrent(self):
-        ports = list(self._portToIdx.keys())
-        values = [self._currentFile["streams"][p][self._portToIdx[p]]["rcvTimestamp"] for p in ports]
-        sortedIdx = sorted(range(len(values)), key=lambda x: values[x])
-        # transmit most recent sample
-        self._transmit(ports[sortedIdx[-1]])
-
-    def _currentTimestampChanged(self, timestamp):
-        self._currentTimestamp = timestamp
-
-    def _updateCurrentTimestamp(self):
-        if self._currentTimestamp is not None:
-            self.currentTimestampChanged.emit(self._currentTimestamp)
+        return Hdf5File(filename)

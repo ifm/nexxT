@@ -6,7 +6,7 @@
 
 import glob
 import logging
-from PySide2.QtCore import Qt, QCoreApplication, QTimer, QModelIndex, QDateTime
+from PySide2.QtCore import Qt, QCoreApplication, QTimer, QModelIndex
 from nexxT.interface import Services, FilterState
 from nexxT.core.Utils import MethodInvoker, waitForSignal
 from nexxT.core.Application import Application
@@ -248,8 +248,7 @@ def execute_2():
         waitForSignal(pbc.playbackPaused)
         logger.info("stepForward[stream2]")
 
-    execute_2.i = MethodInvoker(pbc.seekTime, Qt.QueuedConnection,
-                                QDateTime.fromMSecsSinceEpoch((tbegin.toMSecsSinceEpoch() + tend.toMSecsSinceEpoch())//2))
+    execute_2.i = MethodInvoker(pbc.seekTime, Qt.QueuedConnection, (tbegin + tend)//2)
     waitForSignal(pbc.currentTimestampChanged)
     logger.info("seekTime")
 
@@ -262,13 +261,11 @@ def execute_2():
         waitForSignal(pbc.playbackPaused)
         logger.info("stepBackward[None]")
 
-    execute_2.i = MethodInvoker(pbc.seekTime, Qt.QueuedConnection,
-                                QDateTime.fromMSecsSinceEpoch(tbegin.toMSecsSinceEpoch() - 1000))
+    execute_2.i = MethodInvoker(pbc.seekTime, Qt.QueuedConnection, tbegin - 1000000000)
     waitForSignal(pbc.currentTimestampChanged)
     logger.info("seekTimeBegin")
 
-    execute_2.i = MethodInvoker(pbc.seekTime, Qt.QueuedConnection,
-                                QDateTime.fromMSecsSinceEpoch(tend.toMSecsSinceEpoch() + 1000))
+    execute_2.i = MethodInvoker(pbc.seekTime, Qt.QueuedConnection, tend + 1000000000)
     waitForSignal(pbc.currentTimestampChanged)
     logger.info("seekTimeEnd")
 

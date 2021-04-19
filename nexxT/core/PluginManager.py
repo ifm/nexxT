@@ -10,6 +10,7 @@ This module defines the class PluginManager
 
 import sys
 import inspect
+import os
 import os.path
 import logging
 from collections import OrderedDict
@@ -60,6 +61,9 @@ class PythonLibrary:
     LIBTYPE_FILE = 0
     LIBTYPE_MODULE = 1
     LIBTYPE_ENTRY_POINT = 2
+
+    # blacklisted packages are not unloaded when closing an application.
+    BLACKLISTED_PACKAGES = ["h5py", "numpy", "matplotlib", "PySide2", "shiboken2"]
 
     def __init__(self, library, libtype):
         self._library = library
@@ -130,6 +134,23 @@ class PythonLibrary:
             self._checkAvailableFilters()
         return len(self._availableFilters)
 
+    @staticmethod
+    def blacklisted(moduleName):
+        """
+        returns whether the module is blacklisted for unload heuristics
+
+        :param moduleName: the name of the module as a key in sys.modules
+        """
+        pkg = PythonLibrary.BLACKLISTED_PACKAGES[:]
+        if "NEXXT_BLACKLISTED_PACKAGES" in os.environ:
+            if os.environ["NEXXT_BLACKLISTED_PACKAGES"] in ["*", "__all__"]:
+                return True
+            pkg.extend(os.environ["NEXXT_BLACKLISTED_PACKAGES"].split(";"))
+        for p in pkg:
+            if moduleName.startswith(p + ".") or moduleName == p:
+                return True
+        return False
+
     def unload(self):
         """
         Unloads this python module. During loading, transitive dependent modules are detected and they are unloaded
@@ -148,8 +169,11 @@ class PythonLibrary:
                 loader = getattr(mod, '__loader__', None)
                 if not (fn is None or isinstance(loader, ExtensionFileLoader) or
                         os.path.splitext(fn)[1] in EXTENSION_SUFFIXES):
-                    logger.internal("Unloading pure python module '%s' (%s)", m, fn)
-                    del sys.modules[m]
+                    if not self.blacklisted(m):
+                        logger.internal("Unloading pure python module '%s' (%s)", m, fn)
+                        del sys.modules[m]
+                    else:
+                        logger.internal("Module '%s' (%s) is blacklisted and will not be unloaded", m, fn)
 
 class PluginManager(QObject):
     """

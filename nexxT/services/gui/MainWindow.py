@@ -15,7 +15,8 @@ import shiboken2
 from PySide2.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QAction, QWidget, QGridLayout,
                                QMenuBar, QMessageBox)
 from PySide2.QtCore import (QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings,
-                            QTimer)
+                            QTimer, QUrl)
+from PySide2.QtGui import QDesktopServices
 import nexxT
 from nexxT.interface import Filter
 from nexxT.core.Application import Application
@@ -159,7 +160,7 @@ class MainWindow(QMainWindow):
     Main Window service for the nexxT frameworks. Other services usually create dock windows, filters use the
     subplot functionality to create grid-layouted views.
     """
-    mdiSubWindowCreated = Signal(QMdiSubWindow) # TODO: remove, is not necessary anymore with subplot feature
+    mdiSubWindowCreated = Signal(QMdiSubWindow) # TODO: deprecated, can be removed in later versions
     aboutToClose = Signal(object)
 
     def __init__(self, config):
@@ -171,13 +172,17 @@ class MainWindow(QMainWindow):
         self.mdi.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setCentralWidget(self.mdi)
         self.menu = self.menuBar().addMenu("&Windows")
-        self.aboutMenu = QMenuBar(self)
+        self.aboutMenu = QMenuBar(self.menuBar())
         self.menuBar().setCornerWidget(self.aboutMenu)
-        m = self.aboutMenu.addMenu("&About")
+        m = self.aboutMenu.addMenu("&Help")
+        self.helpNexxT = QAction("Help ...")
         self.aboutNexxT = QAction("About nexxT ...")
         self.aboutQt = QAction("About Qt ...")
         self.aboutPython = QAction("About Python ...")
+        m.addActions([self.helpNexxT])
+        m.addSeparator()
         m.addActions([self.aboutNexxT, self.aboutQt, self.aboutPython])
+        self.helpNexxT.triggered.connect(lambda: QDesktopServices.openUrl(QUrl("https://nexxT.readthedocs.org")))
         self.aboutNexxT.triggered.connect(lambda: QMessageBox.about(self, "About nexxT", """\
 This program uses <b>nexxT</b> %(version)s, a generic hybrid python/c++ framework for developing computer vision 
 algorithms.<br><br>
@@ -236,7 +241,6 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         if v is not None:
             self.restoreGeometry(v)
         if self.toolbar is not None:
-            # TODO: add toolbar to windows menu, so we don't need this
             self.toolbar.show()
 
     def saveState(self):
@@ -360,7 +364,10 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         self.managedSubplots[title]["layout"].addWidget(widget, row, col)
         self.managedSubplots[title]["mdiSubWindow"].updateGeometry()
         widget.setParent(self.managedSubplots[title]["swwidget"])
-        QTimer.singleShot(0, lambda: (
+        # note: there seems to be a race condition when decreasing the single shot timeout to 0
+        #       sometimes the window size is then not correctly adjusted
+        #       with the 100 ms timeout this couldn't be reproduced
+        QTimer.singleShot(100, lambda: (
             self.managedSubplots[title]["mdiSubWindow"].adjustSize() if
             widget.parent().size().height() < widget.minimumSizeHint().height() or
             widget.parent().size().height() < widget.minimumSize().height() else None
