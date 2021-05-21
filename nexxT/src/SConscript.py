@@ -51,6 +51,8 @@ apilib = env.SharedLibrary("nexxT", env.RegisterSources(Split("""
     Filters.cpp
     Logger.cpp
     Ports.cpp
+    InputPortInterface.cpp
+    OutputPortInterface.cpp
     Services.cpp
     PropertyCollection.cpp
     NexxTPlugins.cpp
@@ -84,7 +86,9 @@ env.Append(LIBS=["nexxT"])
 if "linux" in env["target_platform"]:
     # the : notation is for the linker and enables to use lib names which are not
     # ending with .so
-    env.Append(LIBS=[":libpyside2.abi3.so.$QT5VERSION",":libshiboken2.abi3.so.$QT5VERSION"])
+    qt5vend = ".".join(env.subst("$QT5VERSION").split(".")[:2])
+
+    env.Append(LIBS=[":libpyside2.abi3.so." + qt5vend,":libshiboken2.abi3.so." + qt5vend])
 else:
     env.Append(LIBS=["shiboken2.abi3", "pyside2.abi3"])
 

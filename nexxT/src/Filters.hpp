@@ -19,7 +19,8 @@
 #include <QtCore/QList>
 
 #include "NexxTLinkage.hpp"
-#include "Ports.hpp"
+#include "InputPortInterface.hpp"
+#include "OutputPortInterface.hpp"
 
 namespace nexxT
 {

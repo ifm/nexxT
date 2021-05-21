@@ -9,6 +9,8 @@
 
 #include "DataSamples.hpp"
 #include "Ports.hpp"
+#include "OutputPortInterface.hpp"
+#include "InputPortInterface.hpp"
 #include "Filters.hpp"
 #include "FilterEnvironment.hpp"
 #include "Services.hpp"
