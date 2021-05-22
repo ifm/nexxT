@@ -24,11 +24,15 @@ class InterThreadConnection(QObject):
     """
     transmitInterThread = Signal(object, QSemaphore)
 
-    def __init__(self, qthread_from):
+    def __init__(self, threadFrom, threadTo, portFrom, portTo):
         super().__init__()
-        self.moveToThread(qthread_from)
-        self.semaphore = QSemaphore(1)
+        self.moveToThread(threadFrom.qthread())
+        self._semaphore = QSemaphore(1)
         self._stopped = True
+        self._threadFrom = threadFrom
+        self._threadTo = threadTo
+        self._portFrom = portFrom
+        self._portTo = portTo
 
     def receiveSample(self, dataSample):
         """
@@ -36,17 +40,27 @@ class InterThreadConnection(QObject):
         :param dataSample: the sample to be received
         :return: None
         """
-        self._receiveSample(dataSample)
+        if self._threadFrom == self._threadTo:
+            self._threadTo.getExecutor().registerPendingRcvSync(self._portTo, dataSample)
+        else:
+            self._receiveSample(dataSample)
 
     @handleException
     def _receiveSample(self, dataSample):
         assert QThread.currentThread() is self.thread()
+        timeout = 0
         while True:
             if self._stopped:
                 logger.info("The inter-thread connection is set to stopped mode; data sample discarded.")
                 break
-            if self.semaphore.tryAcquire(1, 500):
-                self.transmitInterThread.emit(dataSample, self.semaphore)
+            if not self._semaphore.tryAcquire(1, timeout):
+                if self._threadFrom.getExecutor().step(self._portFrom.environment().getPlugin()):
+                    timeout = 0
+                else:
+                    timeout = 10 #ms
+            else:
+                assert self._threadTo.thread() == self._portTo.thread()
+                self._threadTo.getExecutor().registerPendingRcvAsync(self._portTo, dataSample, self._semaphore)
                 break
 
     def setStopped(self, stopped):
@@ -86,32 +100,21 @@ class OutputPortImpl(OutputPortInterface):
         return OutputPortImpl(self.dynamic(), self.name(), newEnvironment)
 
     @staticmethod
-    def setupDirectConnection(outputPort, inputPort):
-        """
-        Setup a direct (intra-thread) connection between outputPort and inputPort
-        Note: both instances must live in same thread!
-        :param outputPort: the output port instance to be connected
-        :param inputPort: the input port instance to be connected
-        :return:None
-        """
-        logger.info("setup direct connection between %s -> %s", outputPort.name(), inputPort.name())
-        outputPort.transmitSample.connect(inputPort.receiveSync, Qt.DirectConnection)
-
-    @staticmethod
-    def setupInterThreadConnection(outputPort, inputPort, outputPortThread):
+    def setupInterThreadConnection(outputPort, inputPort, outputPortThread, inputPortThread):
         """
         Setup an inter thread connection between outputPort and inputPort
 
         :param outputPort: the output port instance to be connected
         :param inputPort: the input port instance to be connected
-        :param outputPortThread: the QThread instance of the outputPort instance
+        :param outputPortThread: the NexTThread instance of the outputPort instance
+        :param inputPortThread: the NexTThread instance of the inputPort instance
         :return: an InterThreadConnection instance which manages the connection (has
                  to survive until connections is deleted)
         """
-        logger.info("setup inter thread connection between %s -> %s", outputPort.name(), inputPort.name())
-        itc = InterThreadConnection(outputPortThread)
+        logger.internal("setup inter thread connection between %s -> %s", outputPort.name(), inputPort.name())
+        itc = InterThreadConnection(outputPortThread, inputPortThread, outputPort, inputPort)
+        assert inputPort.thread() == inputPortThread.thread()
         outputPort.transmitSample.connect(itc.receiveSample, Qt.DirectConnection)
-        itc.transmitInterThread.connect(inputPort.receiveAsync, Qt.QueuedConnection)
         return itc
 
 class InputPortImpl(InputPortInterface):

@@ -41,7 +41,6 @@ else:
     from nexxT.core import PortImpl
     OutputPort = PortImpl.OutputPortImpl
     InputPort = PortImpl.InputPortImpl
-    OutputPortInterface.setupDirectConnection = OutputPort.setupDirectConnection
     OutputPortInterface.setupInterThreadConnection = OutputPort.setupInterThreadConnection
     del PortImpl
     from nexxT.interface.Filters import Filter, FilterState, FilterSurrogate

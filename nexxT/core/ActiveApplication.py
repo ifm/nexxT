@@ -237,13 +237,12 @@ class ActiveApplication(QObject):
         for fromNode, fromPort, toNode, toPort in self._allConnections():
             fromThread = self._filters2threads[fromNode]
             toThread = self._filters2threads[toNode]
-            p0 = self._threads[fromThread].getFilter(fromNode).getPort(fromPort, OutputPortInterface)
-            p1 = self._threads[toThread].getFilter(toNode).getPort(toPort, InputPortInterface)
-            if toThread == fromThread:
-                OutputPortInterface.setupDirectConnection(p0, p1)
-            else:
-                itc = OutputPortInterface.setupInterThreadConnection(p0, p1, self._threads[fromThread].qthread())
-                self._interThreadConns.append(itc)
+            t0 = self._threads[fromThread]
+            p0 = t0.getFilter(fromNode).getPort(fromPort, OutputPortInterface)
+            t1 = self._threads[toThread]
+            p1 = t1.getFilter(toNode).getPort(toPort, InputPortInterface)
+            itc = OutputPortInterface.setupInterThreadConnection(p0, p1, t0, t1)
+            self._interThreadConns.append(itc)
         self._graphConnected = True
 
     @Slot()

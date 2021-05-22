@@ -14,6 +14,7 @@ import threading
 from PySide2.QtCore import QObject, Signal, Slot, QCoreApplication, QThread
 from nexxT.interface import FilterState, Services
 from nexxT.core.Exceptions import NodeExistsError, NexTInternalError, NodeNotFoundError, NexTRuntimeError
+from nexxT.core.Executor import Executor
 from nexxT.core.Utils import handleException
 
 logger = logging.getLogger(__name__)
@@ -90,6 +91,7 @@ class NexTThread(QObject):
             self._qthread.start()
         self.moveToThread(self._qthread)
         self.cleanUpCalled = False
+        self._executor = Executor(self._qthread)
 
     def __del__(self):
         logger.debug("destructor of Thread")
@@ -109,6 +111,8 @@ class NexTThread(QObject):
             self._qthread.quit()
             self._qthread.wait()
             self._qthread = None
+        logger.internal("cleanup executor")
+        self._executor.clear()
         logger.internal("cleanup filters")
         for name in self._filters:
             self._filters[name].destroy()
@@ -150,6 +154,14 @@ class NexTThread(QObject):
             raise NexTRuntimeError("Filterenvironment not found. Not active?")
         return self._filter2name[filterEnvironment]
 
+    def getExecutor(self):
+        """
+        Returns the executor instance of this thread.
+
+        :return: An Executor instance
+        """
+        return self._executor
+
     def qthread(self):
         """
         Return the corresponding qthread.
@@ -167,6 +179,8 @@ class NexTThread(QObject):
         """
         # wait that all threads are in their event loop.
         barrier.wait()
+        if operation == "stop":
+            self._executor.finalize()
         if operation in self._operations:
             # pre-adaptation of states (e.g. from CONSTRUCTED to INITIALIZING)
             # before one of the actual operations is called, all filters are in the adapted state
