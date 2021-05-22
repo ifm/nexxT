@@ -59,7 +59,7 @@ The following commands build nexxT from source using the non-recommended pip pac
     pip install -r requirements.txt --find-links https://download.qt.io/official_releases/QtForPython/shiboken2-generator/
     export QTDIR=<path>/<to>/<qt>
     export LLVM_INSTALL_DIR=<path>/<to>/<llvm>
-    scons ..
+    scons -j 8 ..
     
 When using setup.py to install nexxT, the above requirements shall be also fulfilled and scons is called implicitely from setup.py. Installation from source without using the wheel package is not supported.
 
