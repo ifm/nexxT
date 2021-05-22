@@ -45,6 +45,8 @@ Assuming that you have a python3.7+ interpreter in your path, the installation i
 
 Building from source requires a QT5 installation suited to the PySide2 version used for the build. It is ok to use 5.14.0 to build against all versions 5.14.x of PySide2 because of QT's binary compatibility. You have to set the environment variable QTDIR to the installation directory of QT. Note that this installation is only used during build time, at runtime, nexxT always uses the QT version shipped with PySide2.
 
+On linux, you will be caught by the following known bug from QT: https://bugreports.qt.io/browse/QTBUG-80922?focusedCommentId=558603&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-558603. Apply the fix mentioned in the linked comment.
+
 On linux, you will also need llvm and clang installed (because of the shiboken2 dependency). You might need to set the environment variable LLVM_INSTALL_DIR.
 
 The following commands build nexxT from source using the non-recommended pip package of shiboken2-generator.
