@@ -11,6 +11,7 @@
 #include "Filters.hpp"
 #include "Logger.hpp"
 #include "Services.hpp"
+#include "Logger.hpp"
 #include <atomic>
 
 #include <QtCore/QThread>

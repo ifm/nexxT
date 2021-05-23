@@ -16,19 +16,13 @@
 #include <QtCore/QObject>
 #include <QtCore/QSemaphore>
 #include "NexxTLinkage.hpp"
-#include "DataSamples.hpp"
+#include "SharedPointerTypes.hpp"
 
 namespace nexxT
 {
     class BaseFilterEnvironment;
     struct PortD;
-    struct InterThreadConnectionD;
-    class Port;
-
-    /*!
-        A typedef for a Port instance handled by a shared pointer.
-    */
-    typedef QSharedPointer<Port> SharedPortPtr;
+    struct PortToPortConnectionD;
 
     /*!
         This class is the C++ variant of \verbatim embed:rst:inline :py:class:`nexxT.interface.Ports.Port`
@@ -88,23 +82,18 @@ namespace nexxT
         static SharedPortPtr make_shared(Port *port);
     };
 
-    /*!
-        A typedef for a list of ports.
-    */
-    typedef QList<QSharedPointer<Port> > PortList;
-
  //! @cond Doxygen_Suppress
-   class DLLEXPORT InterThreadConnection : public QObject
+   class DLLEXPORT PortToPortConnection : public QObject
     {
         Q_OBJECT
         
-        InterThreadConnectionD *const d;
+        PortToPortConnectionD *const d;
     public:
-        InterThreadConnection(QThread *qthread_from);
-        virtual ~InterThreadConnection();
-
-    signals:
-        void transmitInterThread(const QSharedPointer<const nexxT::DataSample> &sample, QSemaphore *semaphore);
+        PortToPortConnection(const SharedExecutorPtr &executorFrom,
+                              const SharedExecutorPtr &executorTo,
+                              const SharedOutputPortPtr &portFrom,
+                              const SharedInputPortPtr &portTo);
+        virtual ~PortToPortConnection();
 
     public slots:
         void receiveSample(const QSharedPointer<const nexxT::DataSample> &sample);

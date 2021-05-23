@@ -6,7 +6,7 @@
  */
 
 /**
-    \file OutputPortInterface.hpp
+    \file InputPortInterface.hpp
     The interface corresponding to \verbatim embed:rst :py:mod:`nexxT.interface.Ports` \endverbatim
 */
 
@@ -16,7 +16,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QSemaphore>
 #include "NexxTLinkage.hpp"
-#include "DataSamples.hpp"
+#include "SharedPointerTypes.hpp"
 #include "Ports.hpp"
 
 namespace nexxT
