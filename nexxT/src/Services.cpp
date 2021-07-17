@@ -7,6 +7,7 @@
 
 #include "Services.hpp"
 #include "Logger.hpp"
+#include <QtCore/QObject>
 #include <QtCore/QMutex>
 #include <QtCore/QMap>
 
@@ -70,9 +71,12 @@ void Services::_removeService(const QString &name)
     if( (d->map.find(name) == d->map.end() ) )
     {
         NEXXT_LOG_WARN(QString("Service %1 doesn't exist. Not removing.").arg(name));
+    } else
+    {
+        NEXXT_LOG_INFO(QString("removing service %1").arg(name));
+        QMetaObject::invokeMethod(d->map[name].data(), "detach", Qt::DirectConnection);
+        d->map.remove(name);
     }
-    NEXXT_LOG_INFO(QString("removing service %1").arg(name));
-    d->map.remove(name);
 }
 
 void Services::_removeAll()

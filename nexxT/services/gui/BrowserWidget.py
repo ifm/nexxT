@@ -166,7 +166,7 @@ class FolderListModel(QAbstractTableModel):
                 return s
             if index.column() == 2:
                 try:
-                    return QDateTime.fromMSecsSinceEpoch(c.stat().st_mtime*1000)
+                    return QDateTime.fromMSecsSinceEpoch(int(c.stat().st_mtime*1000))
                 except Exception: # pylint: disable=broad-except
                     return ""
         if role == Qt.DecorationRole:

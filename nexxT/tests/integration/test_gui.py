@@ -1065,10 +1065,73 @@ class GuiStateTest(GuiTestBase):
         logger.info("guistate_contents: %s", guistate_contents)
         assert self.guistate_contents == guistate_contents
 
-
-
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])
 def test_guistate(qtbot, xvfb, keep_open, delay, tmpdir):
     test = GuiStateTest(qtbot, xvfb, keep_open, delay, tmpdir)
+    test.test()
+
+class DeadlockTestIssue25(GuiTestBase):
+    """
+    Concrete test class for the test_property test case
+    """
+    def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir):
+        super().__init__(qtbot, xvfb, keep_open, delay, tmpdir)
+
+    def _stage0(self):
+        conf = None
+        mw = None
+        try:
+            # load last config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            log = Services.getService("Logging")
+            # load recent config
+            fn = str((Path(__file__).parent.parent / "core" / "test_deadlock.json").absolute())
+            logger.info("laoding fn=%s", fn)
+            QTimer.singleShot(self.delay, lambda: self.enterText(fn))
+            conf.actLoad.trigger()
+            self.qtbot.wait(self.delay*2)
+
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("deadlock"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(5000)
+            # deinitialize
+            self.qtbot.keyClick(self.aw(), Qt.Key_D, Qt.ControlModifier, delay=self.delay)
+            self.noWarningsInLog(log, ignore=[
+                "did not find a playback device taking control",
+                "The inter-thread connection is set to stopped mode; data sample discarded."])
+
+            # assert that the samples arrived in the correct order
+            def assertSampleOrder():
+                numRows = log.logWidget.model().rowCount(QModelIndex())
+                filters = {}
+                for row in range(numRows):
+                    lidx = log.logWidget.model().index(row, 2, QModelIndex())
+                    msg = log.logWidget.model().data(lidx, Qt.DisplayRole)
+                    if "received: Sample" in msg:
+                        flt = msg.split(":")[0]
+                        idx = int(msg.strip().split(" ")[-1])
+                        if not flt in filters:
+                            assert idx == 1
+                        else:
+                            assert idx == filters[flt] + 1
+                        filters[flt] = idx
+            assertSampleOrder()
+            logger.info("finishing")
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def test(self):
+        QTimer.singleShot(self.delay, self._stage0)
+        startNexT(None, None, [], [], True)
+        self.qtbot.wait(1000)
+
+@pytest.mark.gui
+@pytest.mark.parametrize("delay", [300])
+def test_deadlock_issue25(qtbot, xvfb, keep_open, delay, tmpdir):
+    test = DeadlockTestIssue25(qtbot, xvfb, keep_open, delay, tmpdir)
     test.test()
