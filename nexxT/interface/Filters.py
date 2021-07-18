@@ -8,7 +8,7 @@
 This module defines the FilterState and Filter classes of the nexxT interface.
 """
 
-from PySide2.QtCore import QObject
+from nexxT.Qt.QtCore import QObject
 from nexxT.interface import OutputPort, InputPort
 
 class FilterState:

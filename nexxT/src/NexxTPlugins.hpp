@@ -16,6 +16,7 @@
 
 #include "Filters.hpp"
 #include <QtCore/QLibrary>
+#include <QtCore/QMap>
 
 /*!
     This macro must be present in the Filter's class declaration.

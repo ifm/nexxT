@@ -9,7 +9,7 @@ This module contains implementations for abstract classes InputPort and OutputPo
 """
 
 import logging
-from PySide2.QtCore import QThread, QSemaphore, Signal, QObject, Qt
+from nexxT.Qt.QtCore import QThread, QSemaphore, Signal, QObject, Qt
 from nexxT.interface.Ports import InputPortInterface, OutputPortInterface
 from nexxT.interface.DataSamples import DataSample
 from nexxT.interface.Services import Services

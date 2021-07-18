@@ -14,8 +14,8 @@ import logging
 import platform
 import string
 import os
-import shiboken2
-from PySide2.QtCore import Signal, Slot, QMutex, QMutexLocker
+import nexxT.shiboken
+from nexxT.Qt.QtCore import Signal, Slot, QRecursiveMutex, QMutexLocker
 from nexxT.core.Exceptions import (PropertyCollectionChildNotFound, PropertyCollectionChildExists,
                                    PropertyParsingError, NexTInternalError,
                                    PropertyInconsistentDefinition, PropertyCollectionPropertyNotFound)
@@ -54,7 +54,7 @@ class PropertyCollectionImpl(PropertyCollection):
         self._properties = {}
         self._accessed = False # if no access to properties has been made, we stick with configs from config file.
         self._loadedFromConfig = loadedFromConfig if loadedFromConfig is not None else {}
-        self._propertyMutex = QMutex(QMutex.Recursive)
+        self._propertyMutex = QRecursiveMutex()
         if parentPropColl is not None:
             if not isinstance(parentPropColl, PropertyCollectionImpl):
                 raise NexTInternalError("parentPropColl should always be a property collection instance but it isn't")
@@ -279,8 +279,8 @@ class PropertyCollectionImpl(PropertyCollection):
         for c in cc.children():
             if isinstance(c, PropertyCollectionImpl):
                 cc.deleteChild(c.objectName())
-        if shiboken2.isValid(cc): # pylint: disable=no-member
-            shiboken2.delete(cc) # pylint: disable=no-member
+        if nexxT.shiboken.isValid(cc): # pylint: disable=no-member
+            nexxT.shiboken.delete(cc) # pylint: disable=no-member
 
     def evalpath(self, path):
         """

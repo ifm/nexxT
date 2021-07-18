@@ -9,7 +9,7 @@ This module provides the recording control console service for the nexxT framewo
 """
 
 import logging
-from PySide2.QtCore import QObject, Signal, Slot, Qt, QMutex, QMutexLocker
+from nexxT.Qt.QtCore import QObject, Signal, Slot, Qt, QMutex, QMutexLocker
 from nexxT.core.Application import Application
 from nexxT.core.Exceptions import NexTRuntimeError
 from nexxT.interface import FilterState

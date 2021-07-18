@@ -12,7 +12,7 @@ import logging
 import time
 from threading import Lock
 import numpy as np
-from PySide2.QtCore import QObject, Signal, Slot, QThread, QTimer, Qt, QByteArray, QCoreApplication
+from nexxT.Qt.QtCore import QObject, Signal, Slot, QThread, QTimer, Qt, QByteArray, QCoreApplication
 from nexxT.core.Utils import MethodInvoker
 
 logger = logging.getLogger(__name__)

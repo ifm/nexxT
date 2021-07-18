@@ -9,6 +9,9 @@ Setup the logging here until we have a better place.
 """
 
 def setup():
+    # create an alias nexxT.Qt for PySide[26]
+    import nexxT.QtMetaPackage
+
     try:
         from importlib import metadata
     except ImportError:
@@ -42,9 +45,9 @@ def setup():
     global useCImpl
     useCImpl = not bool(int(os.environ.get("NEXXT_DISABLE_CIMPL", "0")))
     if useCImpl:
-        # make sure to import PySide2 before loading the cnexxT extension module because
+        # make sure to import nexxT.Qt before loading the cnexxT extension module because
         # there is a link-time dependency which would be impossible to resolve otherwise
-        import PySide2.QtCore
+        import nexxT.Qt.QtCore
         p = os.environ.get("NEXXT_CEXT_PATH", None)
         if p is None:
             variant = os.environ.get("NEXXT_VARIANT", "release")

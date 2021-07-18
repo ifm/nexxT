@@ -9,8 +9,8 @@ This module contains the specific nexxT property handlers for the supported type
 """
 
 import logging
-from PySide2.QtWidgets import QSpinBox, QLineEdit, QComboBox
-from PySide2.QtGui import QDoubleValidator
+from nexxT.Qt.QtWidgets import QSpinBox, QLineEdit, QComboBox
+from nexxT.Qt.QtGui import QDoubleValidator
 from nexxT.interface import PropertyHandler
 from nexxT.core.Exceptions import PropertyParsingError, PropertyCollectionUnknownType
 

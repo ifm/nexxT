@@ -11,8 +11,8 @@ This module provides a generic reader which can be inherited to use new data for
 import time
 import logging
 import math
-from PySide2.QtCore import Signal, QTimer
-from PySide2.QtWidgets import QFileDialog
+from nexxT.Qt.QtCore import Signal, QTimer
+from nexxT.Qt.QtWidgets import QFileDialog
 from nexxT.interface import Filter, Services, DataSample
 from nexxT.core.Utils import handleException, isMainThread
 

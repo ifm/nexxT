@@ -17,7 +17,7 @@ from collections import OrderedDict
 import importlib.util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 import pkg_resources
-from PySide2.QtCore import QObject
+from nexxT.Qt.QtCore import QObject
 from nexxT.core.Exceptions import UnknownPluginType, NexTRuntimeError, PluginException
 from nexxT.interface import Filter, FilterSurrogate
 from nexxT.core import PluginInterface
@@ -63,7 +63,7 @@ class PythonLibrary:
     LIBTYPE_ENTRY_POINT = 2
 
     # blacklisted packages are not unloaded when closing an application.
-    BLACKLISTED_PACKAGES = ["h5py", "numpy", "matplotlib", "PySide2", "shiboken2"]
+    BLACKLISTED_PACKAGES = ["h5py", "numpy", "matplotlib", "nexxT.Qt", "PySide2", "nexxT.shiboken"]
 
     def __init__(self, library, libtype):
         self._library = library

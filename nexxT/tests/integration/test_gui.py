@@ -16,9 +16,9 @@ import os
 import logging
 from pathlib import Path
 import pytest
-import shiboken2
-from PySide2.QtCore import QItemSelection, Qt, QTimer, QSize, QPoint, QModelIndex
-from PySide2.QtWidgets import QGraphicsSceneContextMenuEvent, QWidget, QApplication, QTreeView
+import nexxT.shiboken
+from nexxT.Qt.QtCore import QItemSelection, Qt, QTimer, QSize, QPoint, QModelIndex
+from nexxT.Qt.QtWidgets import QGraphicsSceneContextMenuEvent, QWidget, QApplication, QTreeView
 from nexxT.core.AppConsole import startNexT
 from nexxT.interface import Services
 from nexxT.services.gui.GraphEditorView import GraphEditorView
@@ -554,7 +554,7 @@ class BasicTest(GuiTestBase):
             self.addConnectionToGraphEditor(gevc, gevc_out.inPortItems[1], n2.outPortItems[0])
             # add composite filter to gev
             comp = self.addNodeToGraphEditor(gev, QPoint(20,20), CM_FILTER_FROM_COMPOSITE, "composite")
-            shiboken2.delete(gevc.parent())
+            nexxT.shiboken.delete(gevc.parent())
             self.qtbot.wait(self.delay)
             # auto layout
             QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_AUTOLAYOUT))
@@ -616,7 +616,7 @@ class BasicTest(GuiTestBase):
             # start and delete a graph editor for the old application
             gev = self.startGraphEditor(conf, mw, "application")
             self.qtbot.wait(self.delay)
-            shiboken2.delete(gev.parent())
+            nexxT.shiboken.delete(gev.parent())
             self.qtbot.wait(self.delay)
             # start the editor for the new application
             gev = self.startGraphEditor(conf, mw, "application_2")

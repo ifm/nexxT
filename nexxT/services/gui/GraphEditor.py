@@ -12,12 +12,13 @@ import logging
 import platform
 import os.path
 import pkg_resources
-from PySide2.QtWidgets import (QGraphicsScene, QGraphicsItemGroup, QGraphicsSimpleTextItem,
-                               QGraphicsPathItem, QGraphicsItem, QMenu, QAction, QInputDialog, QMessageBox,
+import nexxT.Qt
+from nexxT.Qt.QtWidgets import (QGraphicsScene, QGraphicsItemGroup, QGraphicsSimpleTextItem,
+                               QGraphicsPathItem, QGraphicsItem, QMenu, QInputDialog, QMessageBox,
                                QGraphicsLineItem, QFileDialog, QDialog, QGridLayout, QCheckBox, QVBoxLayout, QGroupBox,
                                QDialogButtonBox, QGraphicsView, QStyle, QStyleOptionGraphicsItem)
-from PySide2.QtGui import QBrush, QPen, QColor, QPainterPath, QImage
-from PySide2.QtCore import QPointF, Signal, QObject, QRectF, QSizeF, Qt
+from nexxT.Qt.QtGui import QBrush, QPen, QColor, QPainterPath, QImage, QAction
+from nexxT.Qt.QtCore import QPointF, Signal, QObject, QRectF, QSizeF, Qt
 from nexxT.core.BaseGraph import BaseGraph
 from nexxT.core.Graph import FilterGraph
 from nexxT.core.SubConfiguration import SubConfiguration
@@ -983,7 +984,7 @@ class PortSelectorDialog(QDialog):
         :param nodeName: the name of the corresponding node
         """
         d = PortSelectorDialog(parent, inputPorts, outputPorts, graph, nodeName)
-        if d.exec() == QDialog.Accepted:
+        if nexxT.Qt.call_exec(d) == QDialog.Accepted:
             return d.selectedInputPorts, d.selectedOutputPorts
         return [], []
 
@@ -1127,7 +1128,7 @@ class GraphScene(BaseGraphScene):
                     self.actSetThread.setEnabled(False)
                 else:
                     self.actSetThread.setEnabled(True)
-            m.exec_(event.screenPos())
+            nexxT.Qt.call_exec(m, event.screenPos())
         elif isinstance(item, BaseGraphScene.PortItem):
             m = QMenu(self.views()[0])
             if isinstance(self.graph, FilterGraph):
@@ -1136,11 +1137,11 @@ class GraphScene(BaseGraphScene):
                 self.actRenamePort.setEnabled(port.dynamic())
                 self.actRemovePort.setEnabled(port.dynamic())
             m.addActions([self.actRenamePort, self.actRemovePort])
-            m.exec_(event.screenPos())
+            nexxT.Qt.call_exec(m, event.screenPos())
         elif isinstance(item, BaseGraphScene.ConnectionItem):
             m = QMenu(self.views()[0])
             m.addActions([self.actRemoveConnection])
-            m.exec_(event.screenPos())
+            nexxT.Qt.call_exec(m, event.screenPos())
         else:
             self.itemOfContextMenu = event.scenePos()
             m = QMenu(self.views()[0])
@@ -1156,7 +1157,7 @@ class GraphScene(BaseGraphScene):
                         menu.addAction(src[k])
             populate(flm, self.entryPointActions)
             m.addAction(self.actAutoLayout)
-            m.exec_(event.screenPos())
+            nexxT.Qt.call_exec(m, event.screenPos())
         self.itemOfContextMenu = None
 
     def compositeFilters(self):

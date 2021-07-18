@@ -11,7 +11,7 @@ This module defines the class NexTThread.
 import logging
 import sys
 import threading
-from PySide2.QtCore import QObject, Signal, Slot, QCoreApplication, QThread
+from nexxT.Qt.QtCore import QObject, Signal, Slot, QCoreApplication, QThread
 from nexxT.interface import FilterState, Services
 from nexxT.core.Exceptions import NodeExistsError, NexTInternalError, NodeNotFoundError, NexTRuntimeError
 from nexxT.core.Utils import handleException

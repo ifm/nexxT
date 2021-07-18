@@ -9,7 +9,7 @@ This module defines the class FilterGraph
 """
 
 import logging
-from PySide2.QtCore import Signal, Slot
+from nexxT.Qt.QtCore import Signal, Slot
 from nexxT.interface import InputPortInterface, OutputPortInterface
 from nexxT.core.FilterMockup import FilterMockup
 from nexxT.core.BaseGraph import BaseGraph

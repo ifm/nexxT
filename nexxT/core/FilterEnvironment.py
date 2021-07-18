@@ -10,7 +10,7 @@ This module defines the class FilterEnvironment.
 
 import copy
 import logging
-from PySide2.QtCore import Signal, QMutex, QMutexLocker
+from nexxT.Qt.QtCore import Signal, QRecursiveMutex, QMutexLocker
 from nexxT.interface import FilterState, InputPortInterface, OutputPortInterface
 from nexxT import useCImpl
 from nexxT.core.BaseFilterEnvironment import BaseFilterEnvironment
@@ -32,7 +32,7 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
     def __init__(self, library, factoryFunction, propertyCollection, mockup=None):
         BaseFilterEnvironment.__init__(self, propertyCollection)
         # ports are accessed by multiple threads (from FilterMockup.createFilter)
-        self._portMutex = QMutex(QMutex.Recursive)
+        self._portMutex = QRecursiveMutex()
         self._ports = []
         self._mockup = mockup
         self._state = FilterState.CONSTRUCTING

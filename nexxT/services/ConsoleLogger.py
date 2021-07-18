@@ -12,7 +12,7 @@ It is automatically used by NEXT_LOG_*() macros in c++.
 import logging
 import os.path
 import sys
-from PySide2.QtCore import QObject, Slot, qInstallMessageHandler, QtMsgType
+from nexxT.Qt.QtCore import QObject, Slot, qInstallMessageHandler, QtMsgType
 from nexxT.core.Utils import excepthook
 
 logger = logging.getLogger(__name__)

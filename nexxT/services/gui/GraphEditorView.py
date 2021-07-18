@@ -10,9 +10,9 @@ This module provides the GraphEditorView class.
 
 import logging
 import json
-from PySide2.QtCore import QMimeData
-from PySide2.QtGui import QPainter, QKeySequence, QGuiApplication
-from PySide2.QtWidgets import QGraphicsView
+from nexxT.Qt.QtCore import QMimeData
+from nexxT.Qt.QtGui import QPainter, QKeySequence, QGuiApplication
+from nexxT.Qt.QtWidgets import QGraphicsView
 from nexxT.core.SubConfiguration import SubConfiguration
 from nexxT.services.gui.GraphEditor import BaseGraphScene, GraphScene
 

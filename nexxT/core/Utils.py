@@ -16,10 +16,10 @@ import datetime
 import os.path
 import sqlite3
 import time
-from PySide2.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
+from nexxT.Qt.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
                             QMutexLocker, QRecursiveMutex, QTimer, Qt, QPoint)
-from PySide2.QtGui import QColor, QPainter, QTextLayout, QTextOption
-from PySide2.QtWidgets import QFrame, QSizePolicy
+from nexxT.Qt.QtGui import QColor, QPainter, QTextLayout, QTextOption
+from nexxT.Qt.QtWidgets import QFrame, QSizePolicy
 from nexxT.core.Exceptions import NexTInternalError, InvalidIdentifierException
 
 logger = logging.getLogger(__name__)
@@ -269,7 +269,7 @@ class SQLiteHandler(logging.Handler):
 class QByteArrayBuffer(io.IOBase):
     """
     Efficient IOBase wrapper around QByteArray for pythonic access, for memoryview doesn't seem
-    supported; note this seems to have changed in PySide2 5.14.2.
+    supported; note this seems to have changed in nexxT.Qt 5.14.2.
     """
     def __init__(self, qByteArray):
         super().__init__()
@@ -341,7 +341,7 @@ def excepthook(*args):
 def handleException(func):
     """
     Can be used as decorator to enable generic exception catching. Important: Do not use
-    this for PySide2 slots because it confuses the PySide2 slot/thread detection logic.
+    this for nexxT.Qt slots because it confuses the nexxT.Qt slot/thread detection logic.
     Instead, make a non-slot method with exception handling and call that method from
     the slot.
     :param func: The function to be wrapped

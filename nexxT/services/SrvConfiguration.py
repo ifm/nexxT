@@ -9,9 +9,9 @@ This module provides the basic Configuration services of the nexxT framework.
 """
 
 import logging
-from PySide2.QtCore import (QObject, Slot, Qt, QAbstractItemModel, QModelIndex, QMimeData)
-from PySide2.QtGui import QFont, QIcon
-from PySide2.QtWidgets import QStyle, QApplication
+from nexxT.Qt.QtCore import (QObject, Slot, Qt, QAbstractItemModel, QModelIndex, QMimeData)
+from nexxT.Qt.QtGui import QFont, QIcon
+from nexxT.Qt.QtWidgets import QStyle, QApplication
 from nexxT.core.Exceptions import NexTRuntimeError
 from nexxT.core.ConfigFiles import ConfigFileLoader
 from nexxT.core.Configuration import Configuration

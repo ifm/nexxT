@@ -4,27 +4,47 @@
 # THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
 #
 
-import sysconfig
+import os
 
 Import("env")
 
 env = env.Clone()
-env.EnableQt5Modules(['QtCore', "QtMultimedia", "QtGui"])
-srcDir = Dir(".").srcnode()
+if os.environ.get("PYSIDEVERSION", "6") in "52":
+    env.EnableQt5Modules(['QtCore', "QtMultimedia", "QtGui"])
+    srcDir = Dir(".").srcnode()
 
-env.Append(CPPPATH=["../../src", "."],
-           LIBPATH=["../../src"],
-           LIBS=["nexxT"])
+    env.Append(CPPPATH=["../../src", "."],
+               LIBPATH=["../../src"],
+               LIBS=["nexxT"])
 
-plugin = env.SharedLibrary("test_plugins", env.RegisterSources(Split("""
-    SimpleSource.cpp
-    AviFilePlayback.cpp
-    TestExceptionFilter.cpp
-    Plugins.cpp
-    CameraGrabber.cpp
-    VideoGrabber.cpp
-""")))
-env.RegisterTargets(plugin)
+    plugin = env.SharedLibrary("test_plugins", env.RegisterSources(Split("""
+        SimpleSource.cpp
+        AviFilePlayback.cpp
+        TestExceptionFilter.cpp
+        Plugins.cpp
+        CameraGrabber.cpp
+        VideoGrabber.cpp
+    """)))
+    env.RegisterTargets(plugin)
+elif os.environ.get("PYSIDEVERSION", "6") == "6":
+    env.EnableQt6Modules(['QtCore', "QtGui"])
+    srcDir = Dir(".").srcnode()
+
+    env.Append(CPPPATH=["../../src", "."],
+               LIBPATH=["../../src"],
+               LIBS=["nexxT"])
+
+    plugin = env.SharedLibrary("test_plugins", env.RegisterSources(Split("""
+        SimpleSource.cpp
+        TestExceptionFilter.cpp
+        Plugins.cpp
+    """)))
+    #    AviFilePlayback.cpp
+    #    CameraGrabber.cpp
+    #    VideoGrabber.cpp
+    env.RegisterTargets(plugin)
+else:
+    raise RuntimeError("invalid env variable PYSIDEVERSION=%s" % os.environ["PYSIDEVERSION"])
 
 installed = env.Install(srcDir.Dir("..").Dir("binary").Dir(env.subst("$deploy_platform")).Dir(env.subst("$variant")).abspath, plugin)
 env.RegisterTargets(installed)

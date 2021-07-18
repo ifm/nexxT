@@ -1,9 +1,17 @@
 import platform
 import os
 import sysconfig
-import PySide2
 
-qtversion = ".".join(PySide2.__version__.split(".")[:2])
+if os.environ.get("PYSIDEVERSION", "6") in "25":
+    import PySide2 as PySide
+    standard = "c++14"
+    pysideversion = "2"
+else:
+    import PySide6 as PySide
+    standard = "c++17"
+    pysideversion = "6"
+
+qtversion = ".".join(PySide.__version__.split(".")[:2])
 
 if platform.system() == "Linux":
     if os.path.isfile("/etc/centos-release") and "CentOS Linux release 7" in open("/etc/centos-release", "r").read():
@@ -12,50 +20,71 @@ if platform.system() == "Linux":
         target_platform = "linux_x86_64"
     env = Environment(target_platform=target_platform,
                       deploy_platform="linux_x86_64",
-                      QT5VERSION=qtversion,
                       toolpath=["#/sconstools3"],
                       ENV = os.environ,
                       variant="unknown")
     
-    if "QTDIR" in ARGUMENTS: 
-        env["QT5DIR"] = ARGUMENTS["QTDIR"]
-        os.environ["QTDIR"] = ARGUMENTS["QTDIR"]
-        print("QTDIR=",ARGUMENTS["QTDIR"])
-    env.Tool("qt5")
+    if qtversion[0] == "5":
+        if "QTDIR" in ARGUMENTS: 
+            env["QT5DIR"] = ARGUMENTS["QTDIR"]
+            os.environ["QTDIR"] = ARGUMENTS["QTDIR"]
+            print("QTDIR=",ARGUMENTS["QTDIR"])
+        env["QT5VERSION"] = qtversion
+        env.Tool("qt5")
+        env["QTDIR"] = env["QT5DIR"]
+    elif qtversion[0] == "6":
+        if "QTDIR" in ARGUMENTS:
+            env["QT6DIR"] = ARGUMENTS["QTDIR"]
+            os.environ["QTDIR"] = ARGUMENTS["QTDIR"]
+            print("QTDIR=",ARGUMENTS["QTDIR"])
+        env["QT6VERSION"] = qtversion
+        env.Tool("qt6")
+        env["QTDIR"] = env["QT6DIR"]
+    else:
+        raise RuntimeError("Unknown Qt Version: %s", qtversion)
 
-    env['ENV']['PKG_CONFIG_PATH'] = env.subst("$QT5DIR") + '/lib/pkgconfig'
+    env['ENV']['PKG_CONFIG_PATH'] = env.subst("$QTDIR") + '/lib/pkgconfig'
+    print("pkgconfig path:", env['ENV']['PKG_CONFIG_PATH'])
     # fix shiboken2 lib not found issues
-    env.PrependENVPath('LD_LIBRARY_PATH', sysconfig.get_paths()['purelib'] + "/PySide2/Qt/lib")
+    env.PrependENVPath('LD_LIBRARY_PATH', sysconfig.get_paths()['purelib'] + "/PySide%s/Qt/lib" % pysideversion)
     # make sure moc is working
-    env.PrependENVPath('LD_LIBRARY_PATH', env.subst("$QT5DIR") + "/lib")
+    env.PrependENVPath('LD_LIBRARY_PATH', env.subst("$QTDIR") + "/lib")
     
 else:
     # windows environment
     env = Environment(MSVC_VERSION="14.0", 
-                      QT5VERSION=qtversion,
                       tools=["default", "qt5"], 
                       toolpath=["#/sconstools3"],
                       target_platform="msvc_x86_64",
                       deploy_platform="msvc_x86_64",
                       variant="unknown")                     
+    if qtversion[0] == "5":
+        env["QT5VERSION"] = qtversion
+    elif qtversion[0] == "6":
+        env["QT6VERSION"] = qtversion
+    else:
+        raise RuntimeError("Unknown Qt Version: %s", qtversion)
 
-env.EnableQt5Modules(['QtCore'])
+if qtversion[0] == "5":
+    env.EnableQt5Modules(['QtCore'])
+else:
+    env.EnableQt6Modules(["QtCore"])
 env.AddMethod(lambda env, args: args, "RegisterSources")
 env.AddMethod(lambda env, args: None, "RegisterTargets")
 env.Append(CPPDEFINES=["Py_LIMITED_API"])
 
 if platform.system() == "Linux":
-    dbg_env = env.Clone(CCFLAGS=Split("-Wall -g -std=c++14 -O0"), #-fvisibility=hidden 
+    dbg_env = env.Clone(CCFLAGS=Split("-Wall -g -std=%s -O0" % standard), #-fvisibility=hidden 
                         LINKFLAGS=Split("-g"),
                         variant="nonopt")
-    rel_env = env.Clone(CCFLAGS=Split("-Wall -std=c++14 -O3"), #-fvisibility=hidden 
+    rel_env = env.Clone(CCFLAGS=Split("-Wall -std=%s -O3" % standard), #-fvisibility=hidden 
                         variant="release")    
 else:    
     env.Append(CPPDEFINES=["_CRT_SECURE_NO_WARNINGS"])
-    dbg_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Od /Ob2 /Z7 /MD /std:c++14"),
+    dbg_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Od /Ob2 /Z7 /MD /std:%s" % standard),
                         LINKFLAGS=Split("/nologo /DEBUG"),
                         variant="nonopt")
-    rel_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Ox /Z7 /MD /std:c++14"),
+    rel_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Ox /Z7 /MD /std:%s" % standard),
                         LINKFLAGS=Split("/nologo /DEBUG"),
                         variant="release")
 

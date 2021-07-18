@@ -10,7 +10,7 @@ This module defines the class SubConfiguration
 
 import logging
 from collections import OrderedDict
-from PySide2.QtCore import QObject, Signal
+from nexxT.Qt.QtCore import QObject, Signal
 from nexxT.core.Graph import FilterGraph
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.Exceptions import NexTInternalError, PropertyCollectionPropertyNotFound, PropertyCollectionChildNotFound

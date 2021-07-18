@@ -11,12 +11,12 @@ import logging
 import re
 import subprocess
 import sys
-import shiboken2
-from PySide2.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QAction, QWidget, QGridLayout,
+import nexxT.shiboken
+from nexxT.Qt.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QWidget, QGridLayout,
                                QMenuBar, QMessageBox)
-from PySide2.QtCore import (QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings,
+from nexxT.Qt.QtCore import (QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings,
                             QTimer, QUrl)
-from PySide2.QtGui import QDesktopServices
+from nexxT.Qt.QtGui import QDesktopServices, QAction
 import nexxT
 from nexxT.interface import Filter
 from nexxT.core.Application import Application
@@ -266,7 +266,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
             prefix = i["prefix"]
             logger.debug("save window geometry %s: %s", prefix, window.geometry())
             geom = str(window.saveGeometry().toBase64(), "ascii")
-            visible = self.windows[shiboken2.getCppPointer(window)[0]].isChecked() # pylint: disable=no-member
+            visible = self.windows[nexxT.shiboken.getCppPointer(window)[0]].isChecked() # pylint: disable=no-member
             propColl.setProperty(prefix + "_geom", geom)
             logger.debug("%s is visible: %d", prefix, int(visible))
             propColl.setProperty(prefix + "_visible", int(visible))
@@ -465,15 +465,15 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         act.toggled.connect(window.setVisible)
         window.visibleChanged.connect(act.setChecked)
         nameChangedSignal.connect(act.setText)
-        self.windows[shiboken2.getCppPointer(window)[0]] = act # pylint: disable=no-member
+        self.windows[nexxT.shiboken.getCppPointer(window)[0]] = act # pylint: disable=no-member
         self.menu.addAction(act)
         logger.debug("Registering window %s, new len=%d",
-                     shiboken2.getCppPointer(window), len(self.windows)) # pylint: disable=no-member
+                     nexxT.shiboken.getCppPointer(window), len(self.windows)) # pylint: disable=no-member
         window.destroyed.connect(self._windowDestroyed)
 
     def _windowDestroyed(self, obj):
         logger.internal("_windowDestroyed")
-        ptr = shiboken2.getCppPointer(obj) # pylint: disable=no-member
+        ptr = nexxT.shiboken.getCppPointer(obj) # pylint: disable=no-member
         try:
             ptr = ptr[0]
         except TypeError:

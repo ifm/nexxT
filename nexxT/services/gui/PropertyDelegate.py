@@ -8,8 +8,8 @@
 This module provides a delegate for use in the Configuration GUI service to edit properties.
 """
 
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QStyledItemDelegate
+from nexxT.Qt.QtCore import Qt
+from nexxT.Qt.QtWidgets import QStyledItemDelegate
 
 class PropertyDelegate(QStyledItemDelegate):
     """

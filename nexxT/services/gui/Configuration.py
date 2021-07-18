@@ -8,10 +8,11 @@
 This module provides the Configuration GUI service of the nexxT framework.
 """
 import logging
-import shiboken2
-from PySide2.QtCore import (Qt, QSettings, QByteArray, QDataStream, QIODevice, QTimer)
-from PySide2.QtGui import QIcon, QKeySequence
-from PySide2.QtWidgets import (QTreeView, QAction, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
+import nexxT.shiboken
+import nexxT.Qt
+from nexxT.Qt.QtCore import (Qt, QSettings, QByteArray, QDataStream, QIODevice, QTimer)
+from nexxT.Qt.QtGui import QIcon, QKeySequence, QAction
+from nexxT.Qt.QtWidgets import (QTreeView, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
                                QHeaderView, QMenu, QDockWidget)
 from nexxT.interface import Services, FilterState
 from nexxT.core.Configuration import Configuration
@@ -198,7 +199,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         # remove already deleted graph views from internal list
         valid_graphViews = []
         for gv in self._graphViews:
-            if shiboken2.isValid(gv): # pylint: disable=no-member
+            if nexxT.shiboken.isValid(gv): # pylint: disable=no-member
                 valid_graphViews.append(gv)
         self._graphViews = valid_graphViews
         # check if graph view is already there
@@ -271,13 +272,14 @@ class MVCConfigurationGUI(MVCConfigurationBase):
                         s2.append(aseq)
                 m2.addActions(s1)
                 m3.addActions(s2)
-            m.exec_(self.treeView.mapToGlobal(point))
+            nexxT.Qt.call_exec(m, self.treeView.mapToGlobal(point))
             return
         if self.model.isSubConfigParent(index) == Configuration.CONFIG_TYPE_APPLICATION:
             m = QMenu()
             a = QAction("Add application")
             m.addAction(a)
-            a = m.exec_(self.treeView.mapToGlobal(point))
+            point = self.treeView.mapToGlobal(point)
+            a = nexxT.Qt.call_exec(m, point)
             if a is not None:
                 self._configuration.addNewApplication()
             return
@@ -285,7 +287,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
             m = QMenu()
             a = QAction("Add composite filter")
             m.addAction(a)
-            a = m.exec_(self.treeView.mapToGlobal(point))
+            a = nexxT.Qt.call_exec(m, self.treeView.mapToGlobal(point))
             if a is not None:
                 self._configuration.addNewCompositeFilter()
             return

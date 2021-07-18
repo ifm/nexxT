@@ -8,7 +8,7 @@
 This module defines the nexxT interface class DataSample.
 """
 import time
-from PySide2.QtCore import QByteArray
+from nexxT.Qt.QtCore import QByteArray
 
 class DataSample:
     """

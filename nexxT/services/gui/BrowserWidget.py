@@ -12,9 +12,10 @@ from pathlib import Path
 import os
 import platform
 import string
-from PySide2.QtCore import (QAbstractTableModel, Qt, Signal, QModelIndex, QDateTime, QFileInfo, QDir, QEvent)
-from PySide2.QtGui import QKeyEvent
-from PySide2.QtWidgets import (QWidget, QVBoxLayout, QTreeView, QFileIconProvider, QCompleter, QLineEdit, QHeaderView)
+import nexxT.Qt
+from nexxT.Qt.QtCore import (QAbstractTableModel, Qt, Signal, QModelIndex, QDateTime, QFileInfo, QDir, QEvent)
+from nexxT.Qt.QtGui import QKeyEvent
+from nexxT.Qt.QtWidgets import (QWidget, QVBoxLayout, QTreeView, QFileIconProvider, QCompleter, QLineEdit, QHeaderView)
 
 logger = logging.getLogger(__name__)
 
@@ -375,12 +376,12 @@ if __name__ == "__main__": # pragma: no-cover
         """
         # pylint: disable-import-outside-toplevel
         # this is just the test function part
-        from PySide2.QtWidgets import QApplication
+        from nexxT.Qt.QtWidgets import QApplication
 
         app = QApplication()
         bw = BrowserWidget()
         bw.activated.connect(print)
         bw.setActive("/home/wiedeman/.bashrc")
         bw.show()
-        app.exec_()
+        nexxT.Qt.call_exec(app)
     main()

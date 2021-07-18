@@ -10,9 +10,9 @@ This module provides the gui part of the profiling service for nexxT.
 
 import logging
 import numpy as np
-from PySide2.QtCore import QByteArray, Slot, Qt, QPointF, QLineF, QRectF, QEvent
-from PySide2.QtGui import QPainter, QPolygonF, QPen, QColor, QFontMetricsF, QPalette
-from PySide2.QtWidgets import QWidget, QToolTip, QAction
+from nexxT.Qt.QtCore import QByteArray, Slot, Qt, QPointF, QLineF, QRectF, QEvent
+from nexxT.Qt.QtGui import QPainter, QPolygonF, QPen, QColor, QFontMetricsF, QPalette, QAction
+from nexxT.Qt.QtWidgets import QWidget, QToolTip
 from nexxT.core.Utils import ThreadToColor
 from nexxT.interface import Services
 from nexxT.services.SrvProfiling import ProfilingService

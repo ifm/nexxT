@@ -14,7 +14,7 @@ be defined by the user.
 
 import ctypes as ct
 import numpy as np
-from PySide2.QtCore import QByteArray
+from nexxT.Qt.QtCore import QByteArray
 
 # The supported image formats and the mapping to the number of channels and the numpy type.
 # Note that QT's QImage natively only supports intensity_u8, intensity_u16 and rgb_u8 images.

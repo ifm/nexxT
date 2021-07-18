@@ -143,12 +143,12 @@ if build_required:
     
 setup(name='nexxT',
       install_requires=[
-        "PySide2==5.15.1", 
-        "shiboken2==5.15.1", 
-        "jsonschema>=3.2.0", 
+        "PySide2==5.15.1" if os.environ.get("PYSIDEVERSION", "6") in "52" else "PySide6==6.1.2",
+        "shiboken2==5.15.1" if os.environ.get("PYSIDEVERSION", "6") in "52" else "PySide6==6.1.2",
+        "jsonschema>=3.2.0",
         "h5py>=2.10.0",
         "setuptools>=41.0.0",
-        'importlib-metadata >= 1.0 ; python_version < "3.8"', 
+        'importlib-metadata >= 1.0 ; python_version < "3.8"',
         "pip-licenses",
       ],
       version=os.environ.get("NEXXT_VERSION", "0.0.0"),

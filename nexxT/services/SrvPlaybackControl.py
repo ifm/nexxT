@@ -10,7 +10,7 @@ This module provides the playback control console service for the nexxT framewor
 
 import pathlib
 import logging
-from PySide2.QtCore import QObject, Signal, Slot, Qt, QDir, QMutex, QMutexLocker
+from nexxT.Qt.QtCore import QObject, Signal, Slot, Qt, QDir, QMutex, QMutexLocker
 from nexxT.interface import FilterState
 from nexxT.core.Exceptions import NexTRuntimeError
 from nexxT.core.Application import Application

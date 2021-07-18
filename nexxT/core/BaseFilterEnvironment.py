@@ -9,7 +9,7 @@ This module defines the class BaseFilterEnvironment.
 """
 
 import logging
-from PySide2.QtCore import QObject, QThread
+from nexxT.Qt.QtCore import QObject, QThread
 from nexxT import useCImpl
 from nexxT.interface import FilterState
 from nexxT.core.Exceptions import NexTInternalError, UnexpectedFilterState

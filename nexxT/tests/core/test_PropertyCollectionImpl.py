@@ -8,7 +8,7 @@ from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.PropertyHandlers import defaultHandler
 from nexxT.interface import PropertyHandler
 from nexxT.core.Exceptions import *
-from PySide2.QtCore import QRegExp, QCoreApplication
+from nexxT.Qt.QtCore import QCoreApplication
 
 class MySimplePropertyHandler(PropertyHandler):
     def __init__(self, options):

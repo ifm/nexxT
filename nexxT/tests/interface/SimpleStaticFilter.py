@@ -6,9 +6,9 @@
 
 import logging
 import time
-from PySide2.QtWidgets import QLabel
+from nexxT.Qt.QtWidgets import QLabel
 from nexxT.interface import Filter, InputPort, OutputPort, DataSample, Services
-from PySide2.QtCore import QTimer
+from nexxT.Qt.QtCore import QTimer
 
 class SimpleStaticFilter(Filter):
 

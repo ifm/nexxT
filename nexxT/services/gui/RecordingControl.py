@@ -10,9 +10,9 @@ This module provides the recording control GUI service for the nexxT framework.
 
 import logging
 from pathlib import Path
-from PySide2.QtCore import Qt, QStorageInfo
-from PySide2.QtGui import QIcon, QTextOption
-from PySide2.QtWidgets import QAction, QApplication, QStyle, QWidget, QBoxLayout, QToolBar, QFileDialog
+from nexxT.Qt.QtCore import Qt, QStorageInfo
+from nexxT.Qt.QtGui import QAction, QIcon, QTextOption
+from nexxT.Qt.QtWidgets import QApplication, QStyle, QWidget, QBoxLayout, QToolBar, QFileDialog
 from nexxT.core.Utils import assertMainThread, ElidedLabel
 from nexxT.core.Exceptions import PropertyCollectionPropertyNotFound
 from nexxT.interface import Services

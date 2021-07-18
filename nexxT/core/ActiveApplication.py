@@ -9,7 +9,7 @@ This module contains the class definition of ActiveApplication
 """
 
 import logging
-from PySide2.QtCore import QObject, Slot, Signal, Qt, QCoreApplication
+from nexxT.Qt.QtCore import QObject, Slot, Signal, Qt, QCoreApplication
 from nexxT.interface import FilterState, OutputPortInterface, InputPortInterface
 from nexxT.core.Exceptions import FilterStateMachineError, NexTInternalError
 from nexxT.core.CompositeFilter import CompositeFilter

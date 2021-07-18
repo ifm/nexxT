@@ -10,10 +10,9 @@ This module provides the nexxT GUI service PlaybackControl
 import functools
 import logging
 from pathlib import Path
-from PySide2.QtCore import Signal, Qt, QTimer, QDir
-from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import (QWidget, QGridLayout, QLabel, QBoxLayout, QSlider, QToolBar, QAction, QApplication,
-                               QStyle, QActionGroup)
+from nexxT.Qt.QtCore import Signal, Qt, QTimer, QDir
+from nexxT.Qt.QtGui import QIcon, QAction, QActionGroup
+from nexxT.Qt.QtWidgets import QWidget, QGridLayout, QLabel, QBoxLayout, QSlider, QToolBar, QApplication, QStyle
 from nexxT.interface import Services
 from nexxT.core.Exceptions import PropertyCollectionPropertyNotFound
 from nexxT.core.Utils import assertMainThread

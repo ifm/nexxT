@@ -9,7 +9,7 @@ This module defines the class BaseGraph
 """
 
 from collections import OrderedDict
-from PySide2.QtCore import QObject, Signal, Slot
+from nexxT.Qt.QtCore import QObject, Signal, Slot
 from nexxT.core.Utils import assertMainThread
 from nexxT.core.Exceptions import (NodeExistsError, NodeNotFoundError, PortExistsError, PortNotFoundError,
                                    ConnectionExistsError, ConnectionNotFound, NodeProtectedError)

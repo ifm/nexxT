@@ -11,10 +11,11 @@ import datetime
 from queue import Queue
 import traceback
 import logging
-import shiboken2
-from PySide2.QtCore import Qt, QTimer, QAbstractItemModel, QModelIndex
-from PySide2.QtWidgets import QTableView, QHeaderView, QAction, QActionGroup
-from PySide2.QtGui import QColor
+import nexxT.shiboken
+from nexxT.Qt import __version_info__ as qtversion
+from nexxT.Qt.QtCore import Qt, QTimer, QAbstractItemModel, QModelIndex
+from nexxT.Qt.QtWidgets import QTableView, QHeaderView, QStyleOptionViewItem
+from nexxT.Qt.QtGui import QColor, QAction, QActionGroup
 from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.interface import Services
 from nexxT.core.Utils import assertMainThread
@@ -189,7 +190,7 @@ class LogView(QTableView):
                 return e[modelIndex.column()]
             if role == Qt.ToolTipRole:
                 return e[2]
-            if role == Qt.BackgroundColorRole:
+            if role == Qt.BackgroundRole:
                 levelno = e[1]
                 if levelno <= logging.INTERNAL:
                     return QColor(255, 255, 255)  # white
@@ -278,7 +279,11 @@ class LogView(QTableView):
 
     def _getCellHeights(self, row=0):
         self.ensurePolished()
-        option = self.viewOptions()
+        if qtversion[0] == 5:
+            option = self.viewOptions()
+        else:
+            option = QStyleOptionViewItem()
+            self.initViewItemOption(option)
         model = self._model
         for column in range(model.columnCount(QModelIndex())):
             index = model.index(row, column, QModelIndex())
@@ -302,7 +307,7 @@ class LogView(QTableView):
         :return: None
         """
         assertMainThread()
-        if not shiboken2.isValid(self): # pylint: disable=no-member
+        if not nexxT.shiboken.isValid(self): # pylint: disable=no-member
             return
         if not self.queue.empty():
             self._model.update(self.queue)

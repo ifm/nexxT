@@ -11,7 +11,8 @@ from nexxT.interface import FilterState
 import os
 import time
 import pprint
-from PySide2.QtCore import QCoreApplication, QTimer
+import nexxT.Qt
+from nexxT.Qt.QtCore import QCoreApplication, QTimer
 
 def setup():
     global app
@@ -111,7 +112,7 @@ def simple_setup(multithread, sourceFreq, sinkTime, activeTime_s, dynamicFilter)
         aa.open()
         aa.start()
 
-        app.exec_()
+        nexxT.Qt.call_exec(app)
 
         return events
     finally:

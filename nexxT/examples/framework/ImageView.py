@@ -12,8 +12,8 @@ matpllotlibs or others supporting a QT5 backend.
 
 import logging
 import numpy as np
-from PySide2.QtGui import QPainter, QImage
-from PySide2.QtWidgets import QWidget
+from nexxT.Qt.QtGui import QPainter, QImage
+from nexxT.Qt.QtWidgets import QWidget
 from nexxT.interface import Filter, Services
 from nexxT.examples.framework.ImageData import byteArrayToNumpy
 
