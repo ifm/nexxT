@@ -15,6 +15,7 @@ You can also pass --no-xvfb to pytest and also --keep-open for inspecting the is
 import os
 import logging
 from pathlib import Path
+import re
 import pytest
 import shiboken2
 from PySide2.QtCore import QItemSelection, Qt, QTimer, QSize, QPoint, QModelIndex
@@ -1071,4 +1072,59 @@ class GuiStateTest(GuiTestBase):
 @pytest.mark.parametrize("delay", [300])
 def test_guistate(qtbot, xvfb, keep_open, delay, tmpdir):
     test = GuiStateTest(qtbot, xvfb, keep_open, delay, tmpdir)
+    test.test()
+
+
+class ExecutionOrderTest(GuiTestBase):
+    """
+    Concrete test class for the test_property test case
+    """
+    def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir):
+        super().__init__(qtbot, xvfb, keep_open, delay, tmpdir)
+
+    def _stage0(self):
+        conf = None
+        mw = None
+        try:
+            # execution order config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+
+            # this is the offline config
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("binarytree"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(3000)
+            log = Services.getService("Logging")
+
+            model = log.logWidget.model()
+            numRows = model.rowCount(QModelIndex())
+            expected = [(1,1), (2,1), (2,2), (1,2), (2,3), (2,4)]
+            order = []
+            for row in range(numRows):
+                msg = model.data(model.index(row, 2, QModelIndex()), Qt.DisplayRole)
+                M = re.match(r'^layer(\d)_f(\d)', msg)
+                if M is not None:
+                    item = (int(M.group(1)),int(M.group(2)))
+                    order.append( item )
+            for i, item in enumerate(order):
+                assert item == expected[i % len(expected)]
+            assert len(order) >= len(expected)
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def test(self):
+        """
+        test property editing in config editor
+        :return:
+        """
+        QTimer.singleShot(self.delay, self._stage0)
+        startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
+
+@pytest.mark.gui
+@pytest.mark.parametrize("delay", [300])
+def test_executionOrder(qtbot, xvfb, keep_open, delay, tmpdir):
+    test = ExecutionOrderTest(qtbot, xvfb, keep_open, delay, tmpdir)
     test.test()
