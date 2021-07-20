@@ -62,6 +62,7 @@ CM_RENAMEDYNPORT = ContextMenuEntry("Rename dynamic port ...")
 CM_REMOVEDYNPORT = ContextMenuEntry("Remove dynamic port ...")
 CONFIG_MENU_DEINITIALIZE = ContextMenuEntry("Deinitialize")
 CONFIG_MENU_INITIALIZE = ContextMenuEntry("Initialize")
+LM_WARNING = ContextMenuEntry("Warning")
 
 class GuiTestBase:
     def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir):
@@ -1083,6 +1084,7 @@ class ExecutionOrderTest(GuiTestBase):
         super().__init__(qtbot, xvfb, keep_open, delay, tmpdir)
 
     def _stage0(self):
+        # binary tree execution order
         conf = None
         mw = None
         try:
@@ -1116,6 +1118,7 @@ class ExecutionOrderTest(GuiTestBase):
                 mw.close()
 
     def _stage1(self):
+        # recursion single thread execution order
         conf = None
         mw = None
         try:
@@ -1154,6 +1157,47 @@ class ExecutionOrderTest(GuiTestBase):
                     QTimer.singleShot(self.delay, self.clickDiscardChanges)
                 mw.close()
 
+    def _stage2(self):
+        # throughput
+        conf = None
+        mw = None
+        try:
+            # execution order config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+
+            app = conf.configuration().applicationByName("binarytree")
+            # start graph editor
+            self.setFilterProperty(conf, app, "layer1_f1", "log_throughput_at_end", [Qt.Key_Down, Qt.Key_Return], "True")
+            self.setFilterProperty(conf, app, "source", "frequency", "10000.0")
+
+            self.qtbot.keyClick(self.aw(), Qt.Key_L, Qt.AltModifier, delay=self.delay)
+            self.activateContextMenu(LM_WARNING)
+            # this is the offline config
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("binarytree"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(3000)
+            log = Services.getService("Logging")
+            self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+            self.qtbot.wait(2*self.delay)
+
+            model = log.logWidget.model()
+            numRows = model.rowCount(QModelIndex())
+            throughput = None
+            for row in range(numRows):
+                msg = model.data(model.index(row, 2, QModelIndex()), Qt.DisplayRole)
+                logger.info(repr(msg))
+                M = re.match(r'layer1_f1:throughput: (\d+.\d+) samples/second', msg)
+                if M is not None:
+                    throughput = float(M.group(1))
+            assert throughput > 1000
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
     def test(self):
         """
         test property editing in config editor
@@ -1162,6 +1206,8 @@ class ExecutionOrderTest(GuiTestBase):
         QTimer.singleShot(self.delay, self._stage0)
         startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
         QTimer.singleShot(self.delay, self._stage1)
+        startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
+        QTimer.singleShot(self.delay, self._stage2)
         startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
 
 

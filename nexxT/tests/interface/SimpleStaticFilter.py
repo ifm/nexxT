@@ -27,12 +27,16 @@ class SimpleStaticFilter(Filter):
                                                  options=dict(min=1234, max=5000))
         self.propertyCollection().defineProperty("an_enum_property", "e1", "to have coverage for the integer props",
                                                  options=dict(enum=["e1", "e2"]))
+        self.propertyCollection().defineProperty("log_throughput_at_end", False,
+            "If True, the throughput will be logged at closing time in terms of calls/second")
 
     def onStart(self):
         self.log_rcv = self.propertyCollection().getProperty("log_rcv")
         self.log_prefix = self.propertyCollection().getProperty("log_prefix")
         self.propertyCollection().getProperty("an_int_property")
         self.propertyCollection().getProperty("an_enum_property")
+        self.cnt = 0
+        self.t_start = time.perf_counter_ns()
 
     def onPortDataChanged(self, inputPort):
         dataSample = inputPort.getData()
@@ -44,6 +48,13 @@ class SimpleStaticFilter(Filter):
         self.beforeTransmit(dataSample)
         self.outPort.transmit(dataSample)
         self.afterTransmit()
+        self.cnt += 1
+
+    def onStop(self):
+        pc = self.propertyCollection()
+        if pc.getProperty("log_throughput_at_end"):
+            t_end = time.perf_counter_ns()
+            logging.getLogger(__name__).warning("%sthroughput: %.2f samples/second", self.log_prefix, self.cnt / ((t_end - self.t_start)*1e-9))
 
     # used by tests
     def afterReceive(self, dataSample):
