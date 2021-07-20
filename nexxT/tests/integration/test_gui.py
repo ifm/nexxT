@@ -1115,6 +1115,45 @@ class ExecutionOrderTest(GuiTestBase):
                     QTimer.singleShot(self.delay, self.clickDiscardChanges)
                 mw.close()
 
+    def _stage1(self):
+        conf = None
+        mw = None
+        try:
+            # execution order config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+
+            # this is the offline config
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("recursion_single_thread"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(3000)
+            log = Services.getService("Logging")
+
+            model = log.logWidget.model()
+            numRows = model.rowCount(QModelIndex())
+            expected = [(1, "recursive", "in"), (1, "filter", None), (1, "recursive", "recursive")]
+            order = []
+            for row in range(numRows):
+                msg = model.data(model.index(row, 2, QModelIndex()), Qt.DisplayRole)
+                M = re.match(r'^([^:]+):received: Sample (\d+)(.*)', msg)
+                if M is not None:
+                    M2 = re.match(r" on port (.*)$", M.group(3))
+                    item = (int(M.group(2)), M.group(1), M2.group(1) if M2 is not None else None)
+                    order.append( item )
+            k = 0
+            for i, item in enumerate(order):
+                if i % len(expected) == 0:
+                    k += 1
+                eitem = expected[i % len(expected)]
+                eitem = (k,) + eitem[1:]
+                assert item == eitem
+            assert len(order) >= len(expected)
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
     def test(self):
         """
         test property editing in config editor
@@ -1122,6 +1161,9 @@ class ExecutionOrderTest(GuiTestBase):
         """
         QTimer.singleShot(self.delay, self._stage0)
         startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
+        QTimer.singleShot(self.delay, self._stage1)
+        startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
+
 
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])
