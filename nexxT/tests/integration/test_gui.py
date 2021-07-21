@@ -1255,6 +1255,7 @@ class ExecutionOrderTest(GuiTestBase):
                 M = re.match(r'layer1_f1:throughput: (\d+.\d+) samples/second', msg)
                 if M is not None:
                     throughput = float(M.group(1))
+            self.record_property("throughput_smp_per_sec", throughput)
             assert throughput > 1000
         finally:
             if not self.keep_open:
@@ -1262,11 +1263,12 @@ class ExecutionOrderTest(GuiTestBase):
                     QTimer.singleShot(self.delay, self.clickDiscardChanges)
                 mw.close()
 
-    def test(self):
+    def test(self, record_property):
         """
         test property editing in config editor
         :return:
         """
+        self.record_property = record_property
         QTimer.singleShot(self.delay, self._stage0)
         startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
         QTimer.singleShot(self.delay, self._stage1)
@@ -1277,6 +1279,6 @@ class ExecutionOrderTest(GuiTestBase):
 
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])
-def test_executionOrder(qtbot, xvfb, keep_open, delay, tmpdir):
+def test_executionOrder(qtbot, xvfb, keep_open, delay, tmpdir, record_property):
     test = ExecutionOrderTest(qtbot, xvfb, keep_open, delay, tmpdir)
-    test.test()
+    test.test(record_property)
