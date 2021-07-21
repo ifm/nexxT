@@ -20,6 +20,12 @@
 
 #include <vector>
 #include <set>
+#include <chrono>
+
+/* maximum number of events processed before step function returns */
+#define MAX_EVENTS_PER_STEP (32)
+/* after this time has elapsed, the step function will return to avoid unresponsiveness */
+#define STEP_DEADLINE (100ms)
 
 using namespace nexxT;
 
@@ -40,6 +46,10 @@ namespace nexxT
         std::vector<ReceiveEvent> pendingReceives;
         std::set<Filter *> blockedFilters;
         bool stopped;
+        // in contrast to the python reference implementation, the pressure on the QT event loop is reduced in the C++
+        // implementation by omitting unnecessary notify calls through the event loop. We count the number of pending
+        // notify calls and omit the call if there is already a pending call in the event loop.
+        int32_t numNotifiesInQueue;
     };
 };
 
@@ -49,6 +59,7 @@ Executor::Executor(QThread *qthread) :
 {
     moveToThread(qthread);
     QObject::connect(this, SIGNAL(notify()), this, SLOT(notifyInThread()), Qt::QueuedConnection);
+    d->numNotifiesInQueue = 0;
 }
 
 Executor::~Executor()
@@ -96,8 +107,12 @@ void Executor::notifyInThread()
     {
         NEXXT_LOG_ERROR("Executor::notifyInThread: Unexpected thread!");
     }
-    //NEXXT_LOG_INFO(QString("[%1] calling step via QT event.").arg(QThread::currentThread()->objectName()));
-    QTimer::singleShot(0, this, SLOT(step()));
+    if(d->numNotifiesInQueue == 0)
+    {
+        //NEXXT_LOG_INFO(QString("[%1] calling step via QT event.").arg(QThread::currentThread()->objectName()));
+        d->numNotifiesInQueue++;
+        QTimer::singleShot(0, this, SLOT(step()));
+    }
 }
 
 struct StepFunctionHelper
@@ -143,11 +158,26 @@ struct StepFunctionHelper
 
 bool Executor::step(const SharedFilterPtr &fromFilter)
 {
+    using namespace std::literals::chrono_literals;
     bool res = false;
-    if( !d->stopped )
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point curr = begin;
+    uint32_t maxEvents = 1;
+    if( fromFilter.get() == 0 )
+    {
+        // called from event loop
+        maxEvents = MAX_EVENTS_PER_STEP;
+        d->numNotifiesInQueue--;
+    }
+    if(d->numNotifiesInQueue < 0)
+    {
+        NEXXT_LOG_ERROR("Unexpected numNotifiesInQueue!");
+    }
+    while( (!d->stopped) && (maxEvents > 0) && (curr - begin < STEP_DEADLINE) )
     {
         StepFunctionHelper helper(fromFilter, d, res);
         d->pendingReceivesMutex.lock();
+        maxEvents = std::min(maxEvents, (uint32_t)d->pendingReceives.size());
         for(auto it=d->pendingReceives.begin(); it != d->pendingReceives.end(); it++)
         {
             if( d->blockedFilters.empty() ||
@@ -165,8 +195,17 @@ bool Executor::step(const SharedFilterPtr &fromFilter)
                 {
                     ev.inputPort->receiveAsync(ev.dataSample, ev.semaphore);
                 }
+                maxEvents -= 1;
                 break;
             }
+        }
+        curr = std::chrono::steady_clock::now();
+    }
+    {
+        QMutexLocker locker(&d->pendingReceivesMutex);
+        if( d->pendingReceives.size() > 0 )
+        {
+            notifyInThread();
         }
     }
     return res;
