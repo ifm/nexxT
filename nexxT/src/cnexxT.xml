@@ -33,7 +33,7 @@
             </modify-function>            
         </object-type>
         
-        <object-type name="InterThreadConnection" allow-thread="true">
+        <object-type name="PortToPortConnection" allow-thread="true">
         </object-type>
         
         <object-type name="Services">
@@ -58,6 +58,11 @@
         </object-type>
         
         <object-type name="InputPortInterface" allow-thread="true">
+            <modify-function signature="receiveAsync(const QSharedPointer&lt;const nexxT::DataSample&gt; &amp;, QSemaphore *)">
+                <modify-argument index="2">
+                    <define-ownership owner="c++"/>
+                </modify-argument>
+            </modify-function>
         </object-type>
         
         <object-type name="OutputPortInterface" allow-thread="true">
@@ -128,6 +133,19 @@
         </object-type>
 
         <object-type name="Logging" />
+
+        <object-type name="Executor">
+            <modify-function signature="make_shared(nexxT::Executor*)">
+                <modify-argument index="1">
+                    <define-ownership owner="c++"/>
+                </modify-argument>
+            </modify-function>
+            <modify-function signature="registerPendingRcvAsync(const QSharedPointer&lt;nexxT::InputPortInterface&gt; &amp;, const QSharedPointer&lt;const nexxT::DataSample&gt; &amp;, QSemaphore *)">
+                <modify-argument index="3">
+                    <define-ownership owner="c++"/>
+                </modify-argument>
+            </modify-function>
+        </object-type>
 
     </namespace-type>
 </typesystem>

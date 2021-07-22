@@ -19,16 +19,11 @@
 #include <QtCore/QSharedPointer>
 
 #include "NexxTLinkage.hpp"
+#include "SharedPointerTypes.hpp"
 
 namespace nexxT
 {
     struct DataSampleD;
-    class DataSample;
-
-    /*!
-        A typedef for a Datasample handled by a shared pointer.
-    */
-    typedef QSharedPointer<const DataSample> SharedDataSamplePtr;
 
     /*!
         This class is the C++ variant of \verbatim embed:rst:inline :py:class:`nexxT.interface.DataSamples.DataSample`

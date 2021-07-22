@@ -58,8 +58,10 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self.actActivate = QAction(QIcon.fromTheme("arrow-up", style.standardIcon(QStyle.SP_ArrowUp)),
                                    "Initialize", self)
         self.actActivate.triggered.connect(self.activate)
+        self.actActivate.setShortcut(QKeySequence(Qt.CTRL + Qt.Key_I))
         self.actDeactivate = QAction(QIcon.fromTheme("arrow-down", style.standardIcon(QStyle.SP_ArrowDown)),
                                      "Deinitialize", self)
+        self.actDeactivate.setShortcut(QKeySequence(Qt.CTRL + Qt.Key_D))
         self.actDeactivate.triggered.connect(self.deactivate)
 
         confMenu.addAction(self.actLoad)

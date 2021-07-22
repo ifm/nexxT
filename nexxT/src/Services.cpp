@@ -7,6 +7,7 @@
 
 #include "Services.hpp"
 #include "Logger.hpp"
+#include <QtCore/QObject>
 #include <QtCore/QMutex>
 #include <QtCore/QMap>
 

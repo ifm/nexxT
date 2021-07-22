@@ -12,6 +12,7 @@
 #include "Filters.hpp"
 #include "Logger.hpp"
 #include "Services.hpp"
+#include "Executor.hpp"
 #include <atomic>
 
 #include <QtCore/QThread>
@@ -39,22 +40,25 @@ SharedPortPtr OutputPortInterface::clone(BaseFilterEnvironment *env) const
     return SharedPortPtr(new OutputPortInterface(dynamic(), name(), env));
 }
 
-void OutputPortInterface::setupDirectConnection(const SharedPortPtr &op, const SharedPortPtr &ip)
+QObject *OutputPortInterface::setupPortToPortConnection(const SharedExecutorPtr &executorFrom,
+                                                        const SharedExecutorPtr &executorTo,
+                                                        const SharedPortPtr &_outputPort,
+                                                        const SharedPortPtr &_inputPort)
 {
-    const OutputPortInterface *p0 = dynamic_cast<const OutputPortInterface *>(op.data());
-    const InputPortInterface *p1 = dynamic_cast<const InputPortInterface *>(ip.data());
+    SharedOutputPortPtr outputPort = _outputPort.dynamicCast<OutputPortInterface>();
+    SharedInputPortPtr inputPort = _inputPort.dynamicCast<InputPortInterface>();
+    PortToPortConnection *p2pc = new PortToPortConnection(executorFrom, executorTo, outputPort, inputPort);
+    if( outputPort->thread() != executorFrom->thread() )
+    {
+        NEXXT_LOG_ERROR("Unexpected threads (outputPort vs executorFrom)");
+    }
+    if( inputPort->thread() != executorTo->thread() )
+    {
+        NEXXT_LOG_ERROR("Unexpected threads (inputPort vs executorTo)");
+    }
+    const OutputPortInterface *p0 = dynamic_cast<const OutputPortInterface *>(outputPort.data());
     QObject::connect(p0, SIGNAL(transmitSample(const QSharedPointer<const nexxT::DataSample>&)),
-                     p1, SLOT(receiveSync(const QSharedPointer<const nexxT::DataSample> &)));
-}
-
-QObject *OutputPortInterface::setupInterThreadConnection(const SharedPortPtr &op, const SharedPortPtr &ip, QThread &outputThread)
-{
-    InterThreadConnection *itc = new InterThreadConnection(&outputThread);
-    const OutputPortInterface *p0 = dynamic_cast<const OutputPortInterface *>(op.data());
-    const InputPortInterface *p1 = dynamic_cast<const InputPortInterface *>(ip.data());
-    QObject::connect(p0, SIGNAL(transmitSample(const QSharedPointer<const nexxT::DataSample>&)),
-                     itc, SLOT(receiveSample(const QSharedPointer<const nexxT::DataSample>&)));
-    QObject::connect(itc, SIGNAL(transmitInterThread(const QSharedPointer<const nexxT::DataSample> &, QSemaphore *)),
-                     p1, SLOT(receiveAsync(const QSharedPointer<const nexxT::DataSample> &, QSemaphore *)));
-    return itc;
+                     p2pc, SLOT(receiveSample(const QSharedPointer<const nexxT::DataSample>&)),
+                     Qt::DirectConnection);
+    return p2pc;
 }

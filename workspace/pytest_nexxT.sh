@@ -5,7 +5,7 @@ else
   PYTEST="$1"
 fi
 
-ADD_FLAGS="-v"
+ADD_FLAGS=""
 
 # release variant
                       "$PYTEST" -m     "gui" $ADD_FLAGS              --cov=nexxT.core --cov=nexxT.interface --cov=nexxT.services --cov=nexxT.filters --cov-report html --forked ../nexxT/tests

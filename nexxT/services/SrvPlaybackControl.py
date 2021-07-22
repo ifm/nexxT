@@ -95,14 +95,14 @@ class PlaybackDeviceProxy(QObject):
         if self._controlsFile:
             self._seekEnd.emit()
 
-    def seekTime(self, timestamp_ns):
+    def seekTime(self, timestampNS):
         """
         Proxy function, checks whether this proxy has control and emits the signal if necessary
 
-        :param timestamp_ns: the timestamp in nanoseconds
+        :param timestampNS: the timestamp in nanoseconds
         """
         if self._controlsFile:
-            self._seekTime.emit(timestamp_ns)
+            self._seekTime.emit(timestampNS)
 
     def setSequence(self, filename):
         """
@@ -433,14 +433,14 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         """
         self._seekEnd.emit()
 
-    def seekTime(self, timestamp_ns):
+    def seekTime(self, timestampNS):
         """
         Seek to the specified time
 
-        :param timestamp_ns: the timestamp in nanoseconds
+        :param timestampNS: the timestamp in nanoseconds
         :return:
         """
-        self._seekTime.emit(timestamp_ns)
+        self._seekTime.emit(timestampNS)
 
     def setSequence(self, file):
         """

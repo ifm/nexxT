@@ -40,7 +40,7 @@ class ActiveApplication(QObject):
         self._numThreadsSynced = 0
         self._state = FilterState.CONSTRUCTING
         self._graphConnected = False
-        self._interThreadConns = []
+        self._portToPortConns = []
         self._operationInProgress = False
         # connect signals and slots
         for tname in self._threads:
@@ -103,7 +103,7 @@ class ActiveApplication(QObject):
         self._composite2graphs = {}
         # initialize private variables
         self._numThreadsSynced = 0
-        self._interThreadConns = []
+        self._portToPortConns = []
 
     def getState(self):
         """
@@ -237,13 +237,13 @@ class ActiveApplication(QObject):
         for fromNode, fromPort, toNode, toPort in self._allConnections():
             fromThread = self._filters2threads[fromNode]
             toThread = self._filters2threads[toNode]
-            p0 = self._threads[fromThread].getFilter(fromNode).getPort(fromPort, OutputPortInterface)
-            p1 = self._threads[toThread].getFilter(toNode).getPort(toPort, InputPortInterface)
-            if toThread == fromThread:
-                OutputPortInterface.setupDirectConnection(p0, p1)
-            else:
-                itc = OutputPortInterface.setupInterThreadConnection(p0, p1, self._threads[fromThread].qthread())
-                self._interThreadConns.append(itc)
+            t0 = self._threads[fromThread]
+            p0 = t0.getFilter(fromNode).getPort(fromPort, OutputPortInterface)
+            t1 = self._threads[toThread]
+            p1 = t1.getFilter(toNode).getPort(toPort, InputPortInterface)
+            p2pc = OutputPortInterface.setupPortToPortConnection(t0.getExecutor(), t1.getExecutor(), p0, p1)
+            p2pc.moveToThread(t0.qthread())
+            self._portToPortConns.append(p2pc)
         self._graphConnected = True
 
     @Slot()
@@ -349,7 +349,7 @@ class ActiveApplication(QObject):
         self._operationInProgress = True
         self._state = FilterState.STARTING
         self._setupConnections()
-        for itc in self._interThreadConns:
+        for itc in self._portToPortConns:
             # set connections in active mode.
             itc.setStopped(False)
         self.performOperation.emit("start", Barrier(len(self._threads)))
@@ -373,7 +373,7 @@ class ActiveApplication(QObject):
             raise FilterStateMachineError(self._state, FilterState.STOPPING)
         self._operationInProgress = True
         self._state = FilterState.STOPPING
-        for itc in self._interThreadConns:
+        for itc in self._portToPortConns:
             # set connections in active mode.
             itc.setStopped(True)
         self.performOperation.emit("stop", Barrier(len(self._threads)))

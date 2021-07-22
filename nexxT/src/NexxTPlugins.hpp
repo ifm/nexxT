@@ -15,6 +15,11 @@
 #define NEXXT_PLUGINS_HPP
 
 #include "Filters.hpp"
+/* included for convenience, these headers are usually needed in every filter */
+#include "DataSamples.hpp"
+#include "SharedPointerTypes.hpp"
+#include "OutputPortInterface.hpp"
+#include "InputPortInterface.hpp"
 #include <QtCore/QLibrary>
 
 /*!
