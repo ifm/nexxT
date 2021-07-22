@@ -1158,6 +1158,12 @@ class ExecutionOrderTest(GuiTestBase):
                 mw.close()
 
     def _stage2(self):
+        self._throughput("singlethread")
+
+    def _stage3(self):
+        self._throughput("multithread")
+
+    def _throughput(self, threadmode):
         # throughput
         conf = None
         mw = None
@@ -1170,6 +1176,13 @@ class ExecutionOrderTest(GuiTestBase):
             # start graph editor
             self.setFilterProperty(conf, app, "layer1_f1", "log_throughput_at_end", [Qt.Key_Down, Qt.Key_Return], "True")
             self.setFilterProperty(conf, app, "source", "frequency", "10000.0")
+
+            if threadmode == "multithread":
+                graph = app.getGraph()
+                for n in graph.allNodes():
+                    mockup = graph.getMockup(n)
+                    pc = mockup.getPropertyCollectionImpl()
+                    pc.children()[0].setProperty("thread", "thread_"+n)
 
             self.qtbot.keyClick(self.aw(), Qt.Key_L, Qt.AltModifier, delay=self.delay)
             self.activateContextMenu(LM_WARNING)
@@ -1191,7 +1204,10 @@ class ExecutionOrderTest(GuiTestBase):
                 M = re.match(r'layer1_f1:throughput: (\d+.\d+) samples/second', msg)
                 if M is not None:
                     throughput = float(M.group(1))
-            self.record_property("throughput_smp_per_sec", throughput)
+            if threadmode == "multithread":
+                self.record_property("multithread_smp_per_sec", throughput)
+            else:
+                self.record_property("throughput_smp_per_sec", throughput)
             assert throughput > 1000
         finally:
             if not self.keep_open:
@@ -1210,6 +1226,8 @@ class ExecutionOrderTest(GuiTestBase):
         QTimer.singleShot(self.delay, self._stage1)
         startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
         QTimer.singleShot(self.delay, self._stage2)
+        startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
+        QTimer.singleShot(self.delay, self._stage3)
         startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
 
 
