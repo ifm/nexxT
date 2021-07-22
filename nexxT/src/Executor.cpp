@@ -111,8 +111,35 @@ void Executor::notifyInThread()
     {
         //NEXXT_LOG_INFO(QString("[%1] calling step via QT event.").arg(QThread::currentThread()->objectName()));
         d->numNotifiesInQueue++;
-        QTimer::singleShot(0, this, SLOT(step()));
+        QTimer::singleShot(0, this, SLOT(multiStep()));
     }
+}
+
+void Executor::multiStep()
+{
+    using namespace std::literals::chrono_literals;
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point curr = begin;
+    uint32_t maxEvents = MAX_EVENTS_PER_STEP;
+    d->numNotifiesInQueue--;
+    if(d->numNotifiesInQueue < 0)
+    {
+        NEXXT_LOG_ERROR("Unexpected numNotifiesInQueue!");
+    }
+    while( (!d->stopped) && (maxEvents > 0) && (curr - begin < STEP_DEADLINE) )
+    {
+        if(!step())
+        {
+            /* no more events to process */
+            return;
+        } else
+        {
+            maxEvents--;
+        }
+        curr = std::chrono::steady_clock::now();
+    }
+    /* the last step() function result was true, so we aborted early, register another multiStep call */
+    notifyInThread();
 }
 
 struct StepFunctionHelper
@@ -158,26 +185,11 @@ struct StepFunctionHelper
 
 bool Executor::step(const SharedFilterPtr &fromFilter)
 {
-    using namespace std::literals::chrono_literals;
     bool res = false;
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    std::chrono::steady_clock::time_point curr = begin;
-    uint32_t maxEvents = 1;
-    if( fromFilter.get() == 0 )
-    {
-        // called from event loop
-        maxEvents = MAX_EVENTS_PER_STEP;
-        d->numNotifiesInQueue--;
-    }
-    if(d->numNotifiesInQueue < 0)
-    {
-        NEXXT_LOG_ERROR("Unexpected numNotifiesInQueue!");
-    }
-    while( (!d->stopped) && (maxEvents > 0) && (curr - begin < STEP_DEADLINE) )
+    if( !d->stopped )
     {
         StepFunctionHelper helper(fromFilter, d, res);
         d->pendingReceivesMutex.lock();
-        maxEvents = std::min(maxEvents, (uint32_t)d->pendingReceives.size());
         for(auto it=d->pendingReceives.begin(); it != d->pendingReceives.end(); it++)
         {
             if( d->blockedFilters.empty() ||
@@ -195,17 +207,8 @@ bool Executor::step(const SharedFilterPtr &fromFilter)
                 {
                     ev.inputPort->receiveAsync(ev.dataSample, ev.semaphore);
                 }
-                maxEvents -= 1;
                 break;
             }
-        }
-        curr = std::chrono::steady_clock::now();
-    }
-    {
-        QMutexLocker locker(&d->pendingReceivesMutex);
-        if( d->pendingReceives.size() > 0 )
-        {
-            notifyInThread();
         }
     }
     return res;

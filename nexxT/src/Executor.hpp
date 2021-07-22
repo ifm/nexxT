@@ -69,6 +69,12 @@ namespace nexxT
         */
         void notify();
 
+    protected slots:
+        /*!
+            This function processes a bunch of step() functions. It's only called via QTimer::singleShot
+        */
+        void multiStep();
+
     public slots:
         /*!
             See \verbatim embed:rst:inline :py:meth:`nexxT.core.Executor.Executor.registerPendingRcvSync` \endverbatim
