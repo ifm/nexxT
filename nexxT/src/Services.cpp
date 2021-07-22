@@ -74,7 +74,10 @@ void Services::_removeService(const QString &name)
     } else
     {
         NEXXT_LOG_INFO(QString("removing service %1").arg(name));
-        QMetaObject::invokeMethod(d->map[name].data(), "detach", Qt::DirectConnection);
+        if(d->map[name]->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("detach()")) >= 0)
+        {
+            QMetaObject::invokeMethod(d->map[name].data(), "detach", Qt::DirectConnection);
+        }
         d->map.remove(name);
     }
 }

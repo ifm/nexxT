@@ -13,7 +13,7 @@ import subprocess
 import sys
 import shiboken2
 from PySide2.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QAction, QWidget, QGridLayout,
-                               QMenuBar, QMessageBox)
+                               QMenuBar, QMessageBox, QScrollArea, QLabel)
 from PySide2.QtCore import (QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings,
                             QTimer, QUrl)
 from PySide2.QtGui import QDesktopServices
@@ -162,6 +162,7 @@ class MainWindow(QMainWindow):
     """
     mdiSubWindowCreated = Signal(QMdiSubWindow) # TODO: deprecated, can be removed in later versions
     aboutToClose = Signal(object)
+    userSelectionChanged = Signal(str, QPoint)
 
     def __init__(self, config):
         super().__init__()
@@ -274,6 +275,10 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
 
     def __del__(self):
         logging.getLogger(__name__).debug("deleting MainWindow")
+
+    @Slot(str, QPoint)
+    def updateSelection(self, group, point):
+        self.userSelectionChanged.emit(group, point)
 
     @Slot()
     def getToolBar(self):
@@ -509,9 +514,13 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     def _aboutPython(self):
         piplic = subprocess.check_output([sys.executable, "-m", "piplicenses", "--format=plain"],
                                          encoding="utf-8").replace("\n", "<br>").replace(" ", "&nbsp;")
-        QMessageBox.about(self, "About python", """\
-This program uses <b>python</b> %(version)s and the following installed python packages.<br><br>
-<pre>
-%(table)s
-</pre>
-""" % dict(version=sys.version, table=piplic))
+        piplic = piplic.replace("<br>", "<br><br>", 1)
+        msgBox = QMessageBox()
+        msgBox.setText("This program uses <b>python</b> %(version)s. The used packages are listed below." % dict(version=sys.version, table=piplic))
+        view = QScrollArea(msgBox)
+        label = QLabel("<pre>%(table)s</pre>" % dict(version=sys.version, table=piplic), msgBox)
+        label.setTextInteractionFlags(Qt.TextSelectableByKeyboard|Qt.TextSelectableByMouse)
+        view.setWidgetResizable(True)
+        view.setWidget(label)
+        msgBox.layout().addWidget(view, 3, 0, 1, msgBox.layout().columnCount())
+        msgBox.exec_()
