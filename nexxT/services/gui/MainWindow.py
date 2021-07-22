@@ -461,8 +461,24 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
 
     def _registerWindow(self, window, nameChangedSignal):
         act = QAction("<unnamed>", self)
+        def ensureVisible():
+            window.setVisible(True)
+            act.setChecked(True)
+            window.raise_()
+            if isinstance(window, QMdiSubWindow):
+                self.mdi.setActiveSubWindow(window)
+                x = self.mdi.horizontalScrollBar().value()
+                y = self.mdi.verticalScrollBar().value()
+                w = self.mdi.viewport().width()
+                h = self.mdi.viewport().height()
+                r = QRect(x, y, w, h)
+                g = window.geometry()
+                logger.info("r=%s w=%s", r, g)
+                if not r.intersects(g):
+                    self.mdi.horizontalScrollBar().setValue(g.x())
+                    self.mdi.verticalScrollBar().setValue(g.y())
         act.setCheckable(True)
-        act.toggled.connect(window.setVisible)
+        act.triggered.connect(ensureVisible)
         window.visibleChanged.connect(act.setChecked)
         nameChangedSignal.connect(act.setText)
         self.windows[shiboken2.getCppPointer(window)[0]] = act # pylint: disable=no-member
