@@ -1,0 +1,232 @@
+{
+  "_guiState": {
+    "PlaybackControl_showAllFiles": 0
+  },
+  "composite_filters": [],
+  "applications": [
+    {
+      "name": "binarytree",
+      "_guiState": {},
+      "nodes": [
+        {
+          "name": "source",
+          "library": "entry_point://tests.nexxT.CSimpleSource",
+          "factoryFunction": "CSimpleSource",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "enumProp": "Hello",
+            "frequency": 1.0
+          }
+        },
+        {
+          "name": "layer1_f1",
+          "library": "entry_point://tests.nexxT.PySimpleStaticFilter",
+          "factoryFunction": "PySimpleStaticFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "inPort"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "an_enum_property": "e1",
+            "an_int_property": 4223,
+            "log_prefix": "layer1_f1:",
+            "log_rcv": true,
+            "sleep_time": 0.0
+          }
+        },
+        {
+          "name": "layer1_f2",
+          "library": "entry_point://tests.nexxT.PySimpleStaticFilter",
+          "factoryFunction": "PySimpleStaticFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "inPort"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "an_enum_property": "e1",
+            "an_int_property": 4223,
+            "log_prefix": "layer1_f2:",
+            "log_rcv": true,
+            "sleep_time": 0.0
+          }
+        },
+        {
+          "name": "layer2_f1",
+          "library": "entry_point://tests.nexxT.PySimpleStaticFilter",
+          "factoryFunction": "PySimpleStaticFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "inPort"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "an_enum_property": "e1",
+            "an_int_property": 4223,
+            "log_prefix": "layer2_f1:",
+            "log_rcv": true,
+            "sleep_time": 0.0
+          }
+        },
+        {
+          "name": "layer2_f2",
+          "library": "entry_point://tests.nexxT.PySimpleStaticFilter",
+          "factoryFunction": "PySimpleStaticFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "inPort"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "an_enum_property": "e1",
+            "an_int_property": 4223,
+            "log_prefix": "layer2_f2:",
+            "log_rcv": true,
+            "sleep_time": 0.0
+          }
+        },
+        {
+          "name": "layer2_f3",
+          "library": "entry_point://tests.nexxT.PySimpleStaticFilter",
+          "factoryFunction": "PySimpleStaticFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "inPort"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "an_enum_property": "e1",
+            "an_int_property": 4223,
+            "log_prefix": "layer2_f3:",
+            "log_rcv": true,
+            "sleep_time": 0.0
+          }
+        },
+        {
+          "name": "layer2_f4",
+          "library": "entry_point://tests.nexxT.PySimpleStaticFilter",
+          "factoryFunction": "PySimpleStaticFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "inPort"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "an_enum_property": "e1",
+            "an_int_property": 4223,
+            "log_prefix": "layer2_f4:",
+            "log_rcv": true,
+            "sleep_time": 0.0
+          }
+        }
+      ],
+      "connections": [
+        "source.outPort -> layer1_f1.inPort",
+        "source.outPort -> layer1_f2.inPort",
+        "layer1_f1.outPort -> layer2_f1.inPort",
+        "layer1_f1.outPort -> layer2_f2.inPort",
+        "layer1_f2.outPort -> layer2_f3.inPort",
+        "layer1_f2.outPort -> layer2_f4.inPort"
+      ]
+    },
+    {
+      "name": "recursion_single_thread",
+      "_guiState": {},
+      "nodes": [
+        {
+          "name": "CSimpleSource",
+          "library": "entry_point://tests.nexxT.CSimpleSource",
+          "factoryFunction": "CSimpleSource",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "enumProp": "Hello",
+            "frequency": 1.0
+          }
+        },
+        {
+          "name": "recursive",
+          "library": "entry_point://tests.nexxT.PySimpleDynInFilter",
+          "factoryFunction": "PySimpleDynInFilter",
+          "dynamicInputPorts": [
+            "in",
+            "recursive"
+          ],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "ignore_ports": "recursive",
+            "prefix": "recursive:",
+            "sleep_time": 0.0
+          }
+        },
+        {
+          "name": "filter",
+          "library": "entry_point://tests.nexxT.PySimpleStaticFilter",
+          "factoryFunction": "PySimpleStaticFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "inPort"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "an_enum_property": "e1",
+            "an_int_property": 4223,
+            "log_prefix": "filter:",
+            "log_rcv": true,
+            "sleep_time": 0.0
+          }
+        }
+      ],
+      "connections": [
+        "CSimpleSource.outPort -> recursive.in",
+        "recursive.outPort -> filter.inPort",
+        "filter.outPort -> recursive.recursive"
+      ]
+    }
+  ]
+}

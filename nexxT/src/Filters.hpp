@@ -19,7 +19,7 @@
 #include <QtCore/QList>
 
 #include "NexxTLinkage.hpp"
-#include "Ports.hpp"
+#include "SharedPointerTypes.hpp"
 
 namespace nexxT
 {

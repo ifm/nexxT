@@ -1,5 +1,6 @@
 import platform
 import os
+import sysconfig
 import PySide2
 
 qtversion = ".".join(PySide2.__version__.split(".")[:2])
@@ -23,6 +24,9 @@ if platform.system() == "Linux":
     env.Tool("qt5")
 
     env['ENV']['PKG_CONFIG_PATH'] = env.subst("$QT5DIR") + '/lib/pkgconfig'
+    # fix shiboken2 lib not found issues
+    env.PrependENVPath('LD_LIBRARY_PATH', sysconfig.get_paths()['purelib'] + "/PySide2/Qt/lib")
+    # make sure moc is working
     env.PrependENVPath('LD_LIBRARY_PATH', env.subst("$QT5DIR") + "/lib")
     
 else:

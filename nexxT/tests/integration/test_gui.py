@@ -15,6 +15,7 @@ You can also pass --no-xvfb to pytest and also --keep-open for inspecting the is
 import os
 import logging
 from pathlib import Path
+import re
 import pytest
 import shiboken2
 from PySide2.QtCore import QItemSelection, Qt, QTimer, QSize, QPoint, QModelIndex
@@ -61,6 +62,7 @@ CM_RENAMEDYNPORT = ContextMenuEntry("Rename dynamic port ...")
 CM_REMOVEDYNPORT = ContextMenuEntry("Remove dynamic port ...")
 CONFIG_MENU_DEINITIALIZE = ContextMenuEntry("Deinitialize")
 CONFIG_MENU_INITIALIZE = ContextMenuEntry("Initialize")
+LM_WARNING = ContextMenuEntry("Warning")
 
 class GuiTestBase:
     def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir):
@@ -1065,10 +1067,236 @@ class GuiStateTest(GuiTestBase):
         logger.info("guistate_contents: %s", guistate_contents)
         assert self.guistate_contents == guistate_contents
 
-
-
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])
 def test_guistate(qtbot, xvfb, keep_open, delay, tmpdir):
     test = GuiStateTest(qtbot, xvfb, keep_open, delay, tmpdir)
     test.test()
+
+class DeadlockTestIssue25(GuiTestBase):
+    """
+    Concrete test class for the test_property test case
+    """
+    def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir):
+        super().__init__(qtbot, xvfb, keep_open, delay, tmpdir)
+
+    def _stage0(self):
+        conf = None
+        mw = None
+        try:
+            # load last config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            log = Services.getService("Logging")
+            # load recent config
+            fn = str((Path(__file__).parent.parent / "core" / "test_deadlock.json").absolute())
+            logger.info("laoding fn=%s", fn)
+            QTimer.singleShot(self.delay, lambda: self.enterText(fn))
+            conf.actLoad.trigger()
+            self.qtbot.wait(self.delay*2)
+
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("deadlock"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(5000)
+            # deinitialize
+            self.qtbot.keyClick(self.aw(), Qt.Key_D, Qt.ControlModifier, delay=self.delay)
+            self.noWarningsInLog(log, ignore=[
+                "did not find a playback device taking control",
+                "The inter-thread connection is set to stopped mode; data sample discarded."])
+
+            # assert that the samples arrived in the correct order
+            def assertSampleOrder():
+                numRows = log.logWidget.model().rowCount(QModelIndex())
+                filters = {}
+                for row in range(numRows):
+                    lidx = log.logWidget.model().index(row, 2, QModelIndex())
+                    msg = log.logWidget.model().data(lidx, Qt.DisplayRole)
+                    if "received: Sample" in msg:
+                        flt = msg.split(":")[0]
+                        idx = int(msg.strip().split(" ")[-1])
+                        if not flt in filters:
+                            assert idx == 1
+                        else:
+                            assert idx == filters[flt] + 1
+                        filters[flt] = idx
+            assertSampleOrder()
+            logger.info("finishing")
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def test(self):
+        QTimer.singleShot(self.delay, self._stage0)
+        startNexT(None, None, [], [], True)
+        self.qtbot.wait(1000)
+
+@pytest.mark.gui
+@pytest.mark.parametrize("delay", [300])
+def test_deadlock_issue25(qtbot, xvfb, keep_open, delay, tmpdir):
+    test = DeadlockTestIssue25(qtbot, xvfb, keep_open, delay, tmpdir)
+
+    test.test()
+
+class ExecutionOrderTest(GuiTestBase):
+    """
+    Concrete test class for the test_property test case
+    """
+    def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir):
+        super().__init__(qtbot, xvfb, keep_open, delay, tmpdir)
+
+    def _stage0(self):
+        # binary tree execution order
+        conf = None
+        mw = None
+        try:
+            # execution order config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+
+            # this is the offline config
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("binarytree"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(3000)
+            log = Services.getService("Logging")
+
+            model = log.logWidget.model()
+            numRows = model.rowCount(QModelIndex())
+            # note: we changed the execution order to breadth first while fixing issue_25
+            expected = [(1,1), (1,2), (2,1), (2,2), (2,3), (2,4)]
+            order = []
+            for row in range(numRows):
+                msg = model.data(model.index(row, 2, QModelIndex()), Qt.DisplayRole)
+                M = re.match(r'^layer(\d)_f(\d)', msg)
+                if M is not None:
+                    item = (int(M.group(1)),int(M.group(2)))
+                    order.append( item )
+            for i, item in enumerate(order):
+                assert item == expected[i % len(expected)]
+            assert len(order) >= len(expected)
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def _stage1(self):
+        # recursion single thread execution order
+        conf = None
+        mw = None
+        try:
+            # execution order config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+
+            # this is the offline config
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("recursion_single_thread"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(3000)
+            log = Services.getService("Logging")
+
+            model = log.logWidget.model()
+            numRows = model.rowCount(QModelIndex())
+            expected = [(1, "recursive", "in"), (1, "filter", None), (1, "recursive", "recursive")]
+            order = []
+            for row in range(numRows):
+                msg = model.data(model.index(row, 2, QModelIndex()), Qt.DisplayRole)
+                M = re.match(r'^([^:]+):received: Sample (\d+)(.*)', msg)
+                if M is not None:
+                    M2 = re.match(r" on port (.*)$", M.group(3))
+                    item = (int(M.group(2)), M.group(1), M2.group(1) if M2 is not None else None)
+                    order.append( item )
+            k = 0
+            for i, item in enumerate(order):
+                if i % len(expected) == 0:
+                    k += 1
+                eitem = expected[i % len(expected)]
+                eitem = (k,) + eitem[1:]
+                assert item == eitem
+            assert len(order) >= len(expected)
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def _stage2(self):
+        self._throughput("singlethread")
+
+    def _stage3(self):
+        self._throughput("multithread")
+
+    def _throughput(self, threadmode):
+        # throughput
+        conf = None
+        mw = None
+        try:
+            # execution order config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+
+            app = conf.configuration().applicationByName("binarytree")
+            # start graph editor
+            self.setFilterProperty(conf, app, "layer1_f1", "log_throughput_at_end", [Qt.Key_Down, Qt.Key_Return], "True")
+            self.setFilterProperty(conf, app, "source", "frequency", "10000.0")
+
+            if threadmode == "multithread":
+                graph = app.getGraph()
+                for n in graph.allNodes():
+                    mockup = graph.getMockup(n)
+                    pc = mockup.getPropertyCollectionImpl()
+                    pc.children()[0].setProperty("thread", "thread_"+n)
+
+            self.qtbot.keyClick(self.aw(), Qt.Key_L, Qt.AltModifier, delay=self.delay)
+            self.activateContextMenu(LM_WARNING)
+            # this is the offline config
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("binarytree"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(3000)
+            log = Services.getService("Logging")
+            self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+            self.qtbot.wait(2*self.delay)
+
+            model = log.logWidget.model()
+            numRows = model.rowCount(QModelIndex())
+            throughput = None
+            for row in range(numRows):
+                msg = model.data(model.index(row, 2, QModelIndex()), Qt.DisplayRole)
+                logger.info(repr(msg))
+                M = re.match(r'layer1_f1:throughput: (\d+.\d+) samples/second', msg)
+                if M is not None:
+                    throughput = float(M.group(1))
+            if threadmode == "multithread":
+                self.record_property("multithread_smp_per_sec", throughput)
+            else:
+                self.record_property("throughput_smp_per_sec", throughput)
+            assert throughput > 1000
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def test(self, record_property):
+        """
+        test property editing in config editor
+        :return:
+        """
+        self.record_property = record_property
+        QTimer.singleShot(self.delay, self._stage0)
+        startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
+        QTimer.singleShot(self.delay, self._stage1)
+        startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
+        QTimer.singleShot(self.delay, self._stage2)
+        startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
+        QTimer.singleShot(self.delay, self._stage3)
+        startNexT(str(Path(__file__).parent.parent / "core" / "test_tree_order.json"), None, [], [], True)
+
+
+@pytest.mark.gui
+@pytest.mark.parametrize("delay", [300])
+def test_executionOrder(qtbot, xvfb, keep_open, delay, tmpdir, record_property):
+    test = ExecutionOrderTest(qtbot, xvfb, keep_open, delay, tmpdir)
+    test.test(record_property)

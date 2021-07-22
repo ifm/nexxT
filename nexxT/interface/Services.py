@@ -31,6 +31,9 @@ class Services:
     directly via QMetaObject::invokeMethod in C++. In python this is normally not needed because a wrapped QObject will
     offer to call slots directly via python calls.
 
+    If the special slot detach() is available in a service, this slot will be called immediately before the service is
+    removed from the framework (usually at application exit time).
+
     .. note::
         Usually, nexxT is using the wrapped C++ class instead of the python version. In python there are no
         differences between the wrapped C++ class and this python class. The C++ interface is defined in
@@ -69,6 +72,10 @@ class Services:
         :param name: the name of the service
         :return: the related QObject instance
         """
+        try:
+            Services.services[name].detach()
+        except: # pylint: disable=bare-except
+            pass
         del Services.services[name]
 
     @staticmethod

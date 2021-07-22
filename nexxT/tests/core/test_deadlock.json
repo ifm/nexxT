@@ -1,0 +1,119 @@
+{
+  "_guiState": {
+    "PlaybackControl_showAllFiles": 0
+  },
+  "composite_filters": [],
+  "applications": [
+    {
+      "name": "deadlock",
+      "_guiState": {
+        "filters__PySimpleView": {
+          "MainWindow_MDI_view_geom": "AdnQywABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH4AAAAAAAAAQgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAfgAAAAAAAABCAAAAAAAAAAA=",
+          "MainWindow_MDI_view_visible": 1
+        }
+      },
+      "nodes": [
+        {
+          "name": "PySimpleSource",
+          "library": "entry_point://tests.nexxT.PySimpleSource",
+          "factoryFunction": "PySimpleSource",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "source",
+          "properties": {
+            "frequency": 2.0,
+            "log_tr": true
+          }
+        },
+        {
+          "name": "filt_gui",
+          "library": "entry_point://tests.nexxT.PySimpleStaticFilter",
+          "factoryFunction": "PySimpleStaticFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "inPort"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "main",
+          "properties": {
+            "an_enum_property": "e1",
+            "an_int_property": 4223,
+            "log_prefix": "filt_gui:",
+            "log_rcv": true,
+            "sleep_time": 0.0
+          }
+        },
+        {
+          "name": "filt_compute_fast",
+          "library": "entry_point://tests.nexxT.PySimpleStaticFilter",
+          "factoryFunction": "PySimpleStaticFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "inPort"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "an_enum_property": "e1",
+            "an_int_property": 4223,
+            "log_prefix": "filt_compute_fast:",
+            "log_rcv": true,
+            "sleep_time": 0.0
+          }
+        },
+        {
+          "name": "filt_compute_slow",
+          "library": "entry_point://tests.nexxT.PySimpleStaticFilter",
+          "factoryFunction": "PySimpleStaticFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "inPort"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [
+            "outPort"
+          ],
+          "thread": "compute",
+          "properties": {
+            "an_enum_property": "e1",
+            "an_int_property": 4223,
+            "log_prefix": "filt_compute_slow:",
+            "log_rcv": true,
+            "sleep_time": 1.0
+          }
+        },
+        {
+          "name": "PySimpleView",
+          "library": "entry_point://tests.nexxT.PySimpleView",
+          "factoryFunction": "PySimpleView",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [
+            "in"
+          ],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "caption": "view"
+          }
+        }
+      ],
+      "connections": [
+        "PySimpleSource.outPort -> filt_gui.inPort",
+        "filt_gui.outPort -> filt_compute_slow.inPort",
+        "filt_compute_slow.outPort -> filt_compute_fast.inPort",
+        "filt_compute_fast.outPort -> PySimpleView.in"
+      ]
+    }
+  ]
+}

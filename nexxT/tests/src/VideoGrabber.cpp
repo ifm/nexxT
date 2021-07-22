@@ -9,9 +9,6 @@
 
 using namespace nexxT;
 
-/* workaround for converting video frames to QImage, see https://forum.qt.io/post/376581 */
-QImage qt_imageFromVideoFrame( const QVideoFrame& f );
-
 VideoGrabber::VideoGrabber(QObject *parent) : QAbstractVideoSurface(parent) {}
 
 VideoGrabber::~VideoGrabber()
@@ -87,7 +84,7 @@ void VideoGrabber::stop()
 
 bool VideoGrabber::present(const QVideoFrame &_frame)
 {
-    QImage img = qt_imageFromVideoFrame(_frame);
+    QImage img = _frame.image();
     if(!img.isNull())
     {
         emit newImage(img);

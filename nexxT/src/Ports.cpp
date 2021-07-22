@@ -11,6 +11,9 @@
 #include "Filters.hpp"
 #include "Logger.hpp"
 #include "Services.hpp"
+#include "Executor.hpp"
+#include "OutputPortInterface.hpp"
+#include "InputPortInterface.hpp"
 #include <atomic>
 
 #include <QtCore/QThread>
@@ -28,22 +31,26 @@ namespace nexxT
         BaseFilterEnvironment *environment;
     };
 
-    struct InputPortD
-    {
-        int queueSizeSamples;
-        double queueSizeSeconds;
-        bool interthreadDynamicQueue;
-        QList<SharedDataSamplePtr> queue;
-        std::map<QSemaphore*, uint32_t> semaphoreN;
-        SharedQObjectPtr srvprof;
-        QString profname;
-    };
-
-    struct InterThreadConnectionD
+    struct PortToPortConnectionD
     {
         QSemaphore semaphore;
         std::atomic_bool stopped;
-        InterThreadConnectionD(int n) : semaphore(n), stopped(true) {}
+        SharedExecutorPtr executorFrom;
+        SharedExecutorPtr executorTo;
+        SharedOutputPortPtr portFrom;
+        SharedInputPortPtr portTo;
+        PortToPortConnectionD(int n,
+                               const SharedExecutorPtr &_executorFrom,
+                               const SharedExecutorPtr &_executorTo,
+                               const SharedOutputPortPtr &_portFrom,
+                               const SharedInputPortPtr &_portTo)
+            : semaphore(n)
+            , stopped(true)
+            , executorFrom(_executorFrom)
+            , executorTo(_executorTo)
+            , portFrom(_portFrom)
+            , portTo(_portTo)
+            {}
     };
 
 };
@@ -90,295 +97,58 @@ bool Port::isInput() const
     return dynamic_cast<const InputPortInterface*>(this) != 0;
 }
 
-SharedPortPtr Port::clone(BaseFilterEnvironment *env) const
-{
-    if( dynamic_cast<const OutputPortInterface*>(this) )
-    {
-        return dynamic_cast<const OutputPortInterface*>(this)->clone(env);
-    } else if( dynamic_cast<const InputPortInterface*>(this)  )
-    {
-        return dynamic_cast<const InputPortInterface*>(this)->clone(env);
-    }
-    throw(std::runtime_error("Unknown port class. Must be either OutputPortInterface or InputPortInterface."));
-}
-
 SharedPortPtr Port::make_shared(Port *port)
 {
     return SharedPortPtr(port);
 }
 
-OutputPortInterface::OutputPortInterface(bool dynamic, const QString &name, BaseFilterEnvironment *env) :
-    Port(dynamic, name, env)
+PortToPortConnection::PortToPortConnection(const SharedExecutorPtr &executorFrom,
+                                           const SharedExecutorPtr &executorTo,
+                                           const SharedOutputPortPtr &portFrom,
+                                           const SharedInputPortPtr &portTo)
+    : d(new PortToPortConnectionD(1, executorFrom, executorTo, portFrom, portTo))
 {
 }
 
-void OutputPortInterface::transmit(const SharedDataSamplePtr &sample)
-{
-    if( QThread::currentThread() != thread() )
-    {
-        throw std::runtime_error("OutputPort::transmit has been called from unexpected thread.");
-    }
-    emit transmitSample(sample);
-}
-
-SharedPortPtr OutputPortInterface::clone(BaseFilterEnvironment *env) const
-{
-    return SharedPortPtr(new OutputPortInterface(dynamic(), name(), env));
-}
-
-void OutputPortInterface::setupDirectConnection(const SharedPortPtr &op, const SharedPortPtr &ip)
-{
-    const OutputPortInterface *p0 = dynamic_cast<const OutputPortInterface *>(op.data());
-    const InputPortInterface *p1 = dynamic_cast<const InputPortInterface *>(ip.data());
-    QObject::connect(p0, SIGNAL(transmitSample(const QSharedPointer<const nexxT::DataSample>&)),
-                     p1, SLOT(receiveSync(const QSharedPointer<const nexxT::DataSample> &)));
-}
-
-QObject *OutputPortInterface::setupInterThreadConnection(const SharedPortPtr &op, const SharedPortPtr &ip, QThread &outputThread)
-{
-    InterThreadConnection *itc = new InterThreadConnection(&outputThread);
-    const OutputPortInterface *p0 = dynamic_cast<const OutputPortInterface *>(op.data());
-    const InputPortInterface *p1 = dynamic_cast<const InputPortInterface *>(ip.data());
-    QObject::connect(p0, SIGNAL(transmitSample(const QSharedPointer<const nexxT::DataSample>&)),
-                     itc, SLOT(receiveSample(const QSharedPointer<const nexxT::DataSample>&)));
-    QObject::connect(itc, SIGNAL(transmitInterThread(const QSharedPointer<const nexxT::DataSample> &, QSemaphore *)),
-                     p1, SLOT(receiveAsync(const QSharedPointer<const nexxT::DataSample> &, QSemaphore *)));
-    return itc;
-}
-
-InputPortInterface::InputPortInterface(bool dynamic, const QString &name, BaseFilterEnvironment *env, int queueSizeSamples, double queueSizeSeconds) :
-    Port(dynamic, name, env),
-    d(new InputPortD{queueSizeSamples, queueSizeSeconds, false})
-{
-    d->srvprof = Services::getService("Profiling");
-    d->profname = QString();
-    setQueueSize(queueSizeSamples, queueSizeSeconds);
-}
-
-InputPortInterface::~InputPortInterface()
+PortToPortConnection::~PortToPortConnection()
 {
     delete d;
 }
 
-SharedDataSamplePtr InputPortInterface::getData(int delaySamples, double delaySeconds) const
+void PortToPortConnection::receiveSample(const QSharedPointer<const DataSample> &sample)
 {
-    if( QThread::currentThread() != thread() )
+    if( d->executorFrom.get() == d->executorTo.get() )
     {
-        throw std::runtime_error("InputPort.getData has been called from an unexpected thread.");
-    }
-    if( delaySamples >= 0 && delaySeconds >= 0. )
+        d->executorTo->registerPendingRcvSync(d->portTo, sample);
+    } else
     {
-        throw std::runtime_error("Both delaySamples and delaySecons are positive");
-    }
-    if( delaySamples >= 0 )
-    {
-        if( delaySamples >= d->queue.size() )
+        int32_t timeoutMS = 0;
+        while(true)
         {
-            throw std::out_of_range("delaySamples is out of range.");
-        }
-        return d->queue[delaySamples];
-    }
-    if( delaySeconds >= 0. )
-    {
-        double delayTime = delaySeconds / (double)DataSample::TIMESTAMP_RES;
-        int i;
-        for(i = 0; (i < d->queue.size()) && (double(d->queue[0]->getTimestamp() - d->queue[i]->getTimestamp()) < delayTime); i++)
-        {
-        }
-        if( i >= d->queue.size() )
-        {
-            throw std::out_of_range("delaySeconds is out of range.");
-        }
-        return d->queue[i];
-    }
-    throw std::runtime_error("Both delaySamples and delaySeconds are negative");
-} 
-
-void InputPortInterface::setQueueSize(int queueSizeSamples, double queueSizeSeconds)
-{
-    if(queueSizeSamples <= 0 && queueSizeSeconds <= 0.0)
-    {
-        NEXXT_LOG_WARN(QString("Warning: infinite buffering used for port \"%1\". "
-                               "Using a one sample sized queue instead.").arg(name()));
-        queueSizeSamples = 1;
-    }
-    d->queueSizeSamples = queueSizeSamples;
-    d->queueSizeSeconds = queueSizeSeconds;
-}
-
-int InputPortInterface::queueSizeSamples()
-{
-    return d->queueSizeSamples;
-}
-
-double InputPortInterface::queueSizeSeconds()
-{
-    return d->queueSizeSeconds;
-}
-
-void InputPortInterface::setInterthreadDynamicQueue(bool enabled)
-{
-    if(enabled != d->interthreadDynamicQueue)
-    {
-        switch(environment()->state())
-        {
-        case FilterState::CONSTRUCTING:
-        case FilterState::CONSTRUCTED:
-        case FilterState::INITIALIZING:
-        case FilterState::INITIALIZED:
-            d->interthreadDynamicQueue = enabled;
-            break;
-        default:
-            NEXXT_LOG_ERROR(QString("Cannot change the interthreadDynamicQueue setting in state %1.").arg(
-                             FilterState::state2str(environment()->state())));
-        }
-    }
-}
-
-bool InputPortInterface::interthreadDynamicQueue()
-{
-    return d->interthreadDynamicQueue;
-}
-
-SharedPortPtr InputPortInterface::clone(BaseFilterEnvironment*env) const
-{
-    return SharedPortPtr(new InputPortInterface(dynamic(), name(), env, d->queueSizeSamples, d->queueSizeSeconds));
-}
-
-void InputPortInterface::addToQueue(const SharedDataSamplePtr &sample)
-{
-    d->queue.prepend(sample);
-    if(d->queueSizeSamples > 0)
-    {
-        while(d->queue.size() > d->queueSizeSamples)
-        {
-            d->queue.removeLast();
-        }
-    }
-    if(d->queueSizeSeconds > 0)
-    {
-        double queueSizeTime = d->queueSizeSeconds / (double)DataSample::TIMESTAMP_RES;
-        while( d->queue.size() > 0 && (double(d->queue.first()->getTimestamp() - d->queue.last()->getTimestamp()) > queueSizeTime) )
-        {
-            d->queue.removeLast();
-        }
-    }
-}
-
-void InputPortInterface::transmit()
-{
-    if(d->srvprof.data())
-    {
-        if( d->profname.isNull())
-        {
-            d->profname = environment()->getFullQualifiedName() + "/" + name();
-        }
-        QMetaObject::invokeMethod(d->srvprof.data(), "beforePortDataChanged", Qt::DirectConnection,
-                                  Q_ARG(QString, d->profname));
-    }
-    environment()->portDataChanged(*this);
-    if(d->srvprof.data())
-    {
-        QMetaObject::invokeMethod(d->srvprof.data(), "afterPortDataChanged", Qt::DirectConnection,
-                                  Q_ARG(QString, d->profname));
-    }
-}
-
-void InputPortInterface::receiveAsync(const QSharedPointer<const DataSample> &sample, QSemaphore *semaphore)
-{
-    try
-    {
-        if( QThread::currentThread() != thread() )
-        {
-            throw std::runtime_error("InputPort.getData has been called from an unexpected thread.");
-        }
-        addToQueue(sample);
-        if(!d->interthreadDynamicQueue)
-        {
-            semaphore->release(1);
-            transmit();
-        } else
-        {
-            if( d->semaphoreN.find(semaphore) == d->semaphoreN.end() )
+            if( d->stopped.load() )
             {
-                d->semaphoreN[semaphore] = 1;
+                NEXXT_LOG_WARN("The inter-thread connection is set to stopped mode; data sample discarded.");
+                break;
             }
-            int32_t delta = d->semaphoreN[semaphore] - d->queue.size();
-            if (delta <= 0)
+            if( !d->semaphore.tryAcquire(1, timeoutMS) )
             {
-                semaphore->release(1-delta);
-                d->semaphoreN[semaphore] += -delta;
-                NEXXT_LOG_INTERNAL(QString("delta = %1: semaphoreN = %2").arg(delta).arg(d->semaphoreN[semaphore]));
-                transmit();
+                if( d->executorFrom->step(d->portFrom->environment()->getPlugin()) )
+                {
+                    timeoutMS = 0;
+                } else
+                {
+                    timeoutMS = 10;
+                }
             } else
             {
-                /* the first item is already acquired by the calling thread */
-                d->semaphoreN[semaphore]--;
-                for(int32_t i = 1; i < delta; i++)
-                {
-                    if(semaphore->tryAcquire(1))
-                    {
-                        d->semaphoreN[semaphore]--;
-                    } else
-                    {
-                        break;
-                    }
-                }
-                NEXXT_LOG_INTERNAL(QString("delta = %1: semaphoreN = %2").arg(delta).arg(d->semaphoreN[semaphore]));
-                transmit();
+                d->executorTo->registerPendingRcvAsync(d->portTo, sample, &d->semaphore);
+                break;
             }
         }
-    } catch(std::exception &e)
-    {
-        NEXXT_LOG_ERROR(QString("Unhandled exception in port data changed: %1").arg(e.what()));
     }
 }
 
-void InputPortInterface::receiveSync (const QSharedPointer<const DataSample> &sample)
-{
-    try
-    {
-        if( QThread::currentThread() != thread() )
-        {
-            throw std::runtime_error("InputPort.getData has been called from an unexpected thread.");
-        }
-        addToQueue(sample);
-        transmit();
-    } catch(std::exception &e)
-    {
-        NEXXT_LOG_ERROR(QString("Unhandled exception in port data changed: %1").arg(e.what()));
-    }
-}
-
-InterThreadConnection::InterThreadConnection(QThread *from_thread)
-    : d(new InterThreadConnectionD(1))
-{
-    moveToThread(from_thread);
-}
-
-InterThreadConnection::~InterThreadConnection()
-{
-    delete d;
-}
-
-void InterThreadConnection::receiveSample(const QSharedPointer<const DataSample> &sample)
-{
-    while(true)
-    {
-        if( d->stopped.load() )
-        {
-            NEXXT_LOG_WARN("The inter-thread connection is set to stopped mode; data sample discarded.");
-            break;
-        }
-        if( d->semaphore.tryAcquire(1, 500) )
-        {
-            emit transmitInterThread(sample, &d->semaphore);
-            break;
-        }
-    }
-}
-
-void InterThreadConnection::setStopped(bool stopped)
+void PortToPortConnection::setStopped(bool stopped)
 {
     d->stopped.store(stopped);
 }

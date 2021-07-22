@@ -1,7 +1,7 @@
-PySide2==5.14.2.3
+PySide2==5.15.1
 scons==3.1.2
-shiboken2==5.14.2.3
-shiboken2-generator==5.14.2.3
+shiboken2==5.15.1
+shiboken2-generator==5.15.1
 pytest==6.1.2
 pytest-cov==2.10.1
 pylint==2.4.4

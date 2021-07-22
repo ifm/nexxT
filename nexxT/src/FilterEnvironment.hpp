@@ -10,7 +10,7 @@
 
 #include <QtCore/QObject>
 
-#include "Ports.hpp"
+#include "SharedPointerTypes.hpp"
 #include "Filters.hpp"
 #include "NexxTLinkage.hpp"
 
