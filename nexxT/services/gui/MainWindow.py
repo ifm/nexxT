@@ -162,6 +162,7 @@ class MainWindow(QMainWindow):
     """
     mdiSubWindowCreated = Signal(QMdiSubWindow) # TODO: deprecated, can be removed in later versions
     aboutToClose = Signal(object)
+    userSelectionChanged = Signal(str, QPoint)
 
     def __init__(self, config):
         super().__init__()
@@ -274,6 +275,10 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
 
     def __del__(self):
         logging.getLogger(__name__).debug("deleting MainWindow")
+
+    @Slot(str, QPoint)
+    def updateSelection(self, group, point):
+        self.userSelectionChanged.emit(group, point)
 
     @Slot()
     def getToolBar(self):
