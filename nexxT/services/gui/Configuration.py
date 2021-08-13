@@ -319,6 +319,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
             title = "nexxT: " + self.cfgfile
         if dirty:
             title += " *"
+        self.actSave.setEnabled(dirty)
         srv.setWindowTitle(title)
 
     def _onItemDoubleClicked(self, index):
