@@ -22,11 +22,6 @@
 #include <set>
 #include <chrono>
 
-/* maximum number of events processed before step function returns */
-#define MAX_EVENTS_PER_STEP (32)
-/* after this time has elapsed, the step function will return to avoid unresponsiveness */
-#define STEP_DEADLINE (100ms)
-
 using namespace nexxT;
 
 namespace nexxT
@@ -50,6 +45,14 @@ namespace nexxT
         // implementation by omitting unnecessary notify calls through the event loop. We count the number of pending
         // notify calls and omit the call if there is already a pending call in the event loop.
         int32_t numNotifiesInQueue;
+
+        ExecutorD()
+            : pendingReceivesMutex(QMutex::Recursive)
+            , pendingReceives()
+            , blockedFilters()
+            , stopped(false)
+            , numNotifiesInQueue(0)
+        {}
     };
 };
 
@@ -118,25 +121,19 @@ void Executor::notifyInThread()
 void Executor::multiStep()
 {
     using namespace std::literals::chrono_literals;
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    std::chrono::steady_clock::time_point curr = begin;
-    uint32_t maxEvents = MAX_EVENTS_PER_STEP;
+    QMutexLocker locker(&d->pendingReceivesMutex);
     d->numNotifiesInQueue--;
     if(d->numNotifiesInQueue < 0)
     {
         NEXXT_LOG_ERROR("Unexpected numNotifiesInQueue!");
     }
-    while( (!d->stopped) && (maxEvents > 0) && (curr - begin < STEP_DEADLINE) )
+    while( (!d->stopped) )
     {
         if(!step())
         {
             /* no more events to process */
             return;
-        } else
-        {
-            maxEvents--;
         }
-        curr = std::chrono::steady_clock::now();
     }
     /* the last step() function result was true, so we aborted early, register another multiStep call */
     notifyInThread();
