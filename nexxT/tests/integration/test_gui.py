@@ -1134,9 +1134,9 @@ class DeadlockTestIssue25(GuiTestBase):
 
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])
+@pytest.mark.timeout(60, method="thread")
 def test_deadlock_issue25(qtbot, xvfb, keep_open, delay, tmpdir):
     test = DeadlockTestIssue25(qtbot, xvfb, keep_open, delay, tmpdir)
-
     test.test()
 
 class ExecutionOrderTest(GuiTestBase):
