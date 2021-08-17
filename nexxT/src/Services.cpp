@@ -61,8 +61,14 @@ void Services::_addService(const QString &name, const SharedQObjectPtr &service)
         NEXXT_LOG_WARN(QString("Service %1 already existing; automatically removing it.").arg(name));
         removeService(name);
     }
-    NEXXT_LOG_INFO(QString("adding service %1").arg(name));
-    d->map[name] = service;
+    if( !service )
+    {
+        NEXXT_LOG_WARN(QString("Given service %1 is NULL. No service added.").arg(name));
+    } else
+    {
+        NEXXT_LOG_INFO(QString("adding service %1").arg(name));
+        d->map[name] = service;
+    }
 }
 
 void Services::_removeService(const QString &name)
