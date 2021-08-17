@@ -278,6 +278,12 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
 
     @Slot(str, QPoint)
     def updateSelection(self, group, point):
+        """
+        QT Meta-function which can be called to update the 2D selection.
+
+        :param group: the group name given as str/QString
+        :param point: the new selection point given as QPoint
+        """
         self.userSelectionChanged.emit(group, point)
 
     @Slot()
@@ -374,7 +380,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         #       with the 100 ms timeout this couldn't be reproduced
         QTimer.singleShot(100, lambda: (
             self.managedSubplots[title]["mdiSubWindow"].adjustSize() if
-            shiboken2.isValid(widget) and (
+            shiboken2.isValid(widget) and ( # pylint: disable=no-member
                 widget.parent().size().height() < widget.minimumSizeHint().height() or
                 widget.parent().size().height() < widget.minimumSize().height()) else None
         ))
@@ -479,7 +485,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
                 h = self.mdi.viewport().height()
                 r = QRect(x, y, w, h)
                 g = window.geometry()
-                logger.info("r=%s w=%s", r, g)
+                logger.debug("r=%s w=%s", r, g)
                 if not r.intersects(g):
                     self.mdi.horizontalScrollBar().setValue(g.x())
                     self.mdi.verticalScrollBar().setValue(g.y())
@@ -512,12 +518,13 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         else:
             self.activeApp = None
 
-    def _aboutPython(self):
+    def _aboutPython(self): # pylint: disable=no-self.use
         piplic = subprocess.check_output([sys.executable, "-m", "piplicenses", "--format=plain"],
                                          encoding="utf-8").replace("\n", "<br>").replace(" ", "&nbsp;")
         piplic = piplic.replace("<br>", "<br><br>", 1)
         msgBox = QMessageBox()
-        msgBox.setText("This program uses <b>python</b> %(version)s. The used packages are listed below." % dict(version=sys.version, table=piplic))
+        msgBox.setText("This program uses <b>python</b> %(version)s. The used packages are listed below." %
+                       dict(version=sys.version, table=piplic))
         view = QScrollArea(msgBox)
         label = QLabel("<pre>%(table)s</pre>" % dict(version=sys.version, table=piplic), msgBox)
         label.setTextInteractionFlags(Qt.TextSelectableByKeyboard|Qt.TextSelectableByMouse)

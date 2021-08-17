@@ -253,16 +253,16 @@ class ActiveApplication(QObject):
                     graph[toThread] = set()
                 graph[fromThread].add(toThread)
 
-        def _checkCycle(t, cycleInfo = []):
-            if t in cycleInfo:
-                cycle = "->".join(cycleInfo[cycleInfo.index(t):] + [t])
+        def _checkCycle(thread, cycleInfo):
+            if thread in cycleInfo:
+                cycle = "->".join(cycleInfo[cycleInfo.index(thread):] + [thread])
                 raise PossibleDeadlock(cycle)
-            cycle_info = cycleInfo + [t]
-            for nt in graph[t]:
+            cycle_info = cycleInfo + [thread]
+            for nt in graph[thread]:
                 _checkCycle(nt, cycle_info)
 
-        for t in graph:
-            _checkCycle(t)
+        for thread in graph:
+            _checkCycle(thread, [])
 
         self._graphConnected = True
 
@@ -374,7 +374,8 @@ class ActiveApplication(QObject):
             self._state = FilterState.OPENED
             MethodInvoker(self.close, Qt.QueuedConnection)
             MethodInvoker(self.deinit, Qt.QueuedConnection)
-            raise e
+            logger.error(str(e))
+            return
         for itc in self._interThreadConns:
             # set connections in active mode.
             itc.setStopped(False)

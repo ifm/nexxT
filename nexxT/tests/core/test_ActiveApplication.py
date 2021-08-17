@@ -135,7 +135,7 @@ def test_multiThreadSimple():
     print("t_transmit_source=%s" % [t - t_transmit_source[0] for t in t_transmit_source])
     print("t_receive_sink=%s" % [t - t_transmit_source[0] for t in t_receive_sink])
     try:
-        assert all([t_transmit_source[i] - t_transmit_source[i-1] > 0.4 and t_transmit_source[i] - t_transmit_source[i-1] < 0.6 for i in range(1, len(t_transmit_source))])
+        assert all([t_transmit_source[i] - t_transmit_source[i-1] > 0.4 and t_transmit_source[i] - t_transmit_source[i-1] < 0.6 for i in range(1, len(t_receive_sink))])
         # t = 1.00: the source's transmit function returns
         # t = 1.00: new data at source arrived already, the source's transmit function blocks at the semaphore
         # t = 1.50: the sink computation of third data is done, and the sink gets the fourth data while the semaphore is released

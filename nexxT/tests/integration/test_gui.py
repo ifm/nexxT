@@ -1111,8 +1111,7 @@ class DeadlockTestIssue25(GuiTestBase):
             appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("deadlock"))
             self.cmContextMenu(conf, appidx, CM_INIT_APP)
             self.qtbot.wait(1000)
-            logMsg = ("nexxT.core.Exceptions.PossibleDeadlock: This graph is not deadlock-safe. A cycle has been "
-                      "found in the thread graph: main->compute->main")
+            logMsg = "This graph is not deadlock-safe. A cycle has been found in the thread graph: main->compute->main"
             self.noWarningsInLog(log, ignore=[logMsg])
             self.assertLogItem(log, "ERROR", logMsg)
             # assert that the samples arrived in the correct order
