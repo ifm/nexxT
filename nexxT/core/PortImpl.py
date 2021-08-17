@@ -208,8 +208,8 @@ class InputPortImpl(InputPortInterface):
         self._addToQueue(dataSample)
         if not self._interthreadDynamicQueue:
             # usual behaviour
-            semaphore.release(1)
             self._transmit()
+            semaphore.release(1)
         else:
             if semaphore not in self._semaphoreN:
                 self._semaphoreN[semaphore] = 1
