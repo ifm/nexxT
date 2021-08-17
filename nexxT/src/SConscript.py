@@ -56,7 +56,6 @@ apilib = env.SharedLibrary("nexxT", env.RegisterSources(Split("""
     Services.cpp
     PropertyCollection.cpp
     NexxTPlugins.cpp
-    Executor.cpp
 """)), CPPDEFINES=["NEXXT_LIBRARY_COMPILATION"])
 env.RegisterTargets(apilib)
 
@@ -65,7 +64,7 @@ targets = []
 targets += [spath.Dir("cnexxT").File("cnexxt_module_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("nexxt_datasample_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("nexxt_port_wrapper.cpp")]
-targets += [spath.Dir("cnexxT").File("nexxt_porttoportconnection_wrapper.cpp")]
+targets += [spath.Dir("cnexxT").File("nexxt_interthreadconnection_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("nexxt_outputportinterface_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("nexxt_inputportinterface_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("nexxt_services_wrapper.cpp")]
@@ -77,14 +76,10 @@ targets += [spath.Dir("cnexxT").File("nexxt_propertyhandler_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("nexxt_basefilterenvironment_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("nexxt_plugininterface_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("nexxt_logging_wrapper.cpp")]
-targets += [spath.Dir("cnexxT").File("nexxt_executor_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("qsharedpointer_datasample_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("qsharedpointer_filter_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("qsharedpointer_port_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("qsharedpointer_qobject_wrapper.cpp")]
-targets += [spath.Dir("cnexxT").File("qsharedpointer_executor_wrapper.cpp")]
-targets += [spath.Dir("cnexxT").File("qsharedpointer_inputportinterface_wrapper.cpp")]
-targets += [spath.Dir("cnexxT").File("qsharedpointer_outputportinterface_wrapper.cpp")]
 
 
 env = env.Clone()

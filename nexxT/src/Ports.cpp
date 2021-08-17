@@ -11,7 +11,6 @@
 #include "Filters.hpp"
 #include "Logger.hpp"
 #include "Services.hpp"
-#include "Executor.hpp"
 #include "OutputPortInterface.hpp"
 #include "InputPortInterface.hpp"
 #include <atomic>
@@ -31,26 +30,11 @@ namespace nexxT
         BaseFilterEnvironment *environment;
     };
 
-    struct PortToPortConnectionD
+    struct InterThreadConnectionD
     {
         QSemaphore semaphore;
         std::atomic_bool stopped;
-        SharedExecutorPtr executorFrom;
-        SharedExecutorPtr executorTo;
-        SharedOutputPortPtr portFrom;
-        SharedInputPortPtr portTo;
-        PortToPortConnectionD(int n,
-                               const SharedExecutorPtr &_executorFrom,
-                               const SharedExecutorPtr &_executorTo,
-                               const SharedOutputPortPtr &_portFrom,
-                               const SharedInputPortPtr &_portTo)
-            : semaphore(n)
-            , stopped(true)
-            , executorFrom(_executorFrom)
-            , executorTo(_executorTo)
-            , portFrom(_portFrom)
-            , portTo(_portTo)
-            {}
+        InterThreadConnectionD(int n) : semaphore(n), stopped(true) {}
     };
 
 };
@@ -102,53 +86,35 @@ SharedPortPtr Port::make_shared(Port *port)
     return SharedPortPtr(port);
 }
 
-PortToPortConnection::PortToPortConnection(const SharedExecutorPtr &executorFrom,
-                                           const SharedExecutorPtr &executorTo,
-                                           const SharedOutputPortPtr &portFrom,
-                                           const SharedInputPortPtr &portTo)
-    : d(new PortToPortConnectionD(1, executorFrom, executorTo, portFrom, portTo))
+InterThreadConnection::InterThreadConnection(QThread *from_thread)
+    : d(new InterThreadConnectionD(1))
 {
+    moveToThread(from_thread);
 }
 
-PortToPortConnection::~PortToPortConnection()
+InterThreadConnection::~InterThreadConnection()
 {
     delete d;
 }
 
-void PortToPortConnection::receiveSample(const QSharedPointer<const DataSample> &sample)
+void InterThreadConnection::receiveSample(const QSharedPointer<const DataSample> &sample)
 {
-    if( d->executorFrom.get() == d->executorTo.get() )
+    while(true)
     {
-        d->executorTo->registerPendingRcvSync(d->portTo, sample);
-    } else
-    {
-        int32_t timeoutMS = 0;
-        while(true)
+        if( d->stopped.load() )
         {
-            if( d->stopped.load() )
-            {
-                NEXXT_LOG_WARN("The inter-thread connection is set to stopped mode; data sample discarded.");
-                break;
-            }
-            if( !d->semaphore.tryAcquire(1, timeoutMS) )
-            {
-                if( d->executorFrom->step(d->portFrom->environment()->getPlugin()) )
-                {
-                    timeoutMS = 0;
-                } else
-                {
-                    timeoutMS = 10;
-                }
-            } else
-            {
-                d->executorTo->registerPendingRcvAsync(d->portTo, sample, &d->semaphore);
-                break;
-            }
+            NEXXT_LOG_WARN("The inter-thread connection is set to stopped mode; data sample discarded.");
+            break;
+        }
+        if( d->semaphore.tryAcquire(1, 500) )
+        {
+            emit transmitInterThread(sample, &d->semaphore);
+            break;
         }
     }
 }
 
-void PortToPortConnection::setStopped(bool stopped)
+void InterThreadConnection::setStopped(bool stopped)
 {
     d->stopped.store(stopped);
 }
