@@ -1164,8 +1164,8 @@ class ExecutionOrderTest(GuiTestBase):
 
             model = log.logWidget.model()
             numRows = model.rowCount(QModelIndex())
-            # note: we changed the execution order to breadth first while fixing issue_25
-            expected = [(1,1), (1,2), (2,1), (2,2), (2,3), (2,4)]
+            # depth first execution order
+            expected = [(1,1), (2,1), (2,2), (1,2), (2,3), (2,4)]
             order = []
             for row in range(numRows):
                 msg = model.data(model.index(row, 2, QModelIndex()), Qt.DisplayRole)
