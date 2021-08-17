@@ -392,6 +392,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         :return:
         """
         assertMainThread()
+        logger.debug("activeAppStateChange(%s)", FilterState.state2str(newState))
         if newState == FilterState.CONSTRUCTED:
             self.actActivate.setEnabled(True)
         else:

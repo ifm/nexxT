@@ -11,9 +11,9 @@ This module contains the class definition of ActiveApplication
 import logging
 from PySide2.QtCore import QObject, Slot, Signal, Qt, QCoreApplication
 from nexxT.interface import FilterState, OutputPortInterface, InputPortInterface
-from nexxT.core.Exceptions import FilterStateMachineError, NexTInternalError
+from nexxT.core.Exceptions import FilterStateMachineError, NexTInternalError, PossibleDeadlock
 from nexxT.core.CompositeFilter import CompositeFilter
-from nexxT.core.Utils import Barrier, assertMainThread
+from nexxT.core.Utils import Barrier, assertMainThread, MethodInvoker
 from nexxT.core.Thread import NexTThread
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
@@ -232,6 +232,7 @@ class ActiveApplication(QObject):
         :return: None
         """
         assertMainThread()
+        graph = {}
         if self._graphConnected:
             return
         for fromNode, fromPort, toNode, toPort in self._allConnections():
@@ -246,6 +247,23 @@ class ActiveApplication(QObject):
             else:
                 itc = OutputPortInterface.setupInterThreadConnection(p0, p1, self._threads[fromThread].qthread())
                 self._interThreadConns.append(itc)
+                if not fromThread in graph:
+                    graph[fromThread] = set()
+                if not toThread in graph:
+                    graph[toThread] = set()
+                graph[fromThread].add(toThread)
+
+        def _checkCycle(t, cycleInfo = []):
+            if t in cycleInfo:
+                cycle = "->".join(cycleInfo[cycleInfo.index(t):] + [t])
+                raise PossibleDeadlock(cycle)
+            cycle_info = cycleInfo + [t]
+            for nt in graph[t]:
+                _checkCycle(nt, cycle_info)
+
+        for t in graph:
+            _checkCycle(t)
+
         self._graphConnected = True
 
     @Slot()
@@ -350,7 +368,13 @@ class ActiveApplication(QObject):
             raise FilterStateMachineError(self._state, FilterState.STARTING)
         self._operationInProgress = True
         self._state = FilterState.STARTING
-        self._setupConnections()
+        try:
+            self._setupConnections()
+        except PossibleDeadlock as e:
+            self._state = FilterState.OPENED
+            MethodInvoker(self.close, Qt.QueuedConnection)
+            MethodInvoker(self.deinit, Qt.QueuedConnection)
+            raise e
         for itc in self._interThreadConns:
             # set connections in active mode.
             itc.setStopped(False)

@@ -355,6 +355,19 @@ class GuiTestBase:
                 return int(lastmsg.strip().split(" ")[-1])
 
     @staticmethod
+    def assertLogItem(log, expectedLevel, expectedMsg):
+        found = False
+        model = log.logWidget.model()
+        numRows = model.rowCount(QModelIndex())
+        for row in range(numRows-1,0,-1):
+            level = model.data(model.index(row, 1, QModelIndex()), Qt.DisplayRole)
+            msg = model.data(model.index(row, 2, QModelIndex()), Qt.DisplayRole)
+            if level == expectedLevel and msg in expectedMsg:
+                found = True
+        if not found:
+            raise RuntimeError("expected message %s:%s not found in log", expectedLevel, expectedMsg)
+
+    @staticmethod
     def noWarningsInLog(log, ignore=[]):
         """
         assert that there are no warnings logged
@@ -1097,13 +1110,11 @@ class DeadlockTestIssue25(GuiTestBase):
 
             appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("deadlock"))
             self.cmContextMenu(conf, appidx, CM_INIT_APP)
-            self.qtbot.wait(5000)
-            # deinitialize
-            self.qtbot.keyClick(self.aw(), Qt.Key_D, Qt.ControlModifier, delay=self.delay)
-            self.noWarningsInLog(log, ignore=[
-                "did not find a playback device taking control",
-                "The inter-thread connection is set to stopped mode; data sample discarded."])
-
+            self.qtbot.wait(1000)
+            logMsg = ("nexxT.core.Exceptions.PossibleDeadlock: This graph is not deadlock-safe. A cycle has been "
+                      "found in the thread graph: main->compute->main")
+            self.noWarningsInLog(log, ignore=[logMsg])
+            self.assertLogItem(log, "ERROR", logMsg)
             # assert that the samples arrived in the correct order
             def assertSampleOrder():
                 numRows = log.logWidget.model().rowCount(QModelIndex())
@@ -1119,6 +1130,8 @@ class DeadlockTestIssue25(GuiTestBase):
                         else:
                             assert idx == filters[flt] + 1
                         filters[flt] = idx
+            # at the moment we do not let the user start these configs, but the sample order is still ok with no samples
+            # at all
             assertSampleOrder()
             logger.info("finishing")
         finally:
@@ -1135,7 +1148,6 @@ class DeadlockTestIssue25(GuiTestBase):
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])
 @pytest.mark.timeout(60, method="thread")
-@pytest.mark.skip(reason="deadlock is currently failing again")
 def test_deadlock_issue25(qtbot, xvfb, keep_open, delay, tmpdir):
     test = DeadlockTestIssue25(qtbot, xvfb, keep_open, delay, tmpdir)
     test.test()

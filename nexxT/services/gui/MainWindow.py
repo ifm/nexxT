@@ -374,8 +374,9 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         #       with the 100 ms timeout this couldn't be reproduced
         QTimer.singleShot(100, lambda: (
             self.managedSubplots[title]["mdiSubWindow"].adjustSize() if
-            widget.parent().size().height() < widget.minimumSizeHint().height() or
-            widget.parent().size().height() < widget.minimumSize().height() else None
+            shiboken2.isValid(widget) and (
+                widget.parent().size().height() < widget.minimumSizeHint().height() or
+                widget.parent().size().height() < widget.minimumSize().height()) else None
         ))
         self.managedSubplots[title]["plots"][row, col] = widget
 
