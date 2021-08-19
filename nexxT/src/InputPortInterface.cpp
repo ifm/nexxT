@@ -13,8 +13,10 @@
 #include "Services.hpp"
 #include "Logger.hpp"
 #include <atomic>
+#include <tuple>
 
 #include <QtCore/QThread>
+#include <QtCore/QCoreApplication>
 #include <map>
 #include <cstdio>
 
@@ -172,13 +174,42 @@ void InputPortInterface::transmit()
     }
 }
 
-void InputPortInterface::receiveAsync(const QSharedPointer<const DataSample> &sample, QSemaphore *semaphore)
+void InputPortInterface::receiveAsync(const QSharedPointer<const DataSample> &sample, QSemaphore *semaphore, bool isPending)
 {
+    /* pending receives from the main thread are stored here to be processed later */
+    typedef std::tuple<InputPortInterface*, QSharedPointer<const DataSample>, QSemaphore *> RcvArgs;
+    static std::vector<RcvArgs> pendingReceives;
     try
     {
         if( QThread::currentThread() != thread() )
         {
             throw std::runtime_error("InputPort.getData has been called from an unexpected thread.");
+        }
+        if( (!isPending) && (QThread::currentThread() == QCoreApplication::instance()->thread()) )
+        {
+            /* avoid unresponsive main thread 
+            
+            It turned out that the main thread is getting unresponsive at high computational loads.
+            Therefore, we apply processEvents with some extra care here. Note that receiveAsync is
+            always called directly from the QT event loop, so processing events at this place should
+            be safe. However, we have to take care that other receiveAsync events are still in the 
+            correct order, that's why we have the buffering in pendingReceives.
+            */
+            static uint32_t stackDepth = 0;
+            if( stackDepth > 0 )
+            {
+                /* 
+                This sample was the result of an ongoing processEvents call. Store this sample for later
+                processing to preserve sample order. 
+                
+                note that there is no concurrency problem here because we apply this only in main thread 
+                */
+                pendingReceives.push_back(std::make_tuple(this, sample, semaphore));
+                return;
+            }
+            stackDepth++;
+            QCoreApplication::processEvents();
+            stackDepth--;
         }
         addToQueue(sample);
         if(!d->interthreadDynamicQueue)
@@ -219,6 +250,25 @@ void InputPortInterface::receiveAsync(const QSharedPointer<const DataSample> &sa
     } catch(std::exception &e)
     {
         NEXXT_LOG_ERROR(QString("Unhandled exception in port data changed: %1").arg(e.what()));
+    }
+    if( QThread::currentThread() == QCoreApplication::instance()->thread() )
+    {
+        /* 
+        process pending samples resulting from previous processEvents call 
+        again, thread safety is not an issue here, because this is done only in the
+        main thread.
+        */
+        std::vector<RcvArgs> pendingCopy = pendingReceives;
+        pendingReceives.clear();
+        for(auto c: pendingCopy)
+        {
+            InputPortInterface *pInstance;
+            QSharedPointer<const DataSample> pSample;
+            QSemaphore *pSemaphore;
+            std::tie(pInstance, pSample, pSemaphore) = c;
+            /* do not call processEvents again to save some performance (last argument is true) */
+            pInstance->receiveAsync(pSample, pSemaphore, true);
+        }
     }
 }
 

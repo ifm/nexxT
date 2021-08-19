@@ -93,7 +93,7 @@ namespace nexxT
         /*!
             Called by the nexxT framework, not intended to be used directly.
         */
-        void receiveAsync(const QSharedPointer<const nexxT::DataSample> &sample, QSemaphore *semaphore);
+        void receiveAsync(const QSharedPointer<const nexxT::DataSample> &sample, QSemaphore *semaphore, bool isPending=false);
         /*!
             Called by the nexxT framework, not intended to be used directly.
         */
