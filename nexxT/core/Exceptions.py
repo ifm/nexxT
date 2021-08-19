@@ -165,3 +165,10 @@ class CompositeRecursion(NexTRuntimeError):
     """
     def __init__(self, name):
         super().__init__("Composite filter '%s' depends on itself." % name)
+
+class PossibleDeadlock(NexTRuntimeError):
+    """
+    raised during application activation when a possible deadlock is detected (a cycle was found in the thread graph)
+    """
+    def __init__(self, cycle):
+        super().__init__("This graph is not deadlock-safe. A cycle has been found in the thread graph: %s" % cycle)

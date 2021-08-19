@@ -8,7 +8,6 @@ namespace nexxT
     class Port;
     class InputPortInterface;
     class OutputPortInterface;
-    class Executor;
     class DataSample;
 
     /*!
@@ -31,10 +30,6 @@ namespace nexxT
     */
     typedef QSharedPointer<OutputPortInterface> SharedOutputPortPtr;
 
-    /*!
-        A typedef for a Port instance handled by a shared pointer.
-    */
-    typedef QSharedPointer<Executor> SharedExecutorPtr;
     /*!
         A typedef for a list of ports.
     */

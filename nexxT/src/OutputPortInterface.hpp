@@ -65,10 +65,11 @@ namespace nexxT
         /*!
             Called by the nexxT framework, not intended to be used directly.
         */
-        static QObject *setupPortToPortConnection(const SharedExecutorPtr &executorFrom,
-                                                  const SharedExecutorPtr &executorTo,
-                                                  const SharedPortPtr &portFrom,
-                                                  const SharedPortPtr &portTo);
+        static void setupDirectConnection(const SharedPortPtr &, const SharedPortPtr &);
+        /*!
+            Called by the nexxT framework, not intended to be used directly.
+        */
+        static QObject *setupInterThreadConnection(const SharedPortPtr &, const SharedPortPtr &, QThread &);
     };
 
 };

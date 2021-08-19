@@ -11,9 +11,9 @@ This module contains the class definition of ActiveApplication
 import logging
 from PySide2.QtCore import QObject, Slot, Signal, Qt, QCoreApplication
 from nexxT.interface import FilterState, OutputPortInterface, InputPortInterface
-from nexxT.core.Exceptions import FilterStateMachineError, NexTInternalError
+from nexxT.core.Exceptions import FilterStateMachineError, NexTInternalError, PossibleDeadlock
 from nexxT.core.CompositeFilter import CompositeFilter
-from nexxT.core.Utils import Barrier, assertMainThread
+from nexxT.core.Utils import Barrier, assertMainThread, MethodInvoker
 from nexxT.core.Thread import NexTThread
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
@@ -40,7 +40,7 @@ class ActiveApplication(QObject):
         self._numThreadsSynced = 0
         self._state = FilterState.CONSTRUCTING
         self._graphConnected = False
-        self._portToPortConns = []
+        self._interThreadConns = []
         self._operationInProgress = False
         # connect signals and slots
         for tname in self._threads:
@@ -103,7 +103,7 @@ class ActiveApplication(QObject):
         self._composite2graphs = {}
         # initialize private variables
         self._numThreadsSynced = 0
-        self._portToPortConns = []
+        self._interThreadConns = []
 
     def getState(self):
         """
@@ -232,6 +232,7 @@ class ActiveApplication(QObject):
         :return: None
         """
         assertMainThread()
+        graph = {}
         if self._graphConnected:
             return
         for fromNode, fromPort, toNode, toPort in self._allConnections():
@@ -241,9 +242,28 @@ class ActiveApplication(QObject):
             p0 = t0.getFilter(fromNode).getPort(fromPort, OutputPortInterface)
             t1 = self._threads[toThread]
             p1 = t1.getFilter(toNode).getPort(toPort, InputPortInterface)
-            p2pc = OutputPortInterface.setupPortToPortConnection(t0.getExecutor(), t1.getExecutor(), p0, p1)
-            p2pc.moveToThread(t0.qthread())
-            self._portToPortConns.append(p2pc)
+            if toThread == fromThread:
+                OutputPortInterface.setupDirectConnection(p0, p1)
+            else:
+                itc = OutputPortInterface.setupInterThreadConnection(p0, p1, self._threads[fromThread].qthread())
+                self._interThreadConns.append(itc)
+                if not fromThread in graph:
+                    graph[fromThread] = set()
+                if not toThread in graph:
+                    graph[toThread] = set()
+                graph[fromThread].add(toThread)
+
+        def _checkCycle(thread, cycleInfo):
+            if thread in cycleInfo:
+                cycle = "->".join(cycleInfo[cycleInfo.index(thread):] + [thread])
+                raise PossibleDeadlock(cycle)
+            cycle_info = cycleInfo + [thread]
+            for nt in graph[thread]:
+                _checkCycle(nt, cycle_info)
+
+        for thread in graph:
+            _checkCycle(thread, [])
+
         self._graphConnected = True
 
     @Slot()
@@ -348,8 +368,15 @@ class ActiveApplication(QObject):
             raise FilterStateMachineError(self._state, FilterState.STARTING)
         self._operationInProgress = True
         self._state = FilterState.STARTING
-        self._setupConnections()
-        for itc in self._portToPortConns:
+        try:
+            self._setupConnections()
+        except PossibleDeadlock as e:
+            self._state = FilterState.OPENED
+            MethodInvoker(self.close, Qt.QueuedConnection)
+            MethodInvoker(self.deinit, Qt.QueuedConnection)
+            logger.error(str(e))
+            return
+        for itc in self._interThreadConns:
             # set connections in active mode.
             itc.setStopped(False)
         self.performOperation.emit("start", Barrier(len(self._threads)))
@@ -373,7 +400,7 @@ class ActiveApplication(QObject):
             raise FilterStateMachineError(self._state, FilterState.STOPPING)
         self._operationInProgress = True
         self._state = FilterState.STOPPING
-        for itc in self._portToPortConns:
+        for itc in self._interThreadConns:
             # set connections in active mode.
             itc.setStopped(True)
         self.performOperation.emit("stop", Barrier(len(self._threads)))
