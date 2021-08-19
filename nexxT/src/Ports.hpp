@@ -22,7 +22,7 @@ namespace nexxT
 {
     class BaseFilterEnvironment;
     struct PortD;
-    struct PortToPortConnectionD;
+    struct InterThreadConnectionD;
 
     /*!
         This class is the C++ variant of \verbatim embed:rst:inline :py:class:`nexxT.interface.Ports.Port`
@@ -83,17 +83,17 @@ namespace nexxT
     };
 
  //! @cond Doxygen_Suppress
-   class DLLEXPORT PortToPortConnection : public QObject
+   class DLLEXPORT InterThreadConnection : public QObject
     {
         Q_OBJECT
-        
-        PortToPortConnectionD *const d;
+
+        InterThreadConnectionD *const d;
     public:
-        PortToPortConnection(const SharedExecutorPtr &executorFrom,
-                              const SharedExecutorPtr &executorTo,
-                              const SharedOutputPortPtr &portFrom,
-                              const SharedInputPortPtr &portTo);
-        virtual ~PortToPortConnection();
+        InterThreadConnection(QThread *qthread_from);
+        virtual ~InterThreadConnection();
+
+    signals:
+        void transmitInterThread(const QSharedPointer<const nexxT::DataSample> &sample, QSemaphore *semaphore);
 
     public slots:
         void receiveSample(const QSharedPointer<const nexxT::DataSample> &sample);

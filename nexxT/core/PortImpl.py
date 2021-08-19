@@ -9,7 +9,7 @@ This module contains implementations for abstract classes InputPort and OutputPo
 """
 
 import logging
-from PySide2.QtCore import QThread, QSemaphore, QObject, Qt
+from PySide2.QtCore import QThread, QSemaphore, Signal, QObject, Qt
 from nexxT.interface.Ports import InputPortInterface, OutputPortInterface
 from nexxT.interface.DataSamples import DataSample
 from nexxT.interface.Services import Services
@@ -18,55 +18,35 @@ from nexxT.core.Exceptions import NexTRuntimeError, NexTInternalError
 
 logger = logging.getLogger(__name__)
 
-class PortToPortConnection(QObject):
+class InterThreadConnection(QObject):
     """
-    Helper class for transmitting data samples between output and input ports
+    Helper class for transmitting data samples between threads
     """
+    transmitInterThread = Signal(object, QSemaphore)
 
-    def __init__(self, executorFrom, executorTo, portFrom, portTo):
-        """
-        Constructor.
-
-        :param executorFrom: executor instance for portFrom
-        :param executorTo: executorInstance for portTo
-        :param portFrom: the outut port which transmits the data
-        :param portTo: the input port which receives the data
-        """
+    def __init__(self, qthread_from):
         super().__init__()
-        self._semaphore = QSemaphore(1)
+        self.moveToThread(qthread_from)
+        self.semaphore = QSemaphore(1)
         self._stopped = True
-        self._executorFrom = executorFrom
-        self._executorTo = executorTo
-        self._portFrom = portFrom
-        self._portTo = portTo
 
     def receiveSample(self, dataSample):
         """
         Receive a sample, called in the source's thread. Uses a semaphore to avoid buffering infinitely.
-
         :param dataSample: the sample to be received
         :return: None
         """
-        if self._executorFrom is self._executorTo:
-            self._executorTo.registerPendingRcvSync(self._portTo, dataSample)
-        else:
-            self._receiveSample(dataSample)
+        self._receiveSample(dataSample)
 
     @handleException
     def _receiveSample(self, dataSample):
         assert QThread.currentThread() is self.thread()
-        timeout = 0
         while True:
             if self._stopped:
-                logger.warning("The inter-thread connection is set to stopped mode; data sample discarded.")
+                logger.info("The inter-thread connection is set to stopped mode; data sample discarded.")
                 break
-            if not self._semaphore.tryAcquire(1, timeout):
-                if self._executorFrom.step(self._portFrom.environment().getPlugin()):
-                    timeout = 0
-                else:
-                    timeout = 10 #ms
-            else:
-                self._executorTo.registerPendingRcvAsync(self._portTo, dataSample, self._semaphore)
+            if self.semaphore.tryAcquire(1, 500):
+                self.transmitInterThread.emit(dataSample, self.semaphore)
                 break
 
     def setStopped(self, stopped):
@@ -108,22 +88,34 @@ class OutputPortImpl(OutputPortInterface):
         return OutputPortImpl(self.dynamic(), self.name(), newEnvironment)
 
     @staticmethod
-    def setupPortToPortConnection(executorFrom, executorTo, outputPort, inputPort):
+    def setupDirectConnection(outputPort, inputPort):
         """
-        Setup a port to port connection between outputPort and inputPort
+        Setup a direct (intra-thread) connection between outputPort and inputPort
+        Note: both instances must live in same thread!
 
-        :param executorFrom: the executor instance of the outputPort's thread
-        :param executorTo: the executor instacne of the inputPort's thread
         :param outputPort: the output port instance to be connected
         :param inputPort: the input port instance to be connected
-        :return: an PortToPortConncetion instance which manages the connection (has
+        :return:None
+        """
+        logger.info("setup direct connection between %s -> %s", outputPort.name(), inputPort.name())
+        outputPort.transmitSample.connect(inputPort.receiveSync, Qt.DirectConnection)
+
+    @staticmethod
+    def setupInterThreadConnection(outputPort, inputPort, outputPortThread):
+        """
+        Setup an inter thread connection between outputPort and inputPort
+
+        :param outputPort: the output port instance to be connected
+        :param inputPort: the input port instance to be connected
+        :param outputPortThread: the QThread instance of the outputPort instance
+        :return: an InterThreadConnection instance which manages the connection (has
                  to survive until connections is deleted)
         """
-        p2pc = PortToPortConnection(executorFrom, executorTo, outputPort, inputPort)
-        assert inputPort.thread() == executorTo.thread()
-        assert outputPort.thread() == executorFrom.thread()
-        outputPort.transmitSample.connect(p2pc.receiveSample, Qt.DirectConnection)
-        return p2pc
+        logger.info("setup inter thread connection between %s -> %s", outputPort.name(), inputPort.name())
+        itc = InterThreadConnection(outputPortThread)
+        outputPort.transmitSample.connect(itc.receiveSample, Qt.DirectConnection)
+        itc.transmitInterThread.connect(inputPort.receiveAsync, Qt.QueuedConnection)
+        return itc
 
 class InputPortImpl(InputPortInterface):
     """
@@ -216,8 +208,8 @@ class InputPortImpl(InputPortInterface):
         self._addToQueue(dataSample)
         if not self._interthreadDynamicQueue:
             # usual behaviour
-            semaphore.release(1)
             self._transmit()
+            semaphore.release(1)
         else:
             if semaphore not in self._semaphoreN:
                 self._semaphoreN[semaphore] = 1

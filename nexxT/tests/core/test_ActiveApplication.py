@@ -132,16 +132,10 @@ def test_multiThreadSimple():
     events = simple_setup(multithread=True, sourceFreq=4.0, sinkTime=0.5, activeTime_s=2, dynamicFilter=False)
     t_transmit_source = [e["time"] for e in events if e["object"] == "SimpleSource" and e["function"] == "afterTransmit"]
     t_receive_sink = [e["time"] for e in events if e["object"] == "SimpleStaticFilter" and e["function"] == "afterReceive"]
+    print("t_transmit_source=%s" % [t - t_transmit_source[0] for t in t_transmit_source])
+    print("t_receive_sink=%s" % [t - t_transmit_source[0] for t in t_receive_sink])
     try:
-        # t = 0.00: the sink takes the data and transmit returns instantly -> second transmit is with sourceFreq framerate
-        # t = 0.25: the inter thread connection buffers the data (while the sink computes) and transmit returns instantly
-        assert t_transmit_source[1] - t_transmit_source[0] < 0.3
-        # t = 0.50: the sink computation is done, and the sink gets the second data while the semaphore is released
-        # t = 0.50: the inter thread connection buffers the data (while the sink computes) and transmit returns instantly
-        assert t_transmit_source[2] - t_transmit_source[1] < 0.3
-        # t = 0.75: the source's transmit function blocks at the semaphore
-        # t = 1.00: the sink computation of second data is done, and the sink gets the third data while the semaphore is released
-        assert all([t_transmit_source[i] - t_transmit_source[i-1] > 0.4 and t_transmit_source[i] - t_transmit_source[i-1] < 0.6 for i in range(3, len(t_transmit_source))])
+        assert all([t_transmit_source[i] - t_transmit_source[i-1] > 0.4 and t_transmit_source[i] - t_transmit_source[i-1] < 0.6 for i in range(1, len(t_receive_sink))])
         # t = 1.00: the source's transmit function returns
         # t = 1.00: new data at source arrived already, the source's transmit function blocks at the semaphore
         # t = 1.50: the sink computation of third data is done, and the sink gets the fourth data while the semaphore is released
