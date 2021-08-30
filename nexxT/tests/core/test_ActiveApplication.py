@@ -143,7 +143,7 @@ def test_multiThreadSimple():
         # t = 1.50: new data at source arrived already, the source's transmit function blocks.
         # ... and so on
         assert len(t_transmit_source) >= 3 + (2-0.5)/0.5 - 1
-        assert len(t_receive_sink) in [len(t_transmit_source), len(t_transmit_source)-1]
+        assert len(t_receive_sink) in [len(t_transmit_source), len(t_transmit_source)-1, len(t_transmit_source)-2]
         assert all([t_receive_sink[i] - t_receive_sink[i-1] > 0.4 and t_receive_sink[i] - t_receive_sink[i-1] < 0.6 for i in range(1, len(t_receive_sink))])
     except:
         printEvents(events)
