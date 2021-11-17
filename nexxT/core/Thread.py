@@ -11,10 +11,10 @@ This module defines the class NexTThread.
 import logging
 import sys
 import threading
-from PySide2.QtCore import QObject, Signal, Slot, QCoreApplication, QThread
+from PySide2.QtCore import QObject, Signal, Slot, QCoreApplication, QThread, Qt
 from nexxT.interface import FilterState, Services
 from nexxT.core.Exceptions import NodeExistsError, NexTInternalError, NodeNotFoundError, NexTRuntimeError
-from nexxT.core.Utils import handleException
+from nexxT.core.Utils import handleException, MethodInvoker
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +166,9 @@ class NexTThread(QObject):
         :return: None
         """
         # wait that all threads are in their event loop.
+        inProcessEvents = self._qthread.property("processEventsRunning")
+        if inProcessEvents:
+            logging.getLogger(__name__).warning("operation %s happening during receiveAsync's processEvents. This shouldn't be happening.", operation)
         barrier.wait()
         if operation in self._operations:
             # pre-adaptation of states (e.g. from CONSTRUCTED to INITIALIZING)

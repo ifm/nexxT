@@ -13,7 +13,7 @@ from PySide2.QtCore import QObject, Slot, Signal, Qt, QCoreApplication
 from nexxT.interface import FilterState, OutputPortInterface, InputPortInterface
 from nexxT.core.Exceptions import FilterStateMachineError, NexTInternalError, PossibleDeadlock
 from nexxT.core.CompositeFilter import CompositeFilter
-from nexxT.core.Utils import Barrier, assertMainThread, MethodInvoker
+from nexxT.core.Utils import Barrier, assertMainThread, mainThread, MethodInvoker
 from nexxT.core.Thread import NexTThread
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
@@ -119,6 +119,11 @@ class ActiveApplication(QObject):
         :return: None
         """
         assertMainThread()
+        inProcessEvents = mainThread().property("processEventsRunning")
+        if inProcessEvents:
+            logging.getLogger(__name__).debug("shutdown waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
+            MethodInvoker(dict(object=self, method="shutdown", thread=mainThread()), Qt.QueuedConnection)
+            return
         if self._state == FilterState.ACTIVE:
             self.stop()
         # while this is similar to code in FilterEnvironment, the lines here refer to applications

@@ -16,7 +16,7 @@ from PySide2.QtWidgets import (QTreeView, QAction, QStyle, QApplication, QFileDi
 from nexxT.interface import Services, FilterState
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
-from nexxT.core.Utils import assertMainThread, MethodInvoker
+from nexxT.core.Utils import assertMainThread, MethodInvoker, mainThread
 from nexxT.services.SrvConfiguration import MVCConfigurationBase, ConfigurationModel, ITEM_ROLE
 from nexxT.services.gui.PropertyDelegate import PropertyDelegate
 from nexxT.services.gui.GraphEditor import GraphScene
@@ -338,6 +338,11 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         :return:
         """
         assertMainThread()
+        inProcessEvents = mainThread().property("processEventsRunning")
+        if inProcessEvents:
+            logging.getLogger(__name__).info("_changeActiveAppAndInit waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
+            MethodInvoker(dict(object=self, method="_changeActiveAppAndInit", thread=mainThread()), Qt.QueuedConnection, app)
+            return        
         if isinstance(app, str):
             app = self.configuration().applicationByName(app)
         currentApp = Application.activeApplication
