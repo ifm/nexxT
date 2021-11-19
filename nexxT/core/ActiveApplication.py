@@ -121,7 +121,8 @@ class ActiveApplication(QObject):
         assertMainThread()
         inProcessEvents = mainThread().property("processEventsRunning")
         if inProcessEvents:
-            logging.getLogger(__name__).debug("shutdown waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
+            logging.getLogger(__name__).debug("shutdown waiting for inProcessEvents to be finished inProcessEvents=%s",
+                                              inProcessEvents)
             MethodInvoker(dict(object=self, method="shutdown", thread=mainThread()), Qt.QueuedConnection)
             return
         if self._state == FilterState.ACTIVE:

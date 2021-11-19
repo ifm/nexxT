@@ -340,9 +340,12 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         assertMainThread()
         inProcessEvents = mainThread().property("processEventsRunning")
         if inProcessEvents:
-            logging.getLogger(__name__).info("_changeActiveAppAndInit waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
-            MethodInvoker(dict(object=self, method="_changeActiveAppAndInit", thread=mainThread()), Qt.QueuedConnection, app)
-            return        
+            logging.getLogger(__name__).debug(
+                "_changeActiveAppAndInit waiting for inProcessEvents to be finished inProcessEvents=%s",
+                inProcessEvents)
+            MethodInvoker(dict(object=self, method="_changeActiveAppAndInit", thread=mainThread()),
+                          Qt.QueuedConnection, app)
+            return
         if isinstance(app, str):
             app = self.configuration().applicationByName(app)
         currentApp = Application.activeApplication

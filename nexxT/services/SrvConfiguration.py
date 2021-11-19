@@ -635,7 +635,8 @@ class MVCConfigurationBase(QObject):
         def execute():
             inProcessEvents = mainThread().property("processEventsRunning")
             if inProcessEvents:
-                logging.getLogger(__name__).debug("activate waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
+                logging.getLogger(__name__).debug(
+                    "activate waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
                 MethodInvoker(dict(object=self, method="activate", thread=mainThread()), Qt.QueuedConnection)
                 return
             assertMainThread()
@@ -653,7 +654,8 @@ class MVCConfigurationBase(QObject):
         def execute():
             inProcessEvents = mainThread().property("processEventsRunning")
             if inProcessEvents:
-                logging.getLogger(__name__).debug("deactivate waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
+                logging.getLogger(__name__).debug(
+                    "deactivate waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
                 MethodInvoker(dict(object=self, method="deactivate", thread=mainThread()), Qt.QueuedConnection)
                 return
             assertMainThread()
