@@ -9,6 +9,7 @@ import math
 import platform
 import time
 import pytest
+import nexxT
 from nexxT.interface import DataSample
 
 logging.getLogger(__name__).debug("executing test_dataSample.py")
@@ -26,6 +27,8 @@ def test_basic():
 
 @pytest.mark.skipif(platform.system() == "Windows" and platform.release() == "7", 
                     reason="windows 10 or higher, windows 7 seems to have millisecond resolution on timestamps.")
+@pytest.mark.skipif(platform.system() == "Windows" and not nexxT.useCImpl,
+                    reason="it seems that on windows the implementation of python's time.time_ns(...) is still sometimes broken.")
 def test_currentTime():
     shortestDelta = math.inf
     ts = time.time()

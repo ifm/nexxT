@@ -518,7 +518,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         else:
             self.activeApp = None
 
-    def _aboutPython(self): # pylint: disable=no-self.use
+    def _aboutPython(self): # pylint: disable=no-self-use
         piplic = subprocess.check_output([sys.executable, "-m", "piplicenses", "--format=plain"],
                                          encoding="utf-8").replace("\n", "<br>").replace(" ", "&nbsp;")
         piplic = piplic.replace("<br>", "<br><br>", 1)

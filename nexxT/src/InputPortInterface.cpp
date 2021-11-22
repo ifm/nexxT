@@ -16,6 +16,7 @@
 #include <tuple>
 
 #include <QtCore/QThread>
+#include <QtCore/QVariant>
 #include <QtCore/QCoreApplication>
 #include <map>
 #include <cstdio>
@@ -137,6 +138,10 @@ SharedPortPtr InputPortInterface::clone(BaseFilterEnvironment*env) const
 
 void InputPortInterface::addToQueue(const SharedDataSamplePtr &sample)
 {
+    if( QThread::currentThread() != thread() )
+    {
+        throw std::runtime_error("InputPort.getData has been called from an unexpected thread.");
+    }
     d->queue.prepend(sample);
     if(d->queueSizeSamples > 0)
     {
@@ -208,7 +213,9 @@ void InputPortInterface::receiveAsync(const QSharedPointer<const DataSample> &sa
                 return;
             }
             stackDepth++;
+            QCoreApplication::instance()->thread()->setProperty("processEventsRunning", QVariant(true));
             QCoreApplication::processEvents();
+            QCoreApplication::instance()->thread()->setProperty("processEventsRunning", QVariant(false));
             stackDepth--;
         }
         addToQueue(sample);

@@ -283,6 +283,13 @@ class MVCPlaybackControlBase(QObject):
 
     @handleException
     def _stopSetSequenceStart(self, filename):
+        inProcessEvents = mainThread().property("processEventsRunning")
+        if inProcessEvents:
+            logging.getLogger(__name__).debug(
+                "_stopSetSequenceStart waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
+            MethodInvoker(dict(object=self, method="_stopSetSequenceStart", thread=mainThread()),
+                          Qt.QueuedConnection, filename)
+            return
         assertMainThread()
         if Application.activeApplication is None:
             logger.warning("playbackControl.setSequence is called without an active application.")
