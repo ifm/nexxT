@@ -15,7 +15,7 @@ import shiboken2
 from PySide2.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QAction, QWidget, QGridLayout,
                                QMenuBar, QMessageBox, QScrollArea, QLabel)
 from PySide2.QtCore import (QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings,
-                            QTimer, QUrl)
+                            QTimer, QUrl, QEvent)
 from PySide2.QtGui import QDesktopServices
 import nexxT
 from nexxT.interface import Filter
@@ -171,6 +171,7 @@ class MainWindow(QMainWindow):
         self.mdi = QMdiArea(self)
         self.mdi.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.mdi.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.mdi.viewport().installEventFilter(self)
         self.setCentralWidget(self.mdi)
         self.menu = self.menuBar().addMenu("&Windows")
         self.aboutMenu = QMenuBar(self.menuBar())
@@ -199,6 +200,12 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         self.windows = {}
         self.activeApp = None
         self._ignoreCloseEvent = False
+        
+    def eventFilter(self, obj, event):
+        if obj is self.mdi.viewport() and event.type() == QEvent.Wheel:
+            # disable mouse wheel scrolling on the viewport widget it's pretty annoying...
+            return True
+        return False
 
     def closeEvent(self, closeEvent):
         """
