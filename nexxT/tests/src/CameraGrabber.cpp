@@ -7,6 +7,9 @@
 
 #include "CameraGrabber.hpp"
 #include "Logger.hpp"
+#include "PropertyCollection.hpp"
+#include <QtMultimedia/QCameraDevice>
+#include <QtMultimedia/QMediaDevices>
 #include <cstring>
 
 using namespace nexxT;
@@ -16,6 +19,7 @@ CameraGrabber::CameraGrabber(BaseFilterEnvironment *env)
     : Filter(false, false, env)
     , camera()
     , videoSurface()
+    , session()
 {
     /* similar to the python API, we create an output port for transmitting images */
     video_out = SharedOutputPortPtr(new OutputPortInterface(false, "video_out", env));
@@ -24,6 +28,13 @@ CameraGrabber::CameraGrabber(BaseFilterEnvironment *env)
     /* note that we do not connect to the hardware in the constructor, this is to be
      * done later in onOpen(...) for efficiency reasons.
      */
+    PropertyCollection *pc = propertyCollection();
+    QStringList devices;
+    for (const QCameraDevice &cameraDevice : QMediaDevices::videoInputs())
+    {
+        devices.push_back(cameraDevice.description());
+    }
+    pc->defineProperty("device", devices[0], "the camera device", {{"enum", devices}});
 }
 
 CameraGrabber::~CameraGrabber()
@@ -77,13 +88,13 @@ void CameraGrabber::newImage(const QImage &_img)
 // LITERAL_INCLUDE_END_2
 
 /* in case of an error, we restart the camera stream */
-void CameraGrabber::onStateChanged(QCamera::State state)
+void CameraGrabber::onErrorOccurred(QCamera::Error error, const QString &errString)
 {
     static bool recursive = false;
-    if( camera->error() != QCamera::NoError && !recursive )
+    if( error != QCamera::NoError && !recursive )
     {
         recursive = true;
-        NEXXT_LOG_ERROR(QString("Error from QCamera: %1").arg(camera->errorString()));
+        NEXXT_LOG_ERROR(QString("Error from QCamera: %1").arg(errString));
         NEXXT_LOG_INFO("Trying to recover");
         camera->stop();
         camera->start();
@@ -95,31 +106,55 @@ void CameraGrabber::onStateChanged(QCamera::State state)
 /* here we connect to the hardware */
 void CameraGrabber::onOpen()
 {
-    if(camera)
-    {
-        NEXXT_LOG_WARN("camera still allocated in onOpen");
-        delete camera;
-    }
     if(videoSurface)
     {
         NEXXT_LOG_WARN("videoSurface still allocated in onOpen");
         delete videoSurface;
+        videoSurface = 0;
+    }
+    if(camera)
+    {
+        NEXXT_LOG_WARN("camera still allocated in onOpen");
+        delete camera;
+        camera = 0;
+    }
+    if(session)
+    {
+        NEXXT_LOG_WARN("session still allocated in onOpen");
+        delete session;
+        session = 0;
     }
     /* create a QCamera and a VideoGrabber instance, the camera will run in a default mode
      * All these objects run in the same thread as this filter.
      */
-    camera = new QCamera(this);
+    PropertyCollection *pc = propertyCollection();
+    QString devname = pc->getProperty("device").value<QString>();
+    for (const QCameraDevice &cameraDevice : QMediaDevices::videoInputs())
+    {
+        if( cameraDevice.description() == devname )
+        {
+            camera = new QCamera(cameraDevice, this);
+            break;
+        }
+    }
+    session = new QMediaCaptureSession(this);
+    if(!camera)
+    {
+        NEXXT_LOG_WARN("Using default camera.");
+        camera = new QCamera(this);
+    }
     videoSurface = new VideoGrabber(this);
+    session->setCamera(camera);
+    session->setVideoOutput(videoSurface);
     /* make up signal/slot connections */
     QObject::connect(videoSurface, SIGNAL(newImage(const QImage &)), this, SLOT(newImage(const QImage &)));
-    QObject::connect(camera, SIGNAL(stateChanged(QCamera::State)), this, SLOT(onStateChanged(QCamera::State)));
+    QObject::connect(camera, SIGNAL(errorOccurred(QCamera::Error, const QString &)),
+                     this, SLOT(onErrorOccurred(QCamera::Error, const QString &)));
 }
 
 /* at that point, the streaming shall be started */
 void CameraGrabber::onStart()
 {
-    camera->setCaptureMode(QCamera::CaptureVideo);
-    camera->setViewfinder(videoSurface);
     camera->start();
 }
 
@@ -132,15 +167,20 @@ void CameraGrabber::onStop()
 /* inverse of onOpen(...) */
 void CameraGrabber::onClose()
 {
+    if(videoSurface)
+    {
+        delete videoSurface;
+        videoSurface = nullptr;
+    }
     if(camera)
     {
         delete camera;
         camera = nullptr;
     }
-    if(videoSurface)
+    if(session)
     {
-        delete videoSurface;
-        videoSurface = nullptr;
+        delete session;
+        session = nullptr;
     }
 }
 // LITERAL_INCLUDE_END_3

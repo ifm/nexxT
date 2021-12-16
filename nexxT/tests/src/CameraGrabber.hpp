@@ -10,6 +10,7 @@
 
 #include <QtCore/QObject>
 #include <QtMultimedia/QCamera>
+#include <QtMultimedia/QMediaCaptureSession>
 #include "VideoGrabber.hpp"
 #include "Filters.hpp"
 #include "Ports.hpp"
@@ -36,6 +37,8 @@ class CameraGrabber : public Filter
     QCamera *camera;
     /* the video surface needed to actually grab QImages from the QCamera */
     VideoGrabber *videoSurface;
+    /* the capture session */
+    QMediaCaptureSession *session;
 
 public:
     /* The following line is needed to declare a nexxT plugin. Note that also the following
@@ -58,7 +61,7 @@ public slots:
     /* Slot called from the videoSurface instance when a new image arrives */
     void newImage(const QImage &img);
     /* Slot called by the QtMultimedia framework to detect errors (they will happen!) */
-    void onStateChanged(QCamera::State state);
+    void onErrorOccurred(QCamera::Error error, const QString &errString);
 
 protected: // folowing functions are overloaded from the nexxT::Filter API
     void onOpen();

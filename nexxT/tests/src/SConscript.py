@@ -27,7 +27,7 @@ if os.environ.get("PYSIDEVERSION", "6") in "52":
     """)))
     env.RegisterTargets(plugin)
 elif os.environ.get("PYSIDEVERSION", "6") == "6":
-    env.EnableQt6Modules(['QtCore', "QtGui"])
+    env.EnableQt6Modules(['QtCore', "QtGui", "QtMultimedia"])
     srcDir = Dir(".").srcnode()
 
     env.Append(CPPPATH=["../../src", "."],
@@ -36,12 +36,12 @@ elif os.environ.get("PYSIDEVERSION", "6") == "6":
 
     plugin = env.SharedLibrary("test_plugins", env.RegisterSources(Split("""
         SimpleSource.cpp
+        AviFilePlayback.cpp
         TestExceptionFilter.cpp
         Plugins.cpp
+        VideoGrabber.cpp
+        CameraGrabber.cpp
     """)))
-    #    AviFilePlayback.cpp
-    #    CameraGrabber.cpp
-    #    VideoGrabber.cpp
     env.RegisterTargets(plugin)
 else:
     raise RuntimeError("invalid env variable PYSIDEVERSION=%s" % os.environ["PYSIDEVERSION"])

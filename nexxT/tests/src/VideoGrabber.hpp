@@ -9,27 +9,23 @@
 #define NEXXT_VIDEO_GRABBER_HPP
 
 #include <QtCore/QObject>
-#include <QtMultimedia/QAbstractVideoSurface>
-#include <QtMultimedia/QVideoSurfaceFormat>
+#include <QtMultimedia/QVideoSink>
 #include "NexxTLinkage.hpp"
 
 /* It would be lovely to do this stuff in python, but atm the binding is broken in PySide2
    See https://bugreports.qt.io/browse/PYSIDE-794
 */
-class VideoGrabber : public QAbstractVideoSurface
+class VideoGrabber : public QVideoSink
 {
     Q_OBJECT
 
 signals:
     void newImage(const QImage &);
+private slots:
+    void videoFrameChanged(const QVideoFrame &);
 public:
     VideoGrabber(QObject *parent);
     virtual ~VideoGrabber();
-    virtual QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType handleType) const;
-    virtual bool isFormatSupported(const QVideoSurfaceFormat &format) const;
-    virtual bool start(const QVideoSurfaceFormat &format);
-    virtual void stop();
-    virtual bool present(const QVideoFrame &_frame);
 };
 
 #endif

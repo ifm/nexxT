@@ -49,13 +49,13 @@ signals:
 
 public slots:
     void newImage(const QImage &img);
-    void mediaPlayerError(QMediaPlayer::Error);
-    void mediaPlayerStateChanged(QMediaPlayer::State newState);
+    void mediaPlayerError(QMediaPlayer::Error, const QString &);
+    void mediaPlayerStateChanged(QMediaPlayer::PlaybackState newState);
     void mediaPlayerPlaybackRateChanged(qreal newRate);
 
     void newDuration(qint64 duration);
     void newPosition(qint64 position);
-    void currentMediaChanged(const QMediaContent &);
+    void currentMediaChanged(const QUrl &);
     void startPlayback();
     void pausePlayback();
     void stepForward(const QString &stream);
