@@ -13,7 +13,7 @@ import traceback
 import logging
 import nexxT.shiboken
 from nexxT.Qt import __version_info__ as qtversion
-from nexxT.Qt.QtCore import Qt, QTimer, QAbstractItemModel, QModelIndex
+from nexxT.Qt.QtCore import Qt, QTimer, QAbstractItemModel, QModelIndex, Slot
 from nexxT.Qt.QtWidgets import QTableView, QHeaderView, QStyleOptionViewItem
 from nexxT.Qt.QtGui import QColor, QAction, QActionGroup
 from nexxT.services.ConsoleLogger import ConsoleLogger
@@ -348,7 +348,7 @@ class GuiLogger(ConsoleLogger):
         mainLogger = logging.getLogger()
         self.handler = LogHandler(self.logWidget)
         mainLogger.addHandler(self.handler)
-        self.logWidget.destroyed.connect(lambda: mainLogger.removeHandler(self.handler))
+        self.destroyed.connect(self.removeHandler)
 
         self.actFollow = QAction("Follow")
         self.actFollow.setCheckable(True)
@@ -390,6 +390,22 @@ class GuiLogger(ConsoleLogger):
         logMenu.addAction(self.actClear)
         logMenu.addAction(self.actFollow)
         logMenu.addAction(self.actSingleLine)
+
+    @Slot()
+    def detach(self):
+        """
+        This slot is called when the service is removed from the framework
+        """
+        self.removeHandler()
+
+    def removeHandler(self):
+        """
+        Remove logging handler from python logging system.
+        """
+        mainLogger = logging.getLogger()
+        if self.handler is not None:
+            mainLogger.removeHandler(self.handler)
+            self.handler = None
 
     def setLogLevel(self):
         """

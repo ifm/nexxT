@@ -17,7 +17,7 @@ from nexxT.Qt.QtWidgets import (QTreeView, QStyle, QApplication, QFileDialog, QA
 from nexxT.interface import Services, FilterState
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
-from nexxT.core.Utils import assertMainThread, MethodInvoker
+from nexxT.core.Utils import assertMainThread, MethodInvoker, mainThread, handleException
 from nexxT.services.SrvConfiguration import MVCConfigurationBase, ConfigurationModel, ITEM_ROLE
 from nexxT.services.gui.PropertyDelegate import PropertyDelegate
 from nexxT.services.gui.GraphEditor import GraphScene
@@ -59,8 +59,10 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self.actActivate = QAction(QIcon.fromTheme("arrow-up", style.standardIcon(QStyle.SP_ArrowUp)),
                                    "Initialize", self)
         self.actActivate.triggered.connect(self.activate)
+        self.actActivate.setShortcut(QKeySequence(Qt.CTRL + Qt.Key_I))
         self.actDeactivate = QAction(QIcon.fromTheme("arrow-down", style.standardIcon(QStyle.SP_ArrowDown)),
                                      "Deinitialize", self)
+        self.actDeactivate.setShortcut(QKeySequence(Qt.CTRL + Qt.Key_D))
         self.actDeactivate.triggered.connect(self.deactivate)
 
         confMenu.addAction(self.actLoad)
@@ -221,11 +223,21 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         graphDw.visibleChanged.connect(self._removeGraphViewFromList)
 
     def _subConfigRemoved(self, subConfigName, configType):
+        self.__subConfigRemoved(subConfigName, configType)
+
+    @handleException
+    def __subConfigRemoved(self, subConfigName, configType):
         g = self._configuration.subConfigByNameAndTye(subConfigName, configType).getGraph()
-        for gv in self._graphViews:
-            if gv.widget().scene().graph == g:
-                logger.debug("deleting graph view for subconfig %s", subConfigName)
-                gv.deleteLater()
+        if nexxT.shiboken.isValid(g):
+            for gv in self._graphViews:
+                if not nexxT.shiboken.isValid(gv):
+                    continue
+                if (not nexxT.shiboken.isValid(gv.widget()) or
+                        not nexxT.shiboken.isValid(gv.widget().scene()) or
+                        not nexxT.shiboken.isValid(gv.widget().scene().graph) or
+                        gv.widget().scene().graph == g):
+                    logger.debug("deleting graph view for subconfig %s", subConfigName)
+                    gv.deleteLater()
 
     def _removeGraphViewFromList(self, visible):
         if visible:
@@ -319,6 +331,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
             title = "nexxT: " + self.cfgfile
         if dirty:
             title += " *"
+        self.actSave.setEnabled(dirty)
         srv.setWindowTitle(title)
 
     def _onItemDoubleClicked(self, index):
@@ -337,6 +350,14 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         :return:
         """
         assertMainThread()
+        inProcessEvents = mainThread().property("processEventsRunning")
+        if inProcessEvents:
+            logging.getLogger(__name__).debug(
+                "_changeActiveAppAndInit waiting for inProcessEvents to be finished inProcessEvents=%s",
+                inProcessEvents)
+            MethodInvoker(dict(object=self, method="_changeActiveAppAndInit", thread=mainThread()),
+                          Qt.QueuedConnection, app)
+            return
         if isinstance(app, str):
             app = self.configuration().applicationByName(app)
         currentApp = Application.activeApplication
@@ -391,6 +412,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         :return:
         """
         assertMainThread()
+        logger.debug("activeAppStateChange(%s)", FilterState.state2str(newState))
         if newState == FilterState.CONSTRUCTED:
             self.actActivate.setEnabled(True)
         else:

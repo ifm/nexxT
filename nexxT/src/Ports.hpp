@@ -16,19 +16,13 @@
 #include <QtCore/QObject>
 #include <QtCore/QSemaphore>
 #include "NexxTLinkage.hpp"
-#include "DataSamples.hpp"
+#include "SharedPointerTypes.hpp"
 
 namespace nexxT
 {
     class BaseFilterEnvironment;
     struct PortD;
     struct InterThreadConnectionD;
-    class Port;
-
-    /*!
-        A typedef for a Port instance handled by a shared pointer.
-    */
-    typedef QSharedPointer<Port> SharedPortPtr;
 
     /*!
         This class is the C++ variant of \verbatim embed:rst:inline :py:class:`nexxT.interface.Ports.Port`
@@ -88,16 +82,11 @@ namespace nexxT
         static SharedPortPtr make_shared(Port *port);
     };
 
-    /*!
-        A typedef for a list of ports.
-    */
-    typedef QList<QSharedPointer<Port> > PortList;
-
  //! @cond Doxygen_Suppress
    class DLLEXPORT InterThreadConnection : public QObject
     {
         Q_OBJECT
-        
+
         InterThreadConnectionD *const d;
     public:
         InterThreadConnection(QThread *qthread_from);

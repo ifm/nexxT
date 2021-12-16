@@ -17,7 +17,7 @@ from nexxT.core.ConfigFiles import ConfigFileLoader
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
 from nexxT.core.CompositeFilter import CompositeFilter
-from nexxT.core.Utils import assertMainThread, handleException
+from nexxT.core.Utils import assertMainThread, handleException, mainThread, MethodInvoker
 
 logger = logging.getLogger(__name__)
 
@@ -633,6 +633,12 @@ class MVCConfigurationBase(QObject):
         """
         @handleException
         def execute():
+            inProcessEvents = mainThread().property("processEventsRunning")
+            if inProcessEvents:
+                logging.getLogger(__name__).debug(
+                    "activate waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
+                MethodInvoker(dict(object=self, method="activate", thread=mainThread()), Qt.QueuedConnection)
+                return
             assertMainThread()
             Application.initialize()
         execute()
@@ -646,6 +652,12 @@ class MVCConfigurationBase(QObject):
         """
         @handleException
         def execute():
+            inProcessEvents = mainThread().property("processEventsRunning")
+            if inProcessEvents:
+                logging.getLogger(__name__).debug(
+                    "deactivate waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
+                MethodInvoker(dict(object=self, method="deactivate", thread=mainThread()), Qt.QueuedConnection)
+                return
             assertMainThread()
             Application.deInitialize()
         execute()

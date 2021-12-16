@@ -17,3 +17,5 @@
 #include "PropertyCollection.hpp"
 #include "NexxTPlugins.hpp"
 #include "Logger.hpp"
+#include "SharedPointerTypes.hpp"
+#include "Compatibility.hpp"

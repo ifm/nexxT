@@ -71,6 +71,7 @@ class OutputPortImpl(OutputPortInterface):
     def transmit(self, dataSample):
         """
         transmit a data sample over this port
+
         :param dataSample: sample to transmit
         """
         if not QThread.currentThread() is self.thread():
@@ -80,6 +81,7 @@ class OutputPortImpl(OutputPortInterface):
     def clone(self, newEnvironment):
         """
         Return a copy of this port attached to a new environment.
+
         :param newEnvironment: the new FilterEnvironment instance
         :return: a new Port instance
         """
@@ -90,6 +92,7 @@ class OutputPortImpl(OutputPortInterface):
         """
         Setup a direct (intra-thread) connection between outputPort and inputPort
         Note: both instances must live in same thread!
+
         :param outputPort: the output port instance to be connected
         :param inputPort: the input port instance to be connected
         :return:None
@@ -148,6 +151,7 @@ class InputPortImpl(InputPortInterface):
     def getData(self, delaySamples=0, delaySeconds=None):
         """
         Return a data sample stored in the queue (called by the filter).
+
         :param delaySamples: 0 related the most actual sample, numbers > 0 relates to historic samples (None can be
                              given if delaySeconds is not None)
         :param delaySeconds: if not None, a delay of 0.0 is related to the current sample, positive numbers are related
@@ -188,23 +192,24 @@ class InputPortImpl(InputPortInterface):
             self.srvprof.afterPortDataChanged(self.profname)
 
     def receiveAsync(self, dataSample, semaphore):
-        return self._receiveAsync(dataSample, semaphore)
-
-    @handleException
-    def _receiveAsync(self, dataSample, semaphore):
         """
         Called from framework only and implements the asynchronous receive mechanism using a semaphore.
+
         :param dataSample: the transmitted DataSample instance
         :param semaphore: a QSemaphore instance
         :return: None
         """
+        return self._receiveAsync(dataSample, semaphore)
+
+    @handleException
+    def _receiveAsync(self, dataSample, semaphore):
         if not QThread.currentThread() is self.thread():
             raise NexTInternalError("InputPort.receiveAsync has been called from an unexpected thread.")
         self._addToQueue(dataSample)
         if not self._interthreadDynamicQueue:
             # usual behaviour
-            semaphore.release(1)
             self._transmit()
+            semaphore.release(1)
         else:
             if semaphore not in self._semaphoreN:
                 self._semaphoreN[semaphore] = 1
@@ -228,15 +233,16 @@ class InputPortImpl(InputPortInterface):
                 self._transmit()
 
     def receiveSync(self, dataSample):
+        """
+        Called from framework only and implements the synchronous receive mechanism.
+
+        :param dataSample: the transmitted DataSample instance
+        :return: None
+        """
         return self._receiveSync(dataSample)
 
     @handleException
     def _receiveSync(self, dataSample):
-        """
-        Called from framework only and implements the synchronous receive mechanism.
-        :param dataSample: the transmitted DataSample instance
-        :return: None
-        """
         if not QThread.currentThread() is self.thread():
             raise NexTInternalError("InputPort.receiveSync has been called from an unexpected thread.")
         self._addToQueue(dataSample)
@@ -245,6 +251,7 @@ class InputPortImpl(InputPortInterface):
     def clone(self, newEnvironment):
         """
         Return a copy of this port attached to a new environment.
+
         :param newEnvironment: the new FilterEnvironment instance
         :return: a new Port instance
         """
@@ -254,6 +261,7 @@ class InputPortImpl(InputPortInterface):
     def setQueueSize(self, queueSizeSamples, queueSizeSeconds):
         """
         Set the queue size of this port.
+
         :param queueSizeSamples: 0 related the most actual sample, numbers > 0 relates to historic samples (None can be
                                  given if delaySeconds is not None)
         :param queueSizeSeconds: if not None, a delay of 0.0 is related to the current sample, positive numbers are
@@ -270,6 +278,7 @@ class InputPortImpl(InputPortInterface):
     def queueSizeSamples(self):
         """
         return the current queueSize in samples
+
         :return: an integer
         """
         return self._queueSizeSamples
@@ -277,6 +286,7 @@ class InputPortImpl(InputPortInterface):
     def queueSizeSeconds(self):
         """
         return the current queueSize in seconds
+
         :return: an integer
         """
         return self._queueSizeSeconds
@@ -286,6 +296,7 @@ class InputPortImpl(InputPortInterface):
         If enabled is True, inter thread connections to this input port are dynamically queued for non-blocking
         behaviour. This setting does not affect connections from within the same thread. This method can be called
         only during constructor or the onInit() method of a filter.
+
         :param enabled: whether the dynamic queuing feature is enabled or not.
         :return:
         """
@@ -304,6 +315,7 @@ class InputPortImpl(InputPortInterface):
     def interthreadDynamicQueue(self):
         """
         Return the interthread dynamic queue setting.
+
         :return: a boolean
         """
         return self._interthreadDynamicQueue

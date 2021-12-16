@@ -11,6 +11,8 @@
 #include "Filters.hpp"
 #include "Logger.hpp"
 #include "Services.hpp"
+#include "OutputPortInterface.hpp"
+#include "InputPortInterface.hpp"
 #include <atomic>
 
 #include <QtCore/QThread>

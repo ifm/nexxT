@@ -13,9 +13,9 @@ import subprocess
 import sys
 import nexxT.shiboken
 from nexxT.Qt.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QWidget, QGridLayout,
-                               QMenuBar, QMessageBox)
+                               QMenuBar, QMessageBox, QScrollArea, QLabel)
 from nexxT.Qt.QtCore import (QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings,
-                            QTimer, QUrl)
+                            QTimer, QUrl, QEvent)
 from nexxT.Qt.QtGui import QDesktopServices, QAction
 import nexxT
 from nexxT.interface import Filter
@@ -162,6 +162,7 @@ class MainWindow(QMainWindow):
     """
     mdiSubWindowCreated = Signal(QMdiSubWindow) # TODO: deprecated, can be removed in later versions
     aboutToClose = Signal(object)
+    userSelectionChanged = Signal(str, QPoint)
 
     def __init__(self, config):
         super().__init__()
@@ -170,6 +171,7 @@ class MainWindow(QMainWindow):
         self.mdi = QMdiArea(self)
         self.mdi.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.mdi.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.mdi.viewport().installEventFilter(self)
         self.setCentralWidget(self.mdi)
         self.menu = self.menuBar().addMenu("&Windows")
         self.aboutMenu = QMenuBar(self.menuBar())
@@ -198,6 +200,12 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         self.windows = {}
         self.activeApp = None
         self._ignoreCloseEvent = False
+        
+    def eventFilter(self, obj, event):
+        if obj is self.mdi.viewport() and event.type() == QEvent.Wheel:
+            # disable mouse wheel scrolling on the viewport widget it's pretty annoying...
+            return True
+        return False
 
     def closeEvent(self, closeEvent):
         """
@@ -274,6 +282,16 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
 
     def __del__(self):
         logging.getLogger(__name__).debug("deleting MainWindow")
+
+    @Slot(str, QPoint)
+    def updateSelection(self, group, point):
+        """
+        QT Meta-function which can be called to update the 2D selection.
+
+        :param group: the group name given as str/QString
+        :param point: the new selection point given as QPoint
+        """
+        self.userSelectionChanged.emit(group, point)
 
     @Slot()
     def getToolBar(self):
@@ -369,8 +387,9 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         #       with the 100 ms timeout this couldn't be reproduced
         QTimer.singleShot(100, lambda: (
             self.managedSubplots[title]["mdiSubWindow"].adjustSize() if
-            widget.parent().size().height() < widget.minimumSizeHint().height() or
-            widget.parent().size().height() < widget.minimumSize().height() else None
+            nexxT.shiboken.isValid(widget) and ( # pylint: disable=no-member
+                widget.parent().size().height() < widget.minimumSizeHint().height() or
+                widget.parent().size().height() < widget.minimumSize().height()) else None
         ))
         self.managedSubplots[title]["plots"][row, col] = widget
 
@@ -461,8 +480,24 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
 
     def _registerWindow(self, window, nameChangedSignal):
         act = QAction("<unnamed>", self)
+        def ensureVisible():
+            window.setVisible(True)
+            act.setChecked(True)
+            window.raise_()
+            if isinstance(window, QMdiSubWindow):
+                self.mdi.setActiveSubWindow(window)
+                x = self.mdi.horizontalScrollBar().value()
+                y = self.mdi.verticalScrollBar().value()
+                w = self.mdi.viewport().width()
+                h = self.mdi.viewport().height()
+                r = QRect(x, y, w, h)
+                g = window.geometry()
+                logger.debug("r=%s w=%s", r, g)
+                if not r.intersects(g):
+                    self.mdi.horizontalScrollBar().setValue(g.x())
+                    self.mdi.verticalScrollBar().setValue(g.y())
         act.setCheckable(True)
-        act.toggled.connect(window.setVisible)
+        act.triggered.connect(ensureVisible)
         window.visibleChanged.connect(act.setChecked)
         nameChangedSignal.connect(act.setText)
         self.windows[nexxT.shiboken.getCppPointer(window)[0]] = act # pylint: disable=no-member
@@ -490,12 +525,17 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         else:
             self.activeApp = None
 
-    def _aboutPython(self):
+    def _aboutPython(self): # pylint: disable=no-self-use
         piplic = subprocess.check_output([sys.executable, "-m", "piplicenses", "--format=plain"],
                                          encoding="utf-8").replace("\n", "<br>").replace(" ", "&nbsp;")
-        QMessageBox.about(self, "About python", """\
-This program uses <b>python</b> %(version)s and the following installed python packages.<br><br>
-<pre>
-%(table)s
-</pre>
-""" % dict(version=sys.version, table=piplic))
+        piplic = piplic.replace("<br>", "<br><br>", 1)
+        msgBox = QMessageBox()
+        msgBox.setText("This program uses <b>python</b> %(version)s. The used packages are listed below." %
+                       dict(version=sys.version, table=piplic))
+        view = QScrollArea(msgBox)
+        label = QLabel("<pre>%(table)s</pre>" % dict(version=sys.version, table=piplic), msgBox)
+        label.setTextInteractionFlags(Qt.TextSelectableByKeyboard|Qt.TextSelectableByMouse)
+        view.setWidgetResizable(True)
+        view.setWidget(label)
+        msgBox.layout().addWidget(view, 3, 0, 1, msgBox.layout().columnCount())
+        msgBox.exec_()

@@ -35,6 +35,7 @@ from __future__ import print_function
 
 import os.path
 import re
+import subprocess
 import sys
 
 import SCons.Action
@@ -400,7 +401,7 @@ def _detect(env):
 
     moc = env.WhereIs('moc-qt6') or env.WhereIs('moc6') or env.WhereIs('moc')
     if moc:
-        vernumber = os.popen3('%s -v' % moc)[2].read()
+        vernumber = subprocess.check_output([moc, '-v'], stderr=subprocess.STDOUT)
         vernumber = mocver_re.match(vernumber)
         if vernumber:
             vernumber = [ int(x) for x in vernumber.groups() ]
@@ -410,12 +411,13 @@ def _detect(env):
                 SCons.Warnings.warn(
                     QtdirNotFound,
                     "QT6DIR variable not defined, and detected moc is for Qt %s" % vernumber)
-
-        QT6DIR = os.path.dirname(os.path.dirname(moc))
-        SCons.Warnings.warn(
-            QtdirNotFound,
-            "QT6DIR variable is not defined, using moc executable as a hint (QT6DIR=%s)" % QT6DIR)
-        return QT6DIR
+        if moc is not None:
+          print("moc=%s" % moc)
+          QT6DIR = os.path.dirname(os.path.dirname(moc))
+          SCons.Warnings.warn(
+              QtdirNotFound,
+              "QT6DIR variable is not defined, using moc executable as a hint (QT6DIR=%s)" % QT6DIR)
+          return QT6DIR
 
     raise SCons.Errors.StopError(
         QtdirNotFound,
@@ -936,7 +938,7 @@ def enable_modules(self, modules, debug=False, crosscompiling=False) :
         try : self.AppendUnique(CPPDEFINES=moduleDefines[module])
         except: pass
     debugSuffix = ''
-    if sys.platform in ["darwin", "linux2", "linux"] and not crosscompiling :
+    if sys.platform in [] and not crosscompiling :
         if debug : debugSuffix = '_debug'
         for module in modules :
             if module not in pclessModules : continue
@@ -955,7 +957,7 @@ def enable_modules(self, modules, debug=False, crosscompiling=False) :
         self.ParseConfig('pkg-config %s --libs --cflags'% ' '.join(pcmodules))
         self["QT6_MOCCPPPATH"] = self["CPPPATH"]
         return
-    if sys.platform == "win32" or crosscompiling :
+    if sys.platform in ["win32", "darwin", "linux2", "linux"] or crosscompiling :
         if crosscompiling:
             transformedQtdir = transformToWinePath(self['QT6DIR'])
             self['QT6_MOC'] = "QT6DIR=%s %s"%( transformedQtdir, self['QT6_MOC'])
@@ -967,7 +969,7 @@ def enable_modules(self, modules, debug=False, crosscompiling=False) :
             self.AppendUnique(CPPPATH=[os.path.join("$QT6DIR","include","QtAssistant")])
             modules.remove("QtAssistant")
             modules.append("QtAssistantClient")
-        self.AppendUnique(LIBS=['qtmain'+debugSuffix])
+        if sys.platform == "win32": self.AppendUnique(LIBS=['qtmain'+debugSuffix])
         self.AppendUnique(LIBS=[lib.replace("Qt","Qt6")+debugSuffix for lib in modules if lib not in staticModules])
         self.PrependUnique(LIBS=[lib+debugSuffix for lib in modules if lib in staticModules])
         if 'QtOpenGL' in modules:

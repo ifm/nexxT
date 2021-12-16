@@ -95,14 +95,14 @@ class PlaybackDeviceProxy(QObject):
         if self._controlsFile:
             self._seekEnd.emit()
 
-    def seekTime(self, timestamp_ns):
+    def seekTime(self, timestampNS):
         """
         Proxy function, checks whether this proxy has control and emits the signal if necessary
 
-        :param timestamp_ns: the timestamp in nanoseconds
+        :param timestampNS: the timestamp in nanoseconds
         """
         if self._controlsFile:
-            self._seekTime.emit(timestamp_ns)
+            self._seekTime.emit(timestampNS)
 
     def setSequence(self, filename):
         """
@@ -283,6 +283,13 @@ class MVCPlaybackControlBase(QObject):
 
     @handleException
     def _stopSetSequenceStart(self, filename):
+        inProcessEvents = mainThread().property("processEventsRunning")
+        if inProcessEvents:
+            logging.getLogger(__name__).debug(
+                "_stopSetSequenceStart waiting for inProcessEvents to be finished inProcessEvents=%s", inProcessEvents)
+            MethodInvoker(dict(object=self, method="_stopSetSequenceStart", thread=mainThread()),
+                          Qt.QueuedConnection, filename)
+            return
         assertMainThread()
         if Application.activeApplication is None:
             logger.warning("playbackControl.setSequence is called without an active application.")
@@ -433,14 +440,14 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         """
         self._seekEnd.emit()
 
-    def seekTime(self, timestamp_ns):
+    def seekTime(self, timestampNS):
         """
         Seek to the specified time
 
-        :param timestamp_ns: the timestamp in nanoseconds
+        :param timestampNS: the timestamp in nanoseconds
         :return:
         """
-        self._seekTime.emit(timestamp_ns)
+        self._seekTime.emit(timestampNS)
 
     def setSequence(self, file):
         """

@@ -58,3 +58,4 @@ QObject *OutputPortInterface::setupInterThreadConnection(const SharedPortPtr &op
                      p1, SLOT(receiveAsync(const QSharedPointer<const nexxT::DataSample> &, QSemaphore *)));
     return itc;
 }
+

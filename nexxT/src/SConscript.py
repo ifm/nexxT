@@ -29,6 +29,10 @@ else:
 env.Append(CPPPATH=[".",
                     purelib.abspath + "/shiboken%d_generator/include" % ver,
                     purelib.abspath + "/PySide%d/include/QtCore" % ver,
+                    # TODO: the following 2 lines can be removed after this bug has been
+                    #       fixed: https://bugreports.qt.io/browse/PYSIDE-1627
+                    purelib.abspath + "/PySide%d/include/QtWidgets" % ver,
+                    purelib.abspath + "/PySide%d/include/QtGui" % ver,
                     purelib.abspath + "/PySide%d/include" % ver,
                     include.abspath,
                     platinclude.abspath,
@@ -65,6 +69,7 @@ apilib = env.SharedLibrary("nexxT", env.RegisterSources(Split("""
     Services.cpp
     PropertyCollection.cpp
     NexxTPlugins.cpp
+    Compatibility.cpp
 """)), CPPDEFINES=["NEXXT_LIBRARY_COMPILATION"])
 env.RegisterTargets(apilib)
 
@@ -85,10 +90,12 @@ targets += [spath.Dir("cnexxT").File("nexxt_propertyhandler_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("nexxt_basefilterenvironment_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("nexxt_plugininterface_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("nexxt_logging_wrapper.cpp")]
+targets += [spath.Dir("cnexxT").File("nexxt_compatibility_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("qsharedpointer_datasample_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("qsharedpointer_filter_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("qsharedpointer_port_wrapper.cpp")]
 targets += [spath.Dir("cnexxT").File("qsharedpointer_qobject_wrapper.cpp")]
+
 
 env = env.Clone()
 env.Append(LIBS=["nexxT"])

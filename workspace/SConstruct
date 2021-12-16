@@ -65,10 +65,12 @@ else:
     else:
         raise RuntimeError("Unknown Qt Version: %s", qtversion)
 
+# TODO: disable QtWidgets and QtGui after this has been fixed:
+#   https://bugreports.qt.io/browse/PYSIDE-1627
 if qtversion[0] == "5":
-    env.EnableQt5Modules(['QtCore'])
+    env.EnableQt5Modules(['QtCore', "QtWidgets", "QtGui"])
 else:
-    env.EnableQt6Modules(["QtCore"])
+    env.EnableQt6Modules(["QtCore", "QtWidgets", "QtGui"])
 env.AddMethod(lambda env, args: args, "RegisterSources")
 env.AddMethod(lambda env, args: None, "RegisterTargets")
 env.Append(CPPDEFINES=["Py_LIMITED_API"])

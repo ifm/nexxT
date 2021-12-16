@@ -16,7 +16,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QSemaphore>
 #include "NexxTLinkage.hpp"
-#include "DataSamples.hpp"
+#include "SharedPointerTypes.hpp"
 #include "Ports.hpp"
 
 namespace nexxT
@@ -71,11 +71,6 @@ namespace nexxT
         */
         static QObject *setupInterThreadConnection(const SharedPortPtr &, const SharedPortPtr &, QThread &);
     };
-
-    /*!
-        A typedef for an OutputPortInterface instance handled by a shared pointer.
-    */
-    typedef QSharedPointer<OutputPortInterface> SharedOutputPortPtr;
 
 };
 

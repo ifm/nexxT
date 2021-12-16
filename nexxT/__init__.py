@@ -62,6 +62,10 @@ def setup():
             p = str(Path(p).absolute())
             logger.info("c extension module search path: %s", p)
             sys.path.append(p)
+        # TODO: following two lines can be removed after this bug has been
+        #       fixed: https://bugreports.qt.io/browse/PYSIDE-1627
+        import nexxT.Qt.QtWidgets
+        import nexxT.Qt.QtGui
         import cnexxT as imp_cnexxT
         global cnexxT
         cnexxT = imp_cnexxT

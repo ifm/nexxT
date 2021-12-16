@@ -11,6 +11,7 @@
 #include "PropertyCollection.hpp"
 
 #include <QtCore/QThread>
+#include <QtCore/QCoreApplication>
 #include <QtCore/QMutex>
 
 using namespace nexxT;
@@ -90,11 +91,21 @@ void BaseFilterEnvironment::portDataChanged(const InputPortInterface &port)
     assertMyThread();
     if( state() != FilterState::ACTIVE )
     {
-        if( state() != FilterState::OPENED )
+        switch( state() )
         {
-            throw std::runtime_error(QString("Unexpected filter state %1, expected ACTIVE or INITIALIZED.").arg(FilterState::state2str(state())).toStdString());
+            case FilterState::OPENED:
+                NEXXT_LOG_INFO("DataSample discarded because application has been stopped already.");
+                break;
+            case FilterState::CONSTRUCTED:
+                if( QThread::currentThread() == QCoreApplication::instance()->thread() )
+                {
+                    /* this happens when the deinit() is executed during processEvents() in InputPortInterface::receiveAsync */
+                    NEXXT_LOG_INFO("DataSample discarded because application has been stopped already.");
+                    break;
+                }
+            default:
+                throw std::runtime_error(QString("Unexpected filter state %1, expected ACTIVE or INITIALIZED.").arg(FilterState::state2str(state())).toStdString());
         }
-        NEXXT_LOG_INFO("DataSample discarded because application has been stopped already.");
     } else
     {
         try

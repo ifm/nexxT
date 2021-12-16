@@ -10,7 +10,6 @@ This module contains the specific nexxT property handlers for the supported type
 
 import logging
 from nexxT.Qt.QtWidgets import QSpinBox, QLineEdit, QComboBox
-from nexxT.Qt.QtGui import QDoubleValidator
 from nexxT.interface import PropertyHandler
 from nexxT.core.Exceptions import PropertyParsingError, PropertyCollectionUnknownType
 
@@ -302,10 +301,6 @@ class FloatHandler(PropertyHandler):
         :return: a QLineEdit instance
         """
         res = QLineEdit(parent)
-        v = QDoubleValidator()
-        # QDoubleValidator seems to have a very strange behaviour when bottom and/or top values are set.
-        # Therefore, we don't use this feature and rely on our own implementation.
-        res.setValidator(v)
         res.setFrame(False)
         return res
 

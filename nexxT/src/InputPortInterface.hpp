@@ -6,7 +6,7 @@
  */
 
 /**
-    \file OutputPortInterface.hpp
+    \file InputPortInterface.hpp
     The interface corresponding to \verbatim embed:rst :py:mod:`nexxT.interface.Ports` \endverbatim
 */
 
@@ -16,7 +16,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QSemaphore>
 #include "NexxTLinkage.hpp"
-#include "DataSamples.hpp"
+#include "SharedPointerTypes.hpp"
 #include "Ports.hpp"
 
 namespace nexxT
@@ -93,7 +93,7 @@ namespace nexxT
         /*!
             Called by the nexxT framework, not intended to be used directly.
         */
-        void receiveAsync(const QSharedPointer<const nexxT::DataSample> &sample, QSemaphore *semaphore);
+        void receiveAsync(const QSharedPointer<const nexxT::DataSample> &sample, QSemaphore *semaphore, bool isPending=false);
         /*!
             Called by the nexxT framework, not intended to be used directly.
         */

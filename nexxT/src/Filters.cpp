@@ -8,6 +8,8 @@
 #include "Filters.hpp"
 #include "FilterEnvironment.hpp"
 #include "Ports.hpp"
+#include "InputPortInterface.hpp"
+#include "OutputPortInterface.hpp"
 #include "Logger.hpp"
 
 using namespace nexxT;

@@ -11,9 +11,9 @@ This module contains the class definition of ActiveApplication
 import logging
 from nexxT.Qt.QtCore import QObject, Slot, Signal, Qt, QCoreApplication
 from nexxT.interface import FilterState, OutputPortInterface, InputPortInterface
-from nexxT.core.Exceptions import FilterStateMachineError, NexTInternalError
+from nexxT.core.Exceptions import FilterStateMachineError, NexTInternalError, PossibleDeadlock
 from nexxT.core.CompositeFilter import CompositeFilter
-from nexxT.core.Utils import Barrier, assertMainThread
+from nexxT.core.Utils import Barrier, assertMainThread, mainThread, MethodInvoker
 from nexxT.core.Thread import NexTThread
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
@@ -119,6 +119,12 @@ class ActiveApplication(QObject):
         :return: None
         """
         assertMainThread()
+        inProcessEvents = mainThread().property("processEventsRunning")
+        if inProcessEvents:
+            logging.getLogger(__name__).debug("shutdown waiting for inProcessEvents to be finished inProcessEvents=%s",
+                                              inProcessEvents)
+            MethodInvoker(dict(object=self, method="shutdown", thread=mainThread()), Qt.QueuedConnection)
+            return
         if self._state == FilterState.ACTIVE:
             self.stop()
         # while this is similar to code in FilterEnvironment, the lines here refer to applications
@@ -232,18 +238,38 @@ class ActiveApplication(QObject):
         :return: None
         """
         assertMainThread()
+        graph = {}
         if self._graphConnected:
             return
         for fromNode, fromPort, toNode, toPort in self._allConnections():
             fromThread = self._filters2threads[fromNode]
             toThread = self._filters2threads[toNode]
-            p0 = self._threads[fromThread].getFilter(fromNode).getPort(fromPort, OutputPortInterface)
-            p1 = self._threads[toThread].getFilter(toNode).getPort(toPort, InputPortInterface)
+            t0 = self._threads[fromThread]
+            p0 = t0.getFilter(fromNode).getPort(fromPort, OutputPortInterface)
+            t1 = self._threads[toThread]
+            p1 = t1.getFilter(toNode).getPort(toPort, InputPortInterface)
             if toThread == fromThread:
                 OutputPortInterface.setupDirectConnection(p0, p1)
             else:
                 itc = OutputPortInterface.setupInterThreadConnection(p0, p1, self._threads[fromThread].qthread())
                 self._interThreadConns.append(itc)
+                if not fromThread in graph:
+                    graph[fromThread] = set()
+                if not toThread in graph:
+                    graph[toThread] = set()
+                graph[fromThread].add(toThread)
+
+        def _checkCycle(thread, cycleInfo):
+            if thread in cycleInfo:
+                cycle = "->".join(cycleInfo[cycleInfo.index(thread):] + [thread])
+                raise PossibleDeadlock(cycle)
+            cycle_info = cycleInfo + [thread]
+            for nt in graph[thread]:
+                _checkCycle(nt, cycle_info)
+
+        for thread in graph:
+            _checkCycle(thread, [])
+
         self._graphConnected = True
 
     @Slot()
@@ -348,7 +374,14 @@ class ActiveApplication(QObject):
             raise FilterStateMachineError(self._state, FilterState.STARTING)
         self._operationInProgress = True
         self._state = FilterState.STARTING
-        self._setupConnections()
+        try:
+            self._setupConnections()
+        except PossibleDeadlock as e:
+            self._state = FilterState.OPENED
+            MethodInvoker(self.close, Qt.QueuedConnection)
+            MethodInvoker(self.deinit, Qt.QueuedConnection)
+            logger.error(str(e))
+            return
         for itc in self._interThreadConns:
             # set connections in active mode.
             itc.setStopped(False)

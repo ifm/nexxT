@@ -68,8 +68,8 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         # let's stay on the safe side and do not use emit as a slot...
         self.actStart.triggered.connect(self.startPlayback)
         self.actPause.triggered.connect(self.pausePlayback)
-        self.actStepFwd.triggered.connect(lambda: self.stepForward(self.selectedStream()))
-        self.actStepBwd.triggered.connect(lambda: self.stepBackward(self.selectedStream()))
+        self.actStepFwd.triggered.connect(self._stepForwardActivated)
+        self.actStepBwd.triggered.connect(self._stepBackwardActivated)
         self.actSeekEnd.triggered.connect(self.seekEnd)
         self.actSeekBegin.triggered.connect(self.seekBeginning)
         # pylint: enable=unnecessary-lambda
@@ -245,7 +245,8 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
             self.actGroupStream.removeAction(a)
         for stream in streams:
             act = QAction(stream, self.actGroupStream)
-            act.triggered.connect(lambda cstream=stream: self.setSelectedStream(cstream))
+            act.setData(stream)
+            act.triggered.connect(self._setSelectedStreamActivated)
             act.setCheckable(True)
             act.setChecked(False)
             logger.debug("Add stream group action: %s", act.data())
@@ -342,6 +343,16 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
             self.actStart.setEnabled(True)
         self.actPause.setEnabled(False)
         super()._playbackPaused()
+
+    def _setSelectedStreamActivated(self):
+        stream = self.sender().data()
+        self.setSelectedStream(stream)
+
+    def _stepForwardActivated(self):
+        self.stepForward(self.selectedStream())
+
+    def _stepBackwardActivated(self):
+        self.stepBackward(self.selectedStream())
 
     def openRecent(self):
         """

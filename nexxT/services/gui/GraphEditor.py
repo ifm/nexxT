@@ -1279,6 +1279,7 @@ class GraphScene(BaseGraphScene):
         mockup = self.graph.getMockup(item.name)
         pc = mockup.propertyCollection().getChildCollection("_nexxT")
         pc.setProperty("thread", newThread)
+        self.graph.getSubConfig().getConfiguration().setDirty(True)
         item.sync()
 
     def onAddNode(self):

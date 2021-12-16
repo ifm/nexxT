@@ -166,6 +166,10 @@ class NexTThread(QObject):
         :return: None
         """
         # wait that all threads are in their event loop.
+        inProcessEvents = self._qthread.property("processEventsRunning")
+        if inProcessEvents:
+            logging.getLogger(__name__).warning(
+                "operation %s happening during receiveAsync's processEvents. This shouldn't be happening.", operation)
         barrier.wait()
         if operation in self._operations:
             # pre-adaptation of states (e.g. from CONSTRUCTED to INITIALIZING)
