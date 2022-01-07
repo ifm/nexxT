@@ -8,6 +8,7 @@
 #include "NexxTPlugins.hpp"
 #include "Logger.hpp"
 #include <QtCore/QMap>
+#include <stdexcept>
 
 using namespace nexxT;
 

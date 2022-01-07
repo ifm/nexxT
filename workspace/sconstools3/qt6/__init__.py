@@ -44,9 +44,14 @@ import SCons.Defaults
 import SCons.Scanner
 import SCons.Tool
 import SCons.Util
+import SCons.Script
 
-class ToolQt6Warning(SCons.Warnings.Warning):
-    pass
+if hasattr(SCons.Warnings, "Warning"):
+    class ToolQt6Warning(SCons.Warnings.Warning):
+        pass
+else:
+    class ToolQt6Warning(SCons.Warnings.SConsWarning):
+        pass
 
 class GeneratedMocFileNotIncluded(ToolQt6Warning):
     pass
@@ -169,6 +174,8 @@ class _Automoc:
             pass
         try:
             moc_options['debug'] = int(env.subst('$QT6_DEBUG'))
+            if moc_options["debug"]:
+                print("Automoc debugging turned on.")
         except ValueError:
             pass
         try:
@@ -505,7 +512,6 @@ def __moc_generator_from_cxx(source, target, env, for_signature):
             pass_defines = True
     except ValueError:
         pass
-    
     if pass_defines:
         return ['$QT6_MOC $QT6_MOCDEFINES $QT6_MOCFROMCXXFLAGS $QT6_MOCINCFLAGS -o $TARGET $SOURCE',
                 SCons.Action.Action(checkMocIncluded,None)]
@@ -564,6 +570,21 @@ def __qrc_generator(source, target, env, for_signature):
             qrc_stem = src
         return '$QT6_RCC $QT6_QRCFLAGS -name %s $SOURCE -o $TARGET' % qrc_stem
 
+class MocSourceScanner:
+    def __init__(self):
+        self.exclude_builder = None
+
+    # Scanner function, exclude the built file from the dependencies
+    def __call__(self, node, env, path):
+        args = (node, env, path)
+        #print("scan_func(%s)" % ([str(x) for x in args]))
+        res = SCons.Script.SourceFileScanner(*args)
+        #print([(x.builder, self.exclude_builder, x.builder.get_name(env)) for x in res if x.has_builder()])
+        res = [x for x in res if (not x.has_builder()) or (x.builder is not self.exclude_builder)]
+        #print([str(x) for x in res])
+        return res
+
+
 #
 # Builders
 #
@@ -582,8 +603,13 @@ __qrc_builder = SCons.Builder.Builder(
         suffix = '$QT6_QRCCXXSUFFIX',
         prefix = '$QT6_QRCCXXPREFIX',
         single_source = 1)
+__ex_moc_scanner = MocSourceScanner()
 __ex_moc_builder = SCons.Builder.Builder(
-        action = SCons.Action.CommandGeneratorAction(__moc_generator_from_h, {'cmdstr':'$QT6_MOCCOMSTR'}))
+        action = SCons.Action.CommandGeneratorAction(__moc_generator_from_h, {'cmdstr':'$QT6_MOCCOMSTR'}),
+        source_scanner = SCons.Scanner.Scanner(function=__ex_moc_scanner)
+        )
+__ex_moc_scanner.exclude_builder = __ex_moc_builder
+
 __ex_uic_builder = SCons.Builder.Builder(
         action = SCons.Action.Action('$QT6_UICCOM', '$QT6_UICCOMSTR'),
         src_suffix = '.ui')
@@ -728,8 +754,8 @@ def generate(env):
 
     env['QT6DIR']  = _detect(env)
     # TODO: 'Replace' should be 'SetDefault'
-#    env.SetDefault(
-    env.Replace(
+    env.SetDefault(
+#    env.Replace(
         QT6DIR  = _detect(env),
         QT6_BINPATH = os.path.join('$QT6DIR', 'bin'),
         # TODO: This is not reliable to QT6DIR value changes but needed in order to support '-qt6' variants
@@ -770,7 +796,7 @@ def generate(env):
         QT6_QRCCXXPREFIX = 'qrc_',
         QT6_MOCDEFPREFIX = '-D',
         QT6_MOCDEFSUFFIX = '',
-        QT6_MOCDEFINES = '${_defines(QT6_MOCDEFPREFIX, CPPDEFINES, QT6_MOCDEFSUFFIX, __env__)}',
+        QT6_MOCDEFINES = '${_defines(QT6_MOCDEFPREFIX, CPPDEFINES, QT6_MOCDEFSUFFIX, __env__, TARGET, SOURCE)}',
         QT6_MOCCPPPATH = [],
         QT6_MOCINCFLAGS = '$( ${_concat(QT6_MOCINCPREFIX, QT6_MOCCPPPATH, INCSUFFIX, __env__, RDirs)} $)',
 
@@ -815,7 +841,8 @@ def generate(env):
     env['BUILDERS']['Uic6'] = uic6builder
 
     # Metaobject builder
-    mocBld = Builder(action={}, prefix={}, suffix={})
+    mocScanner = MocSourceScanner()
+    mocBld = Builder(action={}, prefix={}, suffix={}, source_scanner=SCons.Scanner.Scanner(function=mocScanner))
     for h in header_extensions:
         act = SCons.Action.CommandGeneratorAction(__moc_generator_from_h, {'cmdstr':'$QT6_MOCCOMSTR'})    
         mocBld.add_action(h, act)
@@ -827,6 +854,7 @@ def generate(env):
         mocBld.prefix[cxx] = '$QT6_MOCCXXPREFIX'
         mocBld.suffix[cxx] = '$QT6_MOCCXXSUFFIX'
     env['BUILDERS']['Moc6'] = mocBld
+    mocScanner.exclude_builder = mocBld.builder
 
     # Metaobject builder for the extended auto scan feature 
     # (Strategy #1 for qtsolutions)
@@ -844,11 +872,11 @@ def generate(env):
     env['BUILDERS']['XMoc6'] = xMocBld
 
     # Add the Qrc6 action to the CXX file builder (registers the
-    # *.qrc extension with the Environment)     
+    # *.qrc extension with the Environment)
     cfile_builder, cxxfile_builder = SCons.Tool.createCFileBuilders(env)
     qrc_act = SCons.Action.CommandGeneratorAction(__qrc_generator, {'cmdstr':'$QT6_QRCCOMSTR'})
-    cxxfile_builder.add_action('$QT6_QRCSUFFIX', qrc_act)    
-    cxxfile_builder.add_emitter('$QT6_QRCSUFFIX', __qrc_emitter)    
+    cxxfile_builder.add_action('$QT6_QRCSUFFIX', qrc_act)
+    cxxfile_builder.add_emitter('$QT6_QRCSUFFIX', __qrc_emitter)
 
     # We use the emitters of Program / StaticLibrary / SharedLibrary
     # to scan for moc'able files
@@ -969,7 +997,7 @@ def enable_modules(self, modules, debug=False, crosscompiling=False) :
             self.AppendUnique(CPPPATH=[os.path.join("$QT6DIR","include","QtAssistant")])
             modules.remove("QtAssistant")
             modules.append("QtAssistantClient")
-        if sys.platform == "win32": self.AppendUnique(LIBS=['qtmain'+debugSuffix])
+        #if sys.platform == "win32": self.AppendUnique(LIBS=['qtmain'+debugSuffix])
         self.AppendUnique(LIBS=[lib.replace("Qt","Qt6")+debugSuffix for lib in modules if lib not in staticModules])
         self.PrependUnique(LIBS=[lib+debugSuffix for lib in modules if lib in staticModules])
         if 'QtOpenGL' in modules:
@@ -983,6 +1011,10 @@ def enable_modules(self, modules, debug=False, crosscompiling=False) :
         else :
             self["QT6_MOCCPPPATH"] = self["CPPPATH"]
         self.AppendUnique(LIBPATH=[os.path.join('$QT6DIR','lib')])
+        if int(getattr(self, "QT6_DEBUG", 0)) == 1:
+            print("CPPPATH=%s" % self.subst("$CPPPATH"))
+            print("LIBPATH=%s" % self.subst("$LIBPATH"))
+            print("LIBS=%s" % self.subst("$LIBS"))
         return
         
     """

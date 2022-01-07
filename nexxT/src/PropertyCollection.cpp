@@ -6,6 +6,7 @@
  */
 
 #include "PropertyCollection.hpp"
+#include <stdexcept>
 
 #include <cstdio>
 

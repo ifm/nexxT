@@ -11,6 +11,7 @@
 #include "InputPortInterface.hpp"
 #include "OutputPortInterface.hpp"
 #include "Logger.hpp"
+#include <stdexcept>
 
 using namespace nexxT;
 
