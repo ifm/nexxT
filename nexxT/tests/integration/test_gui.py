@@ -1039,9 +1039,45 @@ class GuiStateTest(GuiTestBase):
                     QTimer.singleShot(self.delay, self.clickDiscardChanges)
                 mw.close()
 
+    def _stage3(self):
+        conf = None
+        mw = None
+        try:
+            # load last config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            idxApplications = conf.model.index(1, 0)
+            # load recent config
+            self.qtbot.keyClick(self.aw(), Qt.Key_R, Qt.ControlModifier, delay=self.delay)
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(1000)
+            # should be moved to default location
+            self.getMdiWindow().move(QPoint(17, 22))
+            self.qtbot.wait(1000)
+            self.mdigeom = self.getMdiWindow().geometry()
+            #self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
+            #self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+            # reload the config
+            self.qtbot.keyClick(self.aw(), Qt.Key_R, Qt.ControlModifier, delay=self.delay)
+            self.qtbot.wait(1000)
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(1000)
+            # should be moved to last location
+            assert self.mdigeom == self.getMdiWindow().geometry()
+            # de-initialize application
+            self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
     def test(self):
         """
-        first start of nexxT in a clean environment, click through a pretty exhaustive scenario.
+        first start of nexxT in a clean environment
         :return:
         """
         # create application and move window to non-default location
@@ -1051,6 +1087,7 @@ class GuiStateTest(GuiTestBase):
         self.guistate_contents = self.guistatefile.read_text("utf-8")
         logger.info("guistate_contents: %s", self.guistate_contents)
 
+        # assert that the window is in the non-default location
         QTimer.singleShot(self.delay, self._stage1)
         startNexT(None, None, [], [], True)
         guistate_contents = self.guistatefile.read_text("utf-8")
@@ -1059,6 +1096,7 @@ class GuiStateTest(GuiTestBase):
 
         # remove gui state -> the window should be placed in default location
         os.remove(str(self.guistatefile))
+        # assert that window is in default location and save the gui state to the config file
         QTimer.singleShot(self.delay, self._stage2)
         startNexT(None, None, [], [], True)
         guistate_contents = self.guistatefile.read_text("utf-8")
@@ -1066,6 +1104,7 @@ class GuiStateTest(GuiTestBase):
         assert self.guistate_contents != guistate_contents
         self.guistate_contents = guistate_contents
 
+        # assert that the window is in the non-default location
         QTimer.singleShot(self.delay, self._stage1)
         startNexT(None, None, [], [], True)
         guistate_contents = self.guistatefile.read_text("utf-8")
@@ -1079,6 +1118,10 @@ class GuiStateTest(GuiTestBase):
         guistate_contents = self.guistatefile.read_text("utf-8")
         logger.info("guistate_contents: %s", guistate_contents)
         assert self.guistate_contents == guistate_contents
+
+        # check that re-opening the same config correctly restores the gui state
+        QTimer.singleShot(self.delay, self._stage3)
+        startNexT(None, None, [], [], True)
 
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])

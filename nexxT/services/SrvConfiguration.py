@@ -18,6 +18,7 @@ from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.Utils import assertMainThread, handleException, mainThread, MethodInvoker
+from nexxT.interface.Filters import FilterState
 
 logger = logging.getLogger(__name__)
 
@@ -670,6 +671,12 @@ class MVCConfigurationBase(QObject):
         :param cfgFileName: the filename of the configuration
         :return:
         """
+        if (Application.activeApplication is not None and
+                Application.activeApplication.getState() != FilterState.CONSTRUCTED):
+            # need to de-initialize application first
+            Application.deInitialize()
+            MethodInvoker(dict(object=self, method="loadConfig", thread=mainThread()), Qt.QueuedConnection, cfgFileName)
+            return
         @handleException
         def execute():
             assertMainThread()
