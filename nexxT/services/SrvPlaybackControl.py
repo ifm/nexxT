@@ -389,6 +389,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         super().__init__()
         self._playing = False
         self._appConn = None
+        self._currentSequence = None
 
     def startPlayback(self):
         """
@@ -458,6 +459,12 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         """
         self._setSequence.emit(file)
 
+    def getSequence(self):
+        """
+        Returns the currently active sequence.
+        """
+        return self._currentSequence
+
     def setTimeFactor(self, factor):
         """
         Set the time factor to be used.
@@ -489,6 +496,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         :return: None
         """
         self.sequenceOpened.emit(filename, begin, end, streams)
+        self._currentSequence = filename
 
     def _currentTimestampChanged(self, currentTime):
         """

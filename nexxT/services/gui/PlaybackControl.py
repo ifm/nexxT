@@ -249,7 +249,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
             act.setData(stream)
             act.triggered.connect(self._setSelectedStreamActivated)
             act.setCheckable(True)
-            act.setChecked(False)
+            act.setChecked(self._selectedStream == stream)
             logger.debug("Add stream group action: %s", act.data())
             self.actGroupStreamMenu.addAction(act)
         QTimer.singleShot(250, self.scrollToCurrent)
@@ -422,6 +422,11 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         :param stream the stream name.
         :return:
         """
+        for a in self.actGroupStream.actions():
+            a.setChecked(False)
+        action = [a for a in self.actGroupStream.actions() if a.text() == stream and not a.isChecked()]
+        if len(action) != 0:
+            action[0].setChecked(True)
         self._selectedStream = stream
 
     def _defineProperties(self):

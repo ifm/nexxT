@@ -18,6 +18,8 @@ from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.Utils import assertMainThread, handleException, mainThread, MethodInvoker
+from nexxT.interface.Filters import FilterState
+from nexxT.interface import Services
 
 logger = logging.getLogger(__name__)
 
@@ -620,6 +622,7 @@ class MVCConfigurationBase(QObject):
         self._configuration = configuration
 
         self.cfgfile = None
+        self._reloadToState = None
 
         self.model = ConfigurationModel(configuration, self)
         configuration.appActivated.connect(self.appActivated)
@@ -670,11 +673,62 @@ class MVCConfigurationBase(QObject):
         :param cfgFileName: the filename of the configuration
         :return:
         """
+        if (Application.activeApplication is not None and
+                Application.activeApplication.getState() != FilterState.CONSTRUCTED):
+            # need to de-initialize application first
+            Application.deInitialize()
+            MethodInvoker(dict(object=self, method="loadConfig", thread=mainThread()), Qt.QueuedConnection, cfgFileName)
+            return
         @handleException
         def execute():
             assertMainThread()
             ConfigFileLoader.load(self._configuration, cfgFileName)
         execute()
+
+    def reload(self):
+        """
+        Reloads all python modules of the current configuration.
+
+        Similar to close(), open() and loading the currently actuve sequence.
+        """
+        if Application.activeApplication is not None:
+            try:
+                pbc = Services.getService("PlaybackControl")
+            except: # pylint: disable=bare-except
+                pbc = None
+            if pbc is not None:
+                seq = pbc.getSequence()
+            else:
+                seq = None
+            self._reloadToState = dict(name=Application.activeApplication.getApplication().getName(),
+                                       state=Application.activeApplication.getState(),
+                                       seq=seq)
+        else:
+            self._reloadToState = None
+        self._reload()
+
+    def _reload(self):
+        if (Application.activeApplication is not None and
+                Application.activeApplication.getState() != FilterState.CONSTRUCTED):
+            # need to de-initialize application first
+            Application.deInitialize()
+            MethodInvoker(dict(object=self, method="_reload", thread=mainThread()), Qt.QueuedConnection)
+            return
+        oldDirty = self._configuration.dirty()
+        state = self._configuration.save()
+        self._configuration.close(avoidSave=True)
+        self._configuration.load(state)
+        self._configuration.setDirty(oldDirty)
+        if self._reloadToState is not None:
+            self._configuration.activate(self._reloadToState["name"])
+            assert Application.activeApplication.getState() == FilterState.CONSTRUCTED
+            if self._reloadToState["state"] != FilterState.CONSTRUCTED:
+                Application.initialize()
+            seq = self._reloadToState["seq"]
+            if seq is not None:
+                pbc = Services.getService("PlaybackControl")
+                pbc.setSequence(seq)
+            self._reloadToState = None
 
     @Slot()
     def saveConfig(self):

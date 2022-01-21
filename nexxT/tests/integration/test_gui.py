@@ -1039,9 +1039,45 @@ class GuiStateTest(GuiTestBase):
                     QTimer.singleShot(self.delay, self.clickDiscardChanges)
                 mw.close()
 
+    def _stage3(self):
+        conf = None
+        mw = None
+        try:
+            # load last config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            idxApplications = conf.model.index(1, 0)
+            # load recent config
+            self.qtbot.keyClick(self.aw(), Qt.Key_R, Qt.ControlModifier, delay=self.delay)
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(1000)
+            # should be moved to default location
+            self.getMdiWindow().move(QPoint(17, 22))
+            self.qtbot.wait(1000)
+            self.mdigeom = self.getMdiWindow().geometry()
+            #self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
+            #self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+            # reload the config
+            self.qtbot.keyClick(self.aw(), Qt.Key_R, Qt.ControlModifier, delay=self.delay)
+            self.qtbot.wait(1000)
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(1000)
+            # should be moved to last location
+            assert self.mdigeom == self.getMdiWindow().geometry()
+            # de-initialize application
+            self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
     def test(self):
         """
-        first start of nexxT in a clean environment, click through a pretty exhaustive scenario.
+        first start of nexxT in a clean environment
         :return:
         """
         # create application and move window to non-default location
@@ -1051,6 +1087,7 @@ class GuiStateTest(GuiTestBase):
         self.guistate_contents = self.guistatefile.read_text("utf-8")
         logger.info("guistate_contents: %s", self.guistate_contents)
 
+        # assert that the window is in the non-default location
         QTimer.singleShot(self.delay, self._stage1)
         startNexT(None, None, [], [], True)
         guistate_contents = self.guistatefile.read_text("utf-8")
@@ -1059,6 +1096,7 @@ class GuiStateTest(GuiTestBase):
 
         # remove gui state -> the window should be placed in default location
         os.remove(str(self.guistatefile))
+        # assert that window is in default location and save the gui state to the config file
         QTimer.singleShot(self.delay, self._stage2)
         startNexT(None, None, [], [], True)
         guistate_contents = self.guistatefile.read_text("utf-8")
@@ -1066,6 +1104,7 @@ class GuiStateTest(GuiTestBase):
         assert self.guistate_contents != guistate_contents
         self.guistate_contents = guistate_contents
 
+        # assert that the window is in the non-default location
         QTimer.singleShot(self.delay, self._stage1)
         startNexT(None, None, [], [], True)
         guistate_contents = self.guistatefile.read_text("utf-8")
@@ -1079,6 +1118,10 @@ class GuiStateTest(GuiTestBase):
         guistate_contents = self.guistatefile.read_text("utf-8")
         logger.info("guistate_contents: %s", guistate_contents)
         assert self.guistate_contents == guistate_contents
+
+        # check that re-opening the same config correctly restores the gui state
+        QTimer.singleShot(self.delay, self._stage3)
+        startNexT(None, None, [], [], True)
 
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])
@@ -1282,9 +1325,10 @@ class ExecutionOrderTest(GuiTestBase):
                     throughput = float(M.group(1))
             if threadmode == "multithread":
                 self.record_property("multithread_smp_per_sec", throughput)
+                assert throughput >= 750
             else:
                 self.record_property("throughput_smp_per_sec", throughput)
-            assert throughput > 1000
+                assert throughput >= 4500
         finally:
             if not self.keep_open:
                 if conf.configuration().dirty():
@@ -1312,3 +1356,163 @@ class ExecutionOrderTest(GuiTestBase):
 def test_executionOrder(qtbot, xvfb, keep_open, delay, tmpdir, record_property):
     test = ExecutionOrderTest(qtbot, xvfb, keep_open, delay, tmpdir)
     test.test(record_property)
+
+class ReloadTest(GuiTestBase):
+    """
+    Concrete test class for the guistate test case
+    """
+    def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir):
+        super().__init__(qtbot, xvfb, keep_open, delay, tmpdir)
+        self.prjfile = self.tmpdir / "test_reload.json"
+        self.guistatefile = self.tmpdir / "test_reload.json.guistate"
+
+    def generateFilter(self, messageAtOpen):
+        myfilter = self.tmpdir / "myfilter.py"
+        myfilter.write_text("""
+import logging
+from PySide2.QtWidgets import QLabel
+from nexxT.interface import Filter, InputPort, Services
+
+logger = logging.getLogger(__name__)
+
+class MyFilter(Filter): # almost same as SimpleView
+    def __init__(self, env):
+        super().__init__(False, False, env)
+        self.inputPort = InputPort(False, "in", env)
+        self.addStaticPort(self.inputPort)
+        self.propertyCollection().defineProperty("caption", "view", "Caption of view window.")
+        self.label = None
+
+    def onOpen(self):
+        caption = self.propertyCollection().getProperty("caption")
+        mw = Services.getService("MainWindow")
+        self.label = QLabel()
+        self.label.setMinimumSize(100, 20)
+        mw.subplot(caption, self, self.label)
+        logger.info("%s")
+
+    def onPortDataChanged(self, inputPort):
+        dataSample = inputPort.getData()
+        if dataSample.getDatatype() == "text/utf8":
+            self.label.setText(dataSample.getContent().data().decode("utf8"))
+
+    def onClose(self):
+        mw = Services.getService("MainWindow")
+        mw.releaseSubplot(self.label)
+        self.label = None     
+""" % messageAtOpen, encoding="utf-8")
+        return Path(myfilter)
+
+    def getMdiWindow(self):
+        mw = Services.getService("MainWindow")
+        assert len(mw.managedSubplots) == 1
+        title = list(mw.managedSubplots.keys())[0]
+        return mw.managedSubplots[title]["mdiSubWindow"]
+
+    def _stage0(self):
+        conf = None
+        mw = None
+        try:
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            log = Services.getService("Logging")
+            idxApplications = conf.model.index(1, 0)
+            # add application
+            conf.treeView.setMinimumSize(QSize(300,300))
+            conf.treeView.scrollTo(idxApplications)
+            region = conf.treeView.visualRegionForSelection(QItemSelection(idxApplications, idxApplications))
+            self.qtbot.mouseMove(conf.treeView.viewport(), region.boundingRect().center(), delay=self.delay)
+            # mouse click does not trigger context menu :(
+            #qtbot.mouseClick(conf.treeView.viewport(), Qt.RightButton, pos=region.boundingRect().center())
+            QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_ADD_APPLICATION))
+            conf._execTreeViewContextMenu(region.boundingRect().center())
+            app = conf.configuration().applicationByName("application")
+            # start graph editor
+            gev = self.startGraphEditor(conf, mw, "application")
+            self.qtbot.wait(self.delay)
+            # create a visualization node
+            pyfile = str(self.generateFilter("myfilter version 1").absolute())
+            logger.info("pyfile=%s", pyfile)
+            pysimpleview = self.addNodeToGraphEditor(gev, QPoint(20,20), CM_FILTER_FROM_FILE,
+                                                     pyfile, "MyFilter")
+            self.qtbot.keyClick(self.aw(), Qt.Key_Return, delay=self.delay)
+            self.qtbot.keyClick(self.aw(), Qt.Key_Return, delay=self.delay)
+            # init application
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(1000)
+            self.assertLogItem(log, "INFO", "myfilter version 1")
+            # move the window to non-standard position
+            self.getMdiWindow().move(QPoint(37, 63))
+            self.qtbot.wait(1000)
+            mdigeom = self.getMdiWindow().geometry()
+            # generate new filter version
+            self.generateFilter("myfilter version 2")
+            # reload (without config being saved, no gui state)
+            self.qtbot.keyClick(self.aw(), Qt.Key_P, Qt.ControlModifier, delay=self.delay)
+            self.qtbot.wait(1000)
+            assert mdigeom == self.getMdiWindow().geometry()
+            self.assertLogItem(log, "INFO", "myfilter version 2")
+            # save the configuration file
+            QTimer.singleShot(self.delay, lambda: self.enterText(str(self.prjfile)))
+            conf.actSave.trigger()
+            self.prjfile_contents = self.prjfile.read_text("utf-8")
+            assert not self.guistatefile.exists()
+            # move window
+            self.getMdiWindow().move(QPoint(31, 23))
+            self.qtbot.wait(1000)
+            mdigeom = self.getMdiWindow().geometry()
+            # generate new filter version
+            self.generateFilter("myfilter version 3")
+            # reload (without config being saved, no gui state)
+            self.qtbot.keyClick(self.aw(), Qt.Key_P, Qt.ControlModifier, delay=self.delay)
+            self.qtbot.wait(1000)
+            assert mdigeom == self.getMdiWindow().geometry()
+            self.assertLogItem(log, "INFO", "myfilter version 3")
+            # save again to create gui state
+            conf.actSave.trigger()
+            assert self.guistatefile.exists()
+            # move window
+            self.getMdiWindow().move(QPoint(17, 11))
+            self.qtbot.wait(1000)
+            mdigeom = self.getMdiWindow().geometry()
+            # generate new filter version
+            self.generateFilter("myfilter version 4")
+            # reload (without config being saved, no gui state)
+            self.qtbot.keyClick(self.aw(), Qt.Key_P, Qt.ControlModifier, delay=self.delay)
+            self.qtbot.wait(1000)
+            assert mdigeom == self.getMdiWindow().geometry()
+            self.assertLogItem(log, "INFO", "myfilter version 4")
+            # de-initialize application
+            self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+            self.generateFilter("myfilter version 5")
+            # reload
+            self.qtbot.keyClick(self.aw(), Qt.Key_P, Qt.ControlModifier, delay=self.delay)
+            self.qtbot.wait(1000)
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(1000)
+            self.assertLogItem(log, "INFO", "myfilter version 5")
+            self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
+            self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def test(self):
+        """
+        first start of nexxT in a clean environment
+        :return:
+        """
+        # create application and move window to non-default location
+        QTimer.singleShot(self.delay, self._stage0)
+        startNexT(None, None, [], [], True)
+
+@pytest.mark.gui
+@pytest.mark.parametrize("delay", [300])
+def test_reload(qtbot, xvfb, keep_open, delay, tmpdir):
+    test = ReloadTest(qtbot, xvfb, keep_open, delay, tmpdir)
+    test.test()

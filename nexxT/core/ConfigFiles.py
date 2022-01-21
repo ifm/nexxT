@@ -31,6 +31,7 @@ class ConfigFileLoader:
         :param config: Configuration instance to be populated
         :return: dictionary with configuration contents (default values from schema are already applied)
         """
+        config.close()
         validator, validatorGuiState = ConfigFileLoader._getValidator()
         if not isinstance(file, Path):
             file = Path(file)
@@ -42,6 +43,8 @@ class ConfigFileLoader:
             try:
                 with guistateFile.open("r", encoding="utf-8") as fp:
                     guistate = json.load(fp)
+                    logger.internal("loaded gui state from %s -> %s", guistateFile,
+                                    json.dumps(guistate, indent=2, ensure_ascii=False))
                 validatorGuiState.validate(guistate)
             except Exception as e: # pylint: disable=broad-except
                 # catching a broad exception is exactly wanted here.
@@ -104,6 +107,8 @@ class ConfigFileLoader:
             guistateFile = file.parent / (file.name + ".guistate")
             with guistateFile.open("w", encoding="utf-8") as fp:
                 json.dump(guistate, fp, indent=2, ensure_ascii=False)
+                logger.internal("saved gui state to %s -> %s", guistateFile,
+                                json.dumps(guistate, indent=2, ensure_ascii=False))
 
     @staticmethod
     def saveGuiState(config):
@@ -136,6 +141,8 @@ class ConfigFileLoader:
         guistateFile = file.parent / (file.name + ".guistate")
         with guistateFile.open("w", encoding="utf-8") as fp:
             json.dump(guistate, fp, indent=2, ensure_ascii=False)
+            logger.internal("saving gui state to %s -> %s", guistateFile,
+                            json.dumps(guistate, indent=2, ensure_ascii=False))
 
     @staticmethod
     def _extendWithDefault(validatorClass):

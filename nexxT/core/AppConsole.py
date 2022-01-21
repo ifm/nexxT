@@ -73,9 +73,7 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
     """
     logger.debug("Starting nexxT...")
     config = Configuration()
-    lcl = QLocale.system()
-    lcl.setNumberOptions(QLocale.c().numberOptions())
-    QLocale.setDefault(lcl)
+    QLocale.setDefault(QLocale.c())
     if withGui:
         app = QApplication() if QApplication.instance() is None else QApplication.instance()
         app.setWindowIcon(QIcon(":icons/nexxT.svg"))

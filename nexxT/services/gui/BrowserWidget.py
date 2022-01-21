@@ -13,7 +13,7 @@ import os
 import platform
 import string
 from PySide2.QtCore import (QAbstractTableModel, Qt, Signal, QModelIndex, QDateTime, QFileInfo, QDir, QEvent)
-from PySide2.QtGui import QKeyEvent
+from PySide2.QtGui import QKeyEvent, QKeySequence
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QTreeView, QFileIconProvider, QCompleter, QLineEdit, QHeaderView)
 
 logger = logging.getLogger(__name__)
@@ -201,6 +201,8 @@ class TabCompletionLineEdit(QLineEdit):
     """
     This class provides a line edit which changes the tab-key semantics to interact with a completer.
     """
+    pasted = Signal()
+
     def __init__(self, completer, parent=None):
         super().__init__(parent)
         self._compl = completer
@@ -246,6 +248,12 @@ class TabCompletionLineEdit(QLineEdit):
                 event = QKeyEvent(event.type(), event.key(), event.modifiers(), event.text())
         return super().event(event)
 
+    def keyPressEvent(self, event):
+        ret = super().keyPressEvent(event)
+        if event.matches(QKeySequence.Paste):
+            self.pasted.emit()
+        return ret
+
 class BrowserWidget(QWidget):
     """
     This class puts together a TabCompletionLineEdit and a list view of teh FolderListModel in one single widget.
@@ -276,6 +284,7 @@ class BrowserWidget(QWidget):
         self._view.activated.connect(self._activated)
         self.activated.connect(self._lineedit.setText)
         self._lineedit.returnPressed.connect(self._leActivated, Qt.QueuedConnection)
+        self._lineedit.pasted.connect(self._syncBrowserToLE)
         self._lineedit.textEdited.connect(self._leTextEdited)
 
     def setActive(self, activeFile):
@@ -356,6 +365,14 @@ class BrowserWidget(QWidget):
         if p.is_dir() and len(text) > 0 and text[-1] in ["/", "\\"]:
             self.setFolder(p)
 
+    def _syncBrowserToLE(self):
+        p = Path(self._lineedit.text())
+        if p.is_dir():
+            self.setFolder(p)
+        elif p.is_file() and p.parent.is_dir():
+            self.setFolder(p.parent)
+            self.setActive(p)
+
     def _activated(self, idx):
         c = self._model.data(idx, Qt.UserRole)
         if c is None:
@@ -373,9 +390,8 @@ if __name__ == "__main__": # pragma: no-cover
 
         :return:
         """
-        # pylint: disable-import-outside-toplevel
         # this is just the test function part
-        from PySide2.QtWidgets import QApplication
+        from PySide2.QtWidgets import QApplication # pylint: disable=import-outside-toplevel
 
         app = QApplication()
         bw = BrowserWidget()

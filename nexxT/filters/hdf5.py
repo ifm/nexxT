@@ -206,6 +206,7 @@ class Hdf5Writer(Filter):
         # status update once each second
         if (rcvTimestamp // 1000000) != (lastRcvTimestamp // 1000000):
             if hasattr(os, "posix_fadvise") and self.propertyCollection().getProperty("use_posix_fadvise_if_available"):
+                # pylint: disable=no-member
                 os.posix_fadvise(self._currentFile.id.get_vfd_handle(), 0, self._currentFile.id.get_filesize(),
                                  os.POSIX_FADV_DONTNEED)
             self.statusUpdate.emit(self._name, rcvTimestamp*1e-6, self._currentFile.id.get_filesize())
