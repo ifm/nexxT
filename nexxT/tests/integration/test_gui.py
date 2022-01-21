@@ -1325,9 +1325,10 @@ class ExecutionOrderTest(GuiTestBase):
                     throughput = float(M.group(1))
             if threadmode == "multithread":
                 self.record_property("multithread_smp_per_sec", throughput)
+                assert throughput >= 750
             else:
                 self.record_property("throughput_smp_per_sec", throughput)
-            assert throughput > 1000
+                assert throughput >= 4500
         finally:
             if not self.keep_open:
                 if conf.configuration().dirty():
