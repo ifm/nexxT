@@ -390,9 +390,8 @@ if __name__ == "__main__": # pragma: no-cover
 
         :return:
         """
-        # pylint: disable-import-outside-toplevel
         # this is just the test function part
-        from PySide2.QtWidgets import QApplication
+        from PySide2.QtWidgets import QApplication # pylint: disable=import-outside-toplevel
 
         app = QApplication()
         bw = BrowserWidget()

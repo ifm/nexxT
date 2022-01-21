@@ -200,7 +200,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         self.windows = {}
         self.activeApp = None
         self._ignoreCloseEvent = False
-        
+
     def eventFilter(self, obj, event):
         if obj is self.mdi.viewport() and event.type() == QEvent.Wheel:
             # disable mouse wheel scrolling on the viewport widget it's pretty annoying...

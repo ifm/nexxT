@@ -686,10 +686,15 @@ class MVCConfigurationBase(QObject):
         execute()
 
     def reload(self):
+        """
+        Reloads all python modules of the current configuration.
+
+        Similar to close(), open() and loading the currently actuve sequence.
+        """
         if Application.activeApplication is not None:
             try:
                 pbc = Services.getService("PlaybackControl")
-            except:
+            except: # pylint: disable=bare-except
                 pbc = None
             if pbc is not None:
                 seq = pbc.getSequence()
@@ -715,7 +720,7 @@ class MVCConfigurationBase(QObject):
         self._configuration.load(state)
         self._configuration.setDirty(oldDirty)
         if self._reloadToState is not None:
-            app = self._configuration.activate(self._reloadToState["name"])
+            self._configuration.activate(self._reloadToState["name"])
             assert Application.activeApplication.getState() == FilterState.CONSTRUCTED
             if self._reloadToState["state"] != FilterState.CONSTRUCTED:
                 Application.initialize()

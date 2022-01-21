@@ -141,7 +141,8 @@ class ConfigFileLoader:
         guistateFile = file.parent / (file.name + ".guistate")
         with guistateFile.open("w", encoding="utf-8") as fp:
             json.dump(guistate, fp, indent=2, ensure_ascii=False)
-            logger.internal("saving gui state to %s -> %s", guistateFile, json.dumps(guistate, indent=2, ensure_ascii=False))
+            logger.internal("saving gui state to %s -> %s", guistateFile,
+                            json.dumps(guistate, indent=2, ensure_ascii=False))
 
     @staticmethod
     def _extendWithDefault(validatorClass):

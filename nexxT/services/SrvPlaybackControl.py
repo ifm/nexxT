@@ -460,6 +460,9 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         self._setSequence.emit(file)
 
     def getSequence(self):
+        """
+        Returns the currently active sequence.
+        """
         return self._currentSequence
 
     def setTimeFactor(self, factor):
