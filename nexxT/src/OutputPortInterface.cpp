@@ -49,6 +49,7 @@ void OutputPortInterface::setupDirectConnection(const SharedPortPtr &op, const S
 
 QObject *OutputPortInterface::setupInterThreadConnection(const SharedPortPtr &op, const SharedPortPtr &ip, QThread &outputThread)
 {
+    qRegisterMetaType<QSemaphore*>();
     InterThreadConnection *itc = new InterThreadConnection(&outputThread);
     const OutputPortInterface *p0 = dynamic_cast<const OutputPortInterface *>(op.data());
     const InputPortInterface *p1 = dynamic_cast<const InputPortInterface *>(ip.data());
