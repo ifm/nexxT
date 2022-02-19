@@ -14,8 +14,9 @@ else:
 qtversion = ".".join(PySide.__version__.split(".")[:2])
 
 if platform.system() == "Linux":
-    if os.path.isfile("/etc/centos-release") and "CentOS Linux release 7" in open("/etc/centos-release", "r").read():
-        target_platform = "manylinux2014_x86_64"
+    if os.path.isfile("/etc/manylinux-release"):
+        with open("/etc/manylinux-release", "r") as f:
+            target_platform = f.read().strip()
     else:
         target_platform = "linux_x86_64"
     env = Environment(target_platform=target_platform,

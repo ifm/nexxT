@@ -46,7 +46,7 @@ try:
             # uncomment for non-python extensions
             if platform.system() == "Linux":
                 abi = "abi3"
-                plat = "manylinux2014_x86_64"
+                plat = "manylinux_2_28_x86_64"
             else:
                 abi = "none"
             python = "cp37.cp38.cp39"
