@@ -75,7 +75,8 @@ class FilterGraph(BaseGraph):
     # BaseGraph gets the node name, this method gets arguments
     # for constructing a filter
     @Slot(str, str, object)
-    def addNode(self, library, factoryFunction, suggestedName=None):
+    def addNode(self, library, factoryFunction, suggestedName=None,
+                dynamicInputPorts=[], dynamicOutputPorts=[]):
         """
         Add a node to the graph, given a library and a factory function for instantiating the plugin.
         :param library: definition file of the plugin
@@ -93,8 +94,12 @@ class FilterGraph(BaseGraph):
             propColl = PropertyCollectionImpl(name, self._properties)
         propColl.propertyChanged.connect(self.setDirty)
         filterMockup = FilterMockup(library, factoryFunction, propColl, self)
-        filterMockup.createFilterAndUpdate()
         self._filters[name] = filterMockup
+        for din in dynamicInputPorts:
+            self.addDynamicInputPort(name, din)
+        for dout in dynamicOutputPorts:
+            self.addDynamicOutputPort(name, dout)
+        filterMockup.createFilterAndUpdate()
         assert super().addNode(name) == name
         if factoryFunction == "compositeNode" and hasattr(library, "checkRecursion"):
             try:

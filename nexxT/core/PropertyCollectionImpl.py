@@ -115,12 +115,17 @@ class PropertyCollectionImpl(PropertyCollection):
                     "Pass either options or propertyHandler to defineProperty but not both.")
             if options is None:
                 options = {}
+            ignoreInconsistentOptions = False
+            if "ignoreInconsistentOptions" in options:
+                ignoreInconsistentOptions = options["ignoreInconsistentOptions"]
+                del options["ignoreInconsistentOptions"]
             if propertyHandler is None:
                 propertyHandler = defaultHandler(defaultVal)(options)
             assert isinstance(propertyHandler, PropertyHandler)
             assert isinstance(options, dict)
             if propertyHandler.validate(defaultVal) != defaultVal:
-                raise PropertyInconsistentDefinition("The validation of the default value must be the identity!")
+                raise PropertyInconsistentDefinition("The validation of the default value must be the identity (%s != %s)!" % (
+                                                     repr(propertyHandler.validate(defaultVal)), repr(defaultVal)))
             if not name in self._properties:
                 self._properties[name] = Property(defaultVal, helpstr, propertyHandler)
                 p = self._properties[name]
@@ -138,7 +143,12 @@ class PropertyCollectionImpl(PropertyCollection):
                 if p.defaultVal != defaultVal or p.helpstr != helpstr:
                     raise PropertyInconsistentDefinition(name)
                 if not isinstance(p.handler, type(propertyHandler)) or options != p.handler.options():
-                    raise PropertyInconsistentDefinition(name)
+                    if ignoreInconsistentOptions:
+                        p.handler = propertyHandler
+                        logger.debug("option %s has inconsistent options but ignoring as requested.", name)
+                    else:
+                        raise PropertyInconsistentDefinition(name)
+
             p.used = True
             return p.value
 

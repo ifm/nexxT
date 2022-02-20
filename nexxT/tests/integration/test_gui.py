@@ -328,6 +328,44 @@ class GuiTestBase:
             expectedVal = propVal
         assert conf.model.data(idxPropVal, Qt.DisplayRole) == expectedVal
 
+    def getFilterProperty(self, conf, subConfig, filterName, propName):
+        """
+        Sets a filter property in the configuration gui service.
+        :param conf: the configuration gui service
+        :param subConfig: the SubConfiguration instance
+        :param filterName: the name of the filter
+        :param propName: the name of the property
+        :return: the current property value
+        """
+        idxapp = conf.model.indexOfSubConfig(subConfig)
+        # search for filter
+        idxFilter = None
+        for r in range(conf.model.rowCount(idxapp)):
+            idxFilter = conf.model.index(r, 0, idxapp)
+            name = conf.model.data(idxFilter, Qt.DisplayRole)
+            if name == filterName:
+                break
+            else:
+                idxFilter = None
+        assert idxFilter is not None
+        # search for property
+        idxProp = None
+        row = None
+        for r in range(conf.model.rowCount(idxFilter)):
+            idxProp = conf.model.index(r, 0, idxFilter)
+            name = conf.model.data(idxProp, Qt.DisplayRole)
+            if name == propName:
+                row = r
+                break
+            else:
+                idxProp = None
+        assert idxProp is not None
+        assert row is not None
+        # start the editor by pressing F2 on the property value
+        idxPropVal = conf.model.index(row, 1, idxFilter)
+        return conf.model.data(idxPropVal, Qt.DisplayRole)
+
+
     def getLastLogFrameIdx(self, log):
         """
         Convert the last received log line to a frame index (assuming that the PySimpleStaticFilter has been used)
@@ -904,6 +942,92 @@ class TheFilter(Filter):
                     QTimer.singleShot(self.delay, self.clickDiscardChanges)
                 mw.close()
 
+    def _dynamic_properties(self):
+        conf = None
+        mw = None
+        thefilter_py = (Path(self.tmpdir) / "thedynfilter.py")
+        thefilter_py.write_text(
+"""
+from nexxT.interface import Filter
+
+class TheDynFilter(Filter):
+    def __init__(self, env):
+        super().__init__(True, True, env)
+        
+    def onInit(self):
+        pc = self.propertyCollection()
+        din = self.getDynamicInputPorts()
+        dout = self.getDynamicOutputPorts()
+        pc.defineProperty("enum_input_ports", "(none)", "help",
+                          dict(enum=["(none)"] +[p.name() for p in din], ignoreInconsistentOptions=True))
+        pc.defineProperty("enum_output_ports", "(none)", "help",
+                          dict(enum=["(none)"] +[p.name() for p in dout], ignoreInconsistentOptions=True))
+"""
+        )
+        try:
+            # load last config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            idxComposites = conf.model.index(0, 0)
+            idxApplications = conf.model.index(1, 0)
+            # add application
+            conf.treeView.setMinimumSize(QSize(300, 300))
+            conf.treeView.scrollTo(idxApplications)
+            region = conf.treeView.visualRegionForSelection(QItemSelection(idxApplications, idxApplications))
+            self.qtbot.mouseMove(conf.treeView.viewport(), region.boundingRect().center(), delay=self.delay)
+            QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_ADD_APPLICATION))
+            conf._execTreeViewContextMenu(region.boundingRect().center())
+            app = conf.configuration().applicationByName("application")
+            # start graph editor
+            gev = self.startGraphEditor(conf, mw, "application")
+            self.qtbot.wait(self.delay)
+            # create a node "TheFilter"
+            the_filter = self.addNodeToGraphEditor(gev, QPoint(20, 20),
+                                                   CM_FILTER_FROM_FILE, str(thefilter_py), "TheDynFilter")
+            self.qtbot.keyClick(self.aw(), Qt.Key_Return, delay=self.delay)
+            self.qtbot.keyClick(None, Qt.Key_Return, delay=self.delay)
+
+            QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_ADDDYNINPORT))
+            QTimer.singleShot(self.delay * 2, lambda: self.enterText("input_port_1"))
+            self.gsContextMenu(gev, the_filter.nodeGrItem.sceneBoundingRect().center())
+
+            QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_ADDDYNINPORT))
+            QTimer.singleShot(self.delay * 2, lambda: self.enterText("input_port_2"))
+            self.gsContextMenu(gev, the_filter.nodeGrItem.sceneBoundingRect().center())
+
+            QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_ADDDYNOUTPORT))
+            QTimer.singleShot(self.delay * 2, lambda: self.enterText("output_port"))
+            self.gsContextMenu(gev, the_filter.nodeGrItem.sceneBoundingRect().center())
+
+            logger.info("Filter: %s", repr(the_filter))
+            self.setFilterProperty(conf, app, "TheDynFilter", "enum_input_ports",
+                                   [Qt.Key_Down, Qt.Key_Return], "input_port_1")
+            self.setFilterProperty(conf, app, "TheDynFilter", "enum_input_ports",
+                                   [Qt.Key_Down, Qt.Key_Return], "input_port_2")
+            self.setFilterProperty(conf, app, "TheDynFilter", "enum_output_ports",
+                                   [Qt.Key_Down, Qt.Key_Return], "output_port")
+
+            cfgfile = str((Path(self.tmpdir) / "dynprops.json").absolute())
+            QTimer.singleShot(self.delay, lambda: self.enterText(cfgfile))
+            conf.actSave.trigger()
+
+            logger.info("saved application")
+
+            QTimer.singleShot(self.delay, lambda: self.enterText(cfgfile))
+            conf.actLoad.trigger()
+
+            logger.info("loaded application")
+            app = conf.configuration().applicationByName("application")
+            assert self.getFilterProperty(conf, app, "TheDynFilter", "enum_input_ports") == "input_port_2"
+            assert self.getFilterProperty(conf, app, "TheDynFilter", "enum_output_ports") == "output_port"
+
+
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
     def test(self):
         """
         test property editing in config editor
@@ -912,11 +1036,25 @@ class TheFilter(Filter):
         QTimer.singleShot(self.delay, self._properties)
         startNexT(None, None, [], [], True)
 
+    def test_dyn(self):
+        """
+        test property editing in config editor
+        :return:
+        """
+        QTimer.singleShot(self.delay, self._dynamic_properties)
+        startNexT(None, None, [], [], True)
+
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])
 def test_properties(qtbot, xvfb, keep_open, delay, tmpdir):
     test = PropertyTest(qtbot, xvfb, keep_open, delay, tmpdir)
     test.test()
+
+@pytest.mark.gui
+@pytest.mark.parametrize("delay", [300])
+def test_dyn_properties(qtbot, xvfb, keep_open, delay, tmpdir):
+    test = PropertyTest(qtbot, xvfb, keep_open, delay, tmpdir)
+    test.test_dyn()
 
 class GuiStateTest(GuiTestBase):
     """

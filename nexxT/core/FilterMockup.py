@@ -33,6 +33,19 @@ class FilterMockup(FilterEnvironment):
         self._propertyCollectionImpl = propertyCollection
         self._pluginClass = None
         self._createFilterAndUpdatePending = None
+        rootPc = propertyCollection
+        while rootPc.parent() is not None:
+            rootPc = rootPc.parent()
+        tmpRootPc = PropertyCollectionImpl("root", None)
+        try:
+            cfgfile = rootPc.getProperty("CFGFILE")
+            tmpRootPc.defineProperty("CFGFILE", cfgfile, "copy of original CFGFILE.", options=dict(enum=[cfgfile]))
+        except:
+            pass
+        tmpPc = PropertyCollectionImpl("temp", tmpRootPc)
+        with FilterEnvironment(self._library, self._factoryFunction, tmpPc, self) as tmpEnv:
+            self.updatePortInformation(tmpEnv)
+        del tmpPc
         try:
             # add also a child collection for the nexxT internals
             pc = PropertyCollectionImpl("_nexxT", propertyCollection)
