@@ -19,11 +19,14 @@ from PySide2.QtWidgets import (QWidget, QVBoxLayout, QTreeView, QFileIconProvide
 logger = logging.getLogger(__name__)
 
 class StatCache:
+    """
+    Class for caching file-system related accesses to prevent unnecessary slowliness for network drives.
+    """
     MAX_NUM_CACHE_ENTRIES = 20*1024 # 1024 entries are ~40 kB -> ~ 1 MB cache
 
     def __init__(self):
         self._cache = {}
-        
+
     def __call__(self, method, *args):
         if (method, args) not in self._cache:
             # remove entries from cache until the size is within reasonable limits
@@ -37,9 +40,9 @@ class FolderListModel(QAbstractTableModel):
     This class provides a model for browsing a folder.
     """
     folderChanged = Signal(str) # emitted when the folder changes
-    
+
     statCache = StatCache()
-    
+
     def __init__(self, parent):
         super().__init__(parent=parent)
         self._folder = None
@@ -105,7 +108,8 @@ class FolderListModel(QAbstractTableModel):
             self._filter = flt
             if platform.system() == "Windows":
                 if listDrives:
-                    self._children = [Path("%s:/" % dl) for dl in string.ascii_uppercase if self.statCache(Path("%s:/" % dl).exists)]
+                    self._children = [Path("%s:/" % dl) for dl in string.ascii_uppercase
+                                      if self.statCache(Path("%s:/" % dl).exists)]
                 else:
                     self._children = [f / ".."]
             else:
@@ -118,7 +122,8 @@ class FolderListModel(QAbstractTableModel):
             if listDrives:
                 self.folderChanged.emit("<Drives>")
             else:
-                self.folderChanged.emit(str(self._folder) + (os.path.sep if self.statCache(self._folder.is_dir) else ""))
+                self.folderChanged.emit(str(self._folder) + (os.path.sep if self.statCache(self._folder.is_dir)
+                                                             else ""))
 
     def folder(self):
         """

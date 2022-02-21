@@ -124,8 +124,9 @@ class PropertyCollectionImpl(PropertyCollection):
             assert isinstance(propertyHandler, PropertyHandler)
             assert isinstance(options, dict)
             if propertyHandler.validate(defaultVal) != defaultVal:
-                raise PropertyInconsistentDefinition("The validation of the default value must be the identity (%s != %s)!" % (
-                                                     repr(propertyHandler.validate(defaultVal)), repr(defaultVal)))
+                raise PropertyInconsistentDefinition(
+                    "The validation of the default value must be the identity (%s != %s)!" %
+                    (repr(propertyHandler.validate(defaultVal)), repr(defaultVal)))
             if not name in self._properties:
                 self._properties[name] = Property(defaultVal, helpstr, propertyHandler)
                 p = self._properties[name]

@@ -76,7 +76,7 @@ class FilterGraph(BaseGraph):
     # for constructing a filter
     @Slot(str, str, object)
     def addNode(self, library, factoryFunction, suggestedName=None,
-                dynamicInputPorts=[], dynamicOutputPorts=[]):
+                dynamicInputPorts=None, dynamicOutputPorts=None):
         """
         Add a node to the graph, given a library and a factory function for instantiating the plugin.
         :param library: definition file of the plugin
@@ -87,6 +87,10 @@ class FilterGraph(BaseGraph):
         assertMainThread()
         if suggestedName is None:
             suggestedName = factoryFunction
+        if dynamicInputPorts is None:
+            dynamicInputPorts = []
+        if dynamicOutputPorts is None:
+            dynamicOutputPorts = []
         name = super().uniqueNodeName(suggestedName)
         try:
             propColl = self._properties.getChildCollection(name)

@@ -13,7 +13,8 @@ from PySide2.QtCore import QMutexLocker, Qt
 from nexxT.interface import InputPort, OutputPort, InputPortInterface, OutputPortInterface
 from nexxT.core.FilterEnvironment import FilterEnvironment
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
-from nexxT.core.Exceptions import PortNotFoundError, PortExistsError, PropertyCollectionChildExists
+from nexxT.core.Exceptions import (PortNotFoundError, PortExistsError, PropertyCollectionChildExists,
+                                   PropertyCollectionPropertyNotFound)
 from nexxT.core.Utils import assertMainThread, MethodInvoker
 import nexxT
 
@@ -40,7 +41,7 @@ class FilterMockup(FilterEnvironment):
         try:
             cfgfile = rootPc.getProperty("CFGFILE")
             tmpRootPc.defineProperty("CFGFILE", cfgfile, "copy of original CFGFILE.", options=dict(enum=[cfgfile]))
-        except:
+        except PropertyCollectionPropertyNotFound:
             pass
         tmpPc = PropertyCollectionImpl("temp", tmpRootPc)
         with FilterEnvironment(self._library, self._factoryFunction, tmpPc, self) as tmpEnv:
