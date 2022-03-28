@@ -244,23 +244,26 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     @handleException
     def _deferredUpdate(self, obj, slotName):
         assertMainThread()
-        clb = getattr(obj, slotName)
-        if clb in self._deferredUpdateHistory:
-            lastUpdateTime = self._deferredUpdateHistory[clb]
+        if (obj, slotName) in self._deferredUpdateHistory:
+            lastUpdateTime = self._deferredUpdateHistory[obj, slotName]
             dt = 1e-9*(time.monotonic_ns() - lastUpdateTime)
             if dt < 1/self.framerate:
                 if len(self._pendingUpdates) == 0:
                     self._deferredUpdateTimer.start(int((1/self.framerate - dt)*1000))
-                self._pendingUpdates.add(clb)
-                return
-        self._deferredUpdateHistory[clb] = time.monotonic_ns()
+                self._pendingUpdates.add((obj, slotName))
+                #logger.info("Deferred call: %s", (obj, slotName))
+                return        
+        #logger.info("Instant call: %s", (obj, slotName))
+        self._deferredUpdateHistory[obj, slotName] = time.monotonic_ns()
+        clb = getattr(obj, slotName)
         clb()
 
     def _deferredUpdateTimeout(self):
         t = time.monotonic_ns()
-        for pu in self._pendingUpdates:
-            self._deferredUpdateHistory[pu] = t
-            pu()
+        for obj, slotName in self._pendingUpdates:
+            clb = getattr(obj, slotName)
+            self._deferredUpdateHistory[obj, slotName] = t
+            clb()
         self._pendingUpdates.clear()
 
     def _setFramerate(self, checked):
