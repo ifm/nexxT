@@ -11,15 +11,17 @@ import logging
 import re
 import subprocess
 import sys
+import time
 import shiboken2
 from PySide2.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QAction, QWidget, QGridLayout,
-                               QMenuBar, QMessageBox, QScrollArea, QLabel)
+                               QMenuBar, QMessageBox, QScrollArea, QLabel, QActionGroup)
 from PySide2.QtCore import (QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings,
                             QTimer, QUrl, QEvent)
 from PySide2.QtGui import QDesktopServices
 import nexxT
 from nexxT.interface import Filter
 from nexxT.core.Application import Application
+from nexxT.core.Utils import handleException, assertMainThread
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +176,22 @@ class MainWindow(QMainWindow):
         self.mdi.viewport().installEventFilter(self)
         self.setCentralWidget(self.mdi)
         self.menu = self.menuBar().addMenu("&Windows")
+        self.framerateMenu = self.menu.addMenu("Display Framerate")
+        self.framerateActionGroup = QActionGroup(self)
+        self.framerate = 25
+        for framerate in [1, 2, 5, 10, 15, 20, 25, 40, 50, 100]:
+            a = QAction(self)
+            a.setData(framerate)
+            a.setText("%d Hz" % framerate)
+            a.setCheckable(True)
+            if framerate == self.framerate:
+                a.setChecked(True)
+            a.toggled.connect(self._setFramerate)
+            self.framerateActionGroup.addAction(a)
+            self.framerateMenu.addAction(a)
+        self.config.configLoaded.connect(self.restoreConfigSpecifics)
+        self.config.configAboutToSave.connect(self.saveConfigSpecifics)
+        self.menu.addSeparator()
         self.aboutMenu = QMenuBar(self.menuBar())
         self.menuBar().setCornerWidget(self.aboutMenu)
         m = self.aboutMenu.addMenu("&Help")
@@ -200,12 +218,57 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         self.windows = {}
         self.activeApp = None
         self._ignoreCloseEvent = False
+        self._deferredUpdateHistory = {}
+        self._pendingUpdates = set()
+        self._deferredUpdateTimer = QTimer()
+        self._deferredUpdateTimer.setSingleShot(True)
+        self._deferredUpdateTimer.timeout.connect(self._deferredUpdateTimeout)
 
     def eventFilter(self, obj, event):
         if obj is self.mdi.viewport() and event.type() == QEvent.Wheel:
             # disable mouse wheel scrolling on the viewport widget it's pretty annoying...
             return True
         return False
+
+    @Slot(QObject, str)
+    def deferredUpdate(self, obj, slotName):
+        """
+        Call this method to defer a call to the sepcified slot (obj->slotName()) in accordance with the user-defined
+        framerate set. The slot will be called via getattr(obj, slotName)()
+
+        :param obj: A QObject instance
+        :param slotName: The name of the slot.
+        """
+        self._deferredUpdate(obj, slotName)
+
+    @handleException
+    def _deferredUpdate(self, obj, slotName):
+        assertMainThread()
+        if (obj, slotName) in self._deferredUpdateHistory:
+            lastUpdateTime = self._deferredUpdateHistory[obj, slotName]
+            dt = 1e-9*(time.monotonic_ns() - lastUpdateTime)
+            if dt < 1/self.framerate:
+                if len(self._pendingUpdates) == 0:
+                    self._deferredUpdateTimer.start(int((1/self.framerate - dt)*1000))
+                self._pendingUpdates.add((obj, slotName))
+                #logger.info("Deferred call: %s", (obj, slotName))
+                return        
+        #logger.info("Instant call: %s", (obj, slotName))
+        self._deferredUpdateHistory[obj, slotName] = time.monotonic_ns()
+        clb = getattr(obj, slotName)
+        clb()
+
+    def _deferredUpdateTimeout(self):
+        t = time.monotonic_ns()
+        for obj, slotName in self._pendingUpdates:
+            clb = getattr(obj, slotName)
+            self._deferredUpdateHistory[obj, slotName] = t
+            clb()
+        self._pendingUpdates.clear()
+
+    def _setFramerate(self, checked):
+        if checked:
+            self.framerate = self.sender().data()
 
     def closeEvent(self, closeEvent):
         """
@@ -240,7 +303,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
 
         :return:
         """
-        logger.info("restoring main window's state")
+        logger.debug("restoring main window's state")
         settings = QSettings()
         v = settings.value("MainWindowState")
         if v is not None:
@@ -251,16 +314,37 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         if self.toolbar is not None:
             self.toolbar.show()
 
+    def restoreConfigSpecifics(self):
+        """
+        restores the config-specific state of the main window.
+        """
+        propertyCollection = self.config.guiState()
+        propertyCollection.defineProperty("MainWindow_framerate", 10, "Display framerate set by user.")
+        framerate = propertyCollection.getProperty("MainWindow_framerate")
+        logger.debug("Set framerate to %d", framerate)
+        for a in self.framerateActionGroup.actions():
+            if a.data() == framerate:
+                a.setChecked(True)
+
     def saveState(self):
         """
         saves the state of the main window including the dock windows of Services
 
         :return:
         """
-        logger.info("saving main window's state")
+        logger.debug("saving main window's state")
         settings = QSettings()
         settings.setValue("MainWindowState", super().saveState())
         settings.setValue("MainWindowGeometry", self.saveGeometry())
+
+    def saveConfigSpecifics(self):
+        """
+        saves the config-specific state of the main window.
+        """
+        propertyCollection = self.config.guiState()
+        propertyCollection.defineProperty("MainWindow_framerate", 10, "Display framerate set by user.")
+        propertyCollection.setProperty("MainWindow_framerate", self.framerate)
+        logger.debug("Store framerate %d", self.framerate)
 
     def saveMdiState(self):
         """

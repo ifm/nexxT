@@ -95,4 +95,5 @@ def test_smoke():
     simple_setup(4)
 
 if __name__ == "__main__":
+    setup()
     test_smoke()

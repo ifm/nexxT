@@ -79,18 +79,26 @@ class ImageView(Filter):
         # delete the widget reference
         self._widget = None
 
-    def onPortDataChanged(self, port):
+    def interpretAndUpdate(self):
+        """
+        The deferred update method, called from the MainWindow service at user-defined framerate.
+        """
+        sample = self.inPort.getData()
+        if sample.getDatatype() == "example/image":
+            npa = byteArrayToNumpy(sample.getContent())
+            self._widget.setData(npa)
+
+    def onPortDataChanged(self, port): # pylint: disable=unused-argument
         """
         Notification of new data.
 
         :param port: the port where the data arrived.
         :return:
         """
-        if port.getData().getDatatype() == "example/image":
-            # convert to numpy array
-            npa = byteArrayToNumpy(port.getData().getContent())
-            # send to the widget
-            self._widget.setData(npa)
+        if self._widget.isVisible():
+            # don't consume processing time if not shown
+            mw = Services.getService("MainWindow")
+            mw.deferredUpdate(self, "interpretAndUpdate")
 
 class DisplayWidget(QWidget):
     """

@@ -182,7 +182,10 @@ class PropertyCollection(QObject):
         :param defaultVal: the default value of the property. Note that this value will be used to determine the
                            property's type. Currently supported types are string, int and float
         :param helpstr: a help string for the user (presented as a tool tip)
-        :param options: a dict mapping string to qvariant (common options: min, max, enum)
+        :param options: a dict mapping string to qvariant (common options: 'min', 'max', 'enum')
+                        all properties support the option 'ignoreInconsistentOptions' (default: False). If this option
+                        is True, then nexxT allows that the options change over time. Even if present, the option type
+                        and its default values are not allowed to change.
         :param propertyHandler: a PropertyHandler instance, or None for automatic choice according to defaultVal
         :return: the current value of this property
         """
