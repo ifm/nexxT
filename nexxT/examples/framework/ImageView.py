@@ -88,7 +88,7 @@ class ImageView(Filter):
             npa = byteArrayToNumpy(sample.getContent())
             self._widget.setData(npa)
 
-    def onPortDataChanged(self, port):
+    def onPortDataChanged(self, port): # pylint: disable=unused-argument
         """
         Notification of new data.
 

@@ -11,8 +11,8 @@ import logging
 import re
 import subprocess
 import sys
-import shiboken2
 import time
+import shiboken2
 from PySide2.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QAction, QWidget, QGridLayout,
                                QMenuBar, QMessageBox, QScrollArea, QLabel, QActionGroup)
 from PySide2.QtCore import (QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings,
@@ -244,17 +244,17 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     @handleException
     def _deferredUpdate(self, obj, slotName):
         assertMainThread()
-        callable = getattr(obj, slotName)
-        if callable in self._deferredUpdateHistory:
-            lastUpdateTime = self._deferredUpdateHistory[callable]
+        clb = getattr(obj, slotName)
+        if clb in self._deferredUpdateHistory:
+            lastUpdateTime = self._deferredUpdateHistory[clb]
             dt = 1e-9*(time.monotonic_ns() - lastUpdateTime)
             if dt < 1/self.framerate:
                 if len(self._pendingUpdates) == 0:
                     self._deferredUpdateTimer.start(int((1/self.framerate - dt)*1000))
-                self._pendingUpdates.add(callable)
+                self._pendingUpdates.add(clb)
                 return
-        self._deferredUpdateHistory[callable] = time.monotonic_ns()
-        callable()
+        self._deferredUpdateHistory[clb] = time.monotonic_ns()
+        clb()
 
     def _deferredUpdateTimeout(self):
         t = time.monotonic_ns()
@@ -312,6 +312,9 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
             self.toolbar.show()
 
     def restoreConfigSpecifics(self):
+        """
+        restores the config-specific state of the main window.
+        """
         propertyCollection = self.config.guiState()
         propertyCollection.defineProperty("MainWindow_framerate", 10, "Display framerate set by user.")
         framerate = propertyCollection.getProperty("MainWindow_framerate")
@@ -332,6 +335,9 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         settings.setValue("MainWindowGeometry", self.saveGeometry())
 
     def saveConfigSpecifics(self):
+        """
+        saves the config-specific state of the main window.
+        """
         propertyCollection = self.config.guiState()
         propertyCollection.defineProperty("MainWindow_framerate", 10, "Display framerate set by user.")
         propertyCollection.setProperty("MainWindow_framerate", self.framerate)
