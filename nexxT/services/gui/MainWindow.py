@@ -251,9 +251,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
                 if len(self._pendingUpdates) == 0:
                     self._deferredUpdateTimer.start(int((1/self.framerate - dt)*1000))
                 self._pendingUpdates.add((obj, slotName))
-                #logger.info("Deferred call: %s", (obj, slotName))
-                return        
-        #logger.info("Instant call: %s", (obj, slotName))
+                return
         self._deferredUpdateHistory[obj, slotName] = time.monotonic_ns()
         clb = getattr(obj, slotName)
         clb()
@@ -429,6 +427,30 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
             return match.group(1), int(match.group(2)), int(match.group(3))
         return windowId, 0, 0
 
+    @staticmethod
+    def _substWindowTitle(title, theFilter):
+        if title == "":
+            title = "${FULLQUALIFIEDFILTERNAME}"
+        if ("${COMPOSITENAME}" in title or
+                "${FILTERNAME}" in title or
+                "${FULLQUALIFIEDFILTERNAME}" in title):
+            if isinstance(theFilter, Filter):
+                name = theFilter.environment().getFullQualifiedName()
+                if "/" in name:
+                    pos = name.rfind("/")
+                    composite_name = name[:pos]
+                    filter_name = name[pos+1:]
+                else:
+                    composite_name = "<root>"
+                    filter_name = name
+                title = (title.replace("${COMPOSITENAME}", composite_name).
+                         replace("${FILTERNAME}", filter_name).
+                         replace("${FULLQUALIFIEDFILTERNAME}", name))
+            else:
+                logger.warning("MainWindow.subplot(...,theFilter,...) expected a "
+                               "nexxT::Filter instance, but got '%s'", theFilter)
+        return title
+
     @Slot(str, QObject, QWidget)
     def subplot(self, windowId, theFilter, widget):
         """
@@ -445,8 +467,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         """
         logger.internal("subplot '%s'", windowId)
         title, row, col = self.parseWindowId(windowId)
-        if title == "":
-            title = "(view)"
+        title = self._substWindowTitle(title, theFilter)        
         if title in self.managedSubplots and (row, col) in self.managedSubplots[title]["plots"]:
             logger.warning("subplot %s[%d,%d] is already registered. Creating a new window for the plot.",
                            title, row, col)
