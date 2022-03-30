@@ -63,7 +63,7 @@ class PythonLibrary:
     LIBTYPE_ENTRY_POINT = 2
 
     # blacklisted packages are not unloaded when closing an application.
-    BLACKLISTED_PACKAGES = ["h5py", "numpy", "matplotlib", "PySide2", "shiboken2"]
+    BLACKLISTED_PACKAGES = ["h5py", "numpy", "matplotlib", "PySide2", "shiboken2", "torch", "tf"]
 
     def __init__(self, library, libtype):
         self._library = library
