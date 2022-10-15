@@ -14,16 +14,35 @@ import platform
 import string
 import nexxT.Qt
 from nexxT.Qt.QtCore import (QAbstractTableModel, Qt, Signal, QModelIndex, QDateTime, QFileInfo, QDir, QEvent)
-from nexxT.Qt.QtGui import QKeyEvent
+from nexxT.Qt.QtGui import QKeyEvent, QKeySequence
 from nexxT.Qt.QtWidgets import (QWidget, QVBoxLayout, QTreeView, QFileIconProvider, QCompleter, QLineEdit, QHeaderView)
 
 logger = logging.getLogger(__name__)
+
+class StatCache:
+    """
+    Class for caching file-system related accesses to prevent unnecessary slowliness for network drives.
+    """
+    MAX_NUM_CACHE_ENTRIES = 20*1024 # 1024 entries are ~40 kB -> ~ 1 MB cache
+
+    def __init__(self):
+        self._cache = {}
+
+    def __call__(self, method, *args):
+        if (method, args) not in self._cache:
+            # remove entries from cache until the size is within reasonable limits
+            while len(self._cache) > self.MAX_NUM_CACHE_ENTRIES:
+                self._cache.pop(next(iter(self._cache)))
+            self._cache[method, args] = method(*args)
+        return self._cache[method, args]
 
 class FolderListModel(QAbstractTableModel):
     """
     This class provides a model for browsing a folder.
     """
     folderChanged = Signal(str) # emitted when the folder changes
+
+    statCache = StatCache()
 
     def __init__(self, parent):
         super().__init__(parent=parent)
@@ -69,7 +88,7 @@ class FolderListModel(QAbstractTableModel):
             return QModelIndex()
 
     def _match(self, path):
-        if path.is_dir():
+        if self.statCache(path.is_dir):
             return True
         res = QDir.match(self._filter, path.name)
         return res
@@ -80,7 +99,7 @@ class FolderListModel(QAbstractTableModel):
         self.endRemoveRows()
         if folder is not None:
             listDrives = False
-            f = Path(folder).resolve()
+            f = self.statCache(Path(folder).resolve)
             if platform.system() == "Windows":
                 folder = Path(folder)
                 if folder.name == ".." and folder.parent == Path(folder.drive + "/"):
@@ -90,20 +109,22 @@ class FolderListModel(QAbstractTableModel):
             self._filter = flt
             if platform.system() == "Windows":
                 if listDrives:
-                    self._children = [Path("%s:/" % dl) for dl in string.ascii_uppercase if Path("%s:/" % dl).exists()]
+                    self._children = [Path("%s:/" % dl) for dl in string.ascii_uppercase
+                                      if self.statCache(Path("%s:/" % dl).exists)]
                 else:
                     self._children = [f / ".."]
             else:
                 self._children = ([] if f.root == f else [f / ".."])
             if not listDrives:
                 self._children += [x for x in f.glob("*") if self._match(x)]
-                self._children.sort(key=lambda c: (c.is_file(), c.drive, int(c.name != ".."), c.name))
+                self._children.sort(key=lambda c: (self.statCache(c.is_file), c.drive, int(c.name != ".."), c.name))
             self.beginInsertRows(QModelIndex(), 0, len(self._children)-1)
             self.endInsertRows()
             if listDrives:
                 self.folderChanged.emit("<Drives>")
             else:
-                self.folderChanged.emit(str(self._folder) + (os.path.sep if self._folder.is_dir() else ""))
+                self.folderChanged.emit(str(self._folder) + (os.path.sep if self.statCache(self._folder.is_dir)
+                                                             else ""))
 
     def folder(self):
         """
@@ -155,7 +176,7 @@ class FolderListModel(QAbstractTableModel):
                 if c.is_dir():
                     return ""
                 try:
-                    s = c.stat().st_size
+                    s = self.statCache(c.stat).st_size
                 except Exception: # pylint: disable=broad-except
                     return ""
                 if s >= 1024*1024*1024:
@@ -172,7 +193,7 @@ class FolderListModel(QAbstractTableModel):
                     return ""
         if role == Qt.DecorationRole:
             if index.column() == 0:
-                if c.is_dir():
+                if self.statCache(c.is_dir):
                     return self._iconProvider.icon(QFileIconProvider.Drive)
                 return self._iconProvider.icon(QFileInfo(str(c.absolute())))
         if role == Qt.UserRole:
@@ -181,7 +202,7 @@ class FolderListModel(QAbstractTableModel):
         if role in [Qt.DisplayRole, Qt.EditRole]:
             if index.column() == 3:
                 if index.row() > 0:
-                    return str(c) + (os.path.sep if c.is_dir() else "")
+                    return str(c) + (os.path.sep if self.statCache(c.is_dir) else "")
                 return str(c.parent) + os.path.sep
         return None
 
@@ -202,6 +223,8 @@ class TabCompletionLineEdit(QLineEdit):
     """
     This class provides a line edit which changes the tab-key semantics to interact with a completer.
     """
+    pasted = Signal()
+
     def __init__(self, completer, parent=None):
         super().__init__(parent)
         self._compl = completer
@@ -247,6 +270,12 @@ class TabCompletionLineEdit(QLineEdit):
                 event = QKeyEvent(event.type(), event.key(), event.modifiers(), event.text())
         return super().event(event)
 
+    def keyPressEvent(self, event):
+        ret = super().keyPressEvent(event)
+        if event.matches(QKeySequence.Paste):
+            self.pasted.emit()
+        return ret
+
 class BrowserWidget(QWidget):
     """
     This class puts together a TabCompletionLineEdit and a list view of teh FolderListModel in one single widget.
@@ -277,6 +306,7 @@ class BrowserWidget(QWidget):
         self._view.activated.connect(self._activated)
         self.activated.connect(self._lineedit.setText)
         self._lineedit.returnPressed.connect(self._leActivated, Qt.QueuedConnection)
+        self._lineedit.pasted.connect(self._syncBrowserToLE)
         self._lineedit.textEdited.connect(self._leTextEdited)
 
     def setActive(self, activeFile):
@@ -357,6 +387,14 @@ class BrowserWidget(QWidget):
         if p.is_dir() and len(text) > 0 and text[-1] in ["/", "\\"]:
             self.setFolder(p)
 
+    def _syncBrowserToLE(self):
+        p = Path(self._lineedit.text())
+        if p.is_dir():
+            self.setFolder(p)
+        elif p.is_file() and p.parent.is_dir():
+            self.setFolder(p.parent)
+            self.setActive(p)
+
     def _activated(self, idx):
         c = self._model.data(idx, Qt.UserRole)
         if c is None:
@@ -374,7 +412,6 @@ if __name__ == "__main__": # pragma: no-cover
 
         :return:
         """
-        # pylint: disable-import-outside-toplevel
         # this is just the test function part
         from nexxT.Qt.QtWidgets import QApplication
 

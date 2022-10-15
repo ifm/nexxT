@@ -11,10 +11,10 @@ This module provides a generic reader which can be inherited to use new data for
 import time
 import logging
 import math
-from nexxT.Qt.QtCore import Signal, QTimer
+from nexxT.Qt.QtCore import Signal, QTimer, Qt
 from nexxT.Qt.QtWidgets import QFileDialog
 from nexxT.interface import Filter, Services, DataSample
-from nexxT.core.Utils import handleException, isMainThread
+from nexxT.core.Utils import handleException, isMainThread, MethodInvoker
 
 logger = logging.getLogger(__name__)
 
@@ -266,6 +266,9 @@ class GenericReader(Filter):
         self._dir = 1
         self._ports = None
         self._timeFactor = 1
+        pc = self.propertyCollection()
+        pc.defineProperty("defaultStepStream", "<all>",
+                          "define the default step stream (the user can override it via menu)")
 
     def onOpen(self):
         """
@@ -322,6 +325,17 @@ class GenericReader(Filter):
             self.sequenceOpened.emit(self._name, span[0], span[1], sorted(self._portToIdx.keys()))
             self.timeRatioChanged.emit(self._timeFactor)
             self.playbackPaused.emit()
+            try:
+                srv = Services.getService("PlaybackControl")
+            except: # pylint: disable=bare-except
+                srv = None
+            pc = self.propertyCollection()
+            stepStream = pc.getProperty("defaultStepStream")
+            if stepStream not in self._portToIdx:
+                stepStream = None
+            if srv is not None and hasattr(srv, "setSelectedStream"):
+                MethodInvoker(srv.setSelectedStream, Qt.QueuedConnection, stepStream)
+
 
     def onStop(self):
         """

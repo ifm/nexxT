@@ -56,6 +56,11 @@ class MVCConfigurationGUI(MVCConfigurationBase):
                               "New config", self)
         self.actNew.triggered.connect(self._execNew)
 
+        self.actReload = QAction(QIcon.fromTheme("browser-reload", style.standardIcon(QStyle.SP_BrowserReload)),
+                                 "Reload python", self)
+        self.actReload.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_P))
+        self.actReload.triggered.connect(self._execReload)
+
         self.actActivate = QAction(QIcon.fromTheme("arrow-up", style.standardIcon(QStyle.SP_ArrowUp)),
                                    "Initialize", self)
         self.actActivate.triggered.connect(self.activate)
@@ -68,11 +73,13 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         confMenu.addAction(self.actLoad)
         confMenu.addAction(self.actSave)
         confMenu.addAction(self.actSaveWithGuiState)
+        confMenu.addAction(self.actReload)
         confMenu.addAction(self.actNew)
         confMenu.addAction(self.actActivate)
         confMenu.addAction(self.actDeactivate)
         toolBar.addAction(self.actLoad)
         toolBar.addAction(self.actSave)
+        toolBar.addAction(self.actReload)
         toolBar.addAction(self.actNew)
         toolBar.addAction(self.actActivate)
         toolBar.addAction(self.actDeactivate)
@@ -172,6 +179,9 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         if fn is not None and fn != "":
             logger.debug("Creating config file %s", fn)
             self.newConfig(fn)
+
+    def _execReload(self):
+        self.reload()
 
     def _execSaveConfig(self):
         if self.configuration().filename() is None:
@@ -309,19 +319,20 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         assertMainThread()
         self.cfgfile = cfgfile
         self._dirtyChanged(self._configuration.dirty())
-        foundIdx = None
-        for i, a in enumerate(self.recentConfigs):
-            if a.data() == cfgfile:
-                foundIdx = i
-        if foundIdx is None:
-            foundIdx = len(self.recentConfigs)-1
-        for i in range(foundIdx, 0, -1):
-            self.recentConfigs[i].setText(self.recentConfigs[i-1].text())
-            self.recentConfigs[i].setData(self.recentConfigs[i-1].data())
-            self.recentConfigs[i].setVisible(self.recentConfigs[i-1].data() is not None)
-        self.recentConfigs[0].setText(cfgfile)
-        self.recentConfigs[0].setData(cfgfile)
-        self.recentConfigs[0].setVisible(True)
+        if cfgfile is not None:
+            foundIdx = None
+            for i, a in enumerate(self.recentConfigs):
+                if a.data() == cfgfile:
+                    foundIdx = i
+            if foundIdx is None:
+                foundIdx = len(self.recentConfigs)-1
+            for i in range(foundIdx, 0, -1):
+                self.recentConfigs[i].setText(self.recentConfigs[i-1].text())
+                self.recentConfigs[i].setData(self.recentConfigs[i-1].data())
+                self.recentConfigs[i].setVisible(self.recentConfigs[i-1].data() is not None)
+            self.recentConfigs[0].setText(cfgfile)
+            self.recentConfigs[0].setData(cfgfile)
+            self.recentConfigs[0].setVisible(True)
 
     def _dirtyChanged(self, dirty):
         srv = Services.getService("MainWindow")
@@ -394,7 +405,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         pbsrv = Services.getService("PlaybackControl")
         try:
             pbsrv.playbackPaused.disconnect(self._singleShotPlay)
-        except RuntimeError:
+        except (RuntimeError, AttributeError):
             # we are already disconnected.
             pass
 

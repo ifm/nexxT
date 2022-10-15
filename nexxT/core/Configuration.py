@@ -110,9 +110,11 @@ class Configuration(QObject):
         """
         self.close()
         try:
-            self._propertyCollection.defineProperty("CFGFILE", cfg["CFGFILE"],
-                                                    "The absolute path to the configuration file.",
-                                                    options=dict(enum=[cfg["CFGFILE"]]))
+            if cfg["CFGFILE"] is not None:
+                # might happen during reload
+                self._propertyCollection.defineProperty("CFGFILE", cfg["CFGFILE"],
+                                                        "The absolute path to the configuration file.",
+                                                        options=dict(enum=[cfg["CFGFILE"]]))
             try:
                 self._propertyCollection.deleteChild("_guiState")
             except PropertyCollectionChildNotFound:

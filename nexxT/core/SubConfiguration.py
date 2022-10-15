@@ -123,24 +123,27 @@ class SubConfiguration(QObject):
                 # apply node gui state
                 nextP = PropertyCollectionImpl("_nexxT", p, {"thread": n["thread"]})
                 logger.debug("loading: subconfig %s / node %s -> thread: %s", self._name, n["name"], n["thread"])
-                tmp = self._graph.addNode(n["library"], n["factoryFunction"], suggestedName=n["name"])
+                tmp = self._graph.addNode(n["library"], n["factoryFunction"], suggestedName=n["name"],
+                                          dynamicInputPorts=n["dynamicInputPorts"],
+                                          dynamicOutputPorts=n["dynamicOutputPorts"])
                 if tmp != n["name"]:
                     raise NexTInternalError("addNode(...) has set unexpected name for node.")
             else:
                 # composite node handling
                 if n["library"] == "composite://port":
                     # the special nodes are already there, nothing to do here
-                    pass
+                    for dip in n["dynamicInputPorts"]:
+                        self._graph.addDynamicInputPort(n["name"], dip)
+                    for dop in n["dynamicOutputPorts"]:
+                        self._graph.addDynamicOutputPort(n["name"], dop)
                 elif n["library"] == "composite://ref":
                     name = n["factoryFunction"]
                     cf = compositeLookup(name)
-                    tmp = self._graph.addNode(cf, "compositeNode", suggestedName=n["name"])
+                    tmp = self._graph.addNode(cf, "compositeNode", suggestedName=n["name"],
+                                              dynamicInputPorts=n["dynamicInputPorts"],
+                                              dynamicOutputPorts=n["dynamicOutputPorts"])
                     if tmp != n["name"]:
                         raise NexTInternalError("addNode(...) has set unexpected name for node.")
-            for dip in n["dynamicInputPorts"]:
-                self._graph.addDynamicInputPort(n["name"], dip)
-            for dop in n["dynamicOutputPorts"]:
-                self._graph.addDynamicOutputPort(n["name"], dop)
             # make sure that the filter is instantiated and the port information is updated immediately
             self._graph.getMockup(n["name"]).createFilterAndUpdate()
         for c in cfg["connections"]:
