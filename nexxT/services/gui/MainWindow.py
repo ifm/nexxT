@@ -76,8 +76,8 @@ class NexxTMdiSubWindow(QMdiSubWindow):
         stream.writeInt64(normalGeom.y())
         stream.writeInt64(normalGeom.width())
         stream.writeInt64(normalGeom.height())
-        stream.writeUInt32(self.windowState() & Qt.WindowMaximized)
-        stream.writeUInt32(self.windowState() & Qt.WindowFullScreen)
+        stream.writeUInt32(int(bool(self.windowState() & Qt.WindowMaximized)))
+        stream.writeUInt32(int(bool(self.windowState() & Qt.WindowFullScreen)))
         return array
 
     def restoreGeometry(self, geometry):
@@ -105,8 +105,8 @@ class NexxTMdiSubWindow(QMdiSubWindow):
         width = stream.readInt64()
         height = stream.readInt64()
         restoredNormalGeometry = QRect(x, y, width, height)
-        maximized = stream.readUInt32()
-        fullScreen = stream.readUInt32()
+        maximized = bool(stream.readUInt32())
+        fullScreen = bool(stream.readUInt32())
         frameHeight = 20
         if not restoredFrameGeometry.isValid():
             restoredFrameGeometry = QRect(QPoint(0, 0), self.sizeHint())

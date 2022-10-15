@@ -146,8 +146,8 @@ if build_required:
     
 setup(name='nexxT',
       install_requires=[
-        "PySide2==5.15.1" if os.environ.get("PYSIDEVERSION", "6") in "52" else "PySide6==6.2.2.1",
-        "shiboken2==5.15.1" if os.environ.get("PYSIDEVERSION", "6") in "52" else "PySide6==6.2.2.1",
+        "PySide2==5.15.1" if os.environ.get("PYSIDEVERSION", "6") in "52" else "PySide6==6.4.0",
+        "shiboken2==5.15.1" if os.environ.get("PYSIDEVERSION", "6") in "52" else "PySide6==6.4.0",
         "jsonschema>=3.2.0",
         "h5py>=2.10.0",
         "setuptools>=41.0.0",

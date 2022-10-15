@@ -59,10 +59,10 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self.actActivate = QAction(QIcon.fromTheme("arrow-up", style.standardIcon(QStyle.SP_ArrowUp)),
                                    "Initialize", self)
         self.actActivate.triggered.connect(self.activate)
-        self.actActivate.setShortcut(QKeySequence(Qt.CTRL + Qt.Key_I))
+        self.actActivate.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_I))
         self.actDeactivate = QAction(QIcon.fromTheme("arrow-down", style.standardIcon(QStyle.SP_ArrowDown)),
                                      "Deinitialize", self)
-        self.actDeactivate.setShortcut(QKeySequence(Qt.CTRL + Qt.Key_D))
+        self.actDeactivate.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_D))
         self.actDeactivate.triggered.connect(self.deactivate)
 
         confMenu.addAction(self.actLoad)
@@ -78,7 +78,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         toolBar.addAction(self.actDeactivate)
 
         self.recentConfigs = [QAction() for i in range(10)]
-        self.recentConfigs[0].setShortcut(QKeySequence(Qt.CTRL + Qt.Key_R))
+        self.recentConfigs[0].setShortcut(QKeySequence(Qt.CTRL | Qt.Key_R))
         confMenu.addSeparator()
         recentMenu = confMenu.addMenu("Recent")
         for a in self.recentConfigs:
@@ -90,7 +90,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self.treeView = QTreeView(self.mainWidget)
         self.treeView.setHeaderHidden(False)
         self.treeView.setSelectionMode(QAbstractItemView.NoSelection)
-        self.treeView.setEditTriggers(self.treeView.EditKeyPressed|self.treeView.AnyKeyPressed)
+        self.treeView.setEditTriggers(self.treeView.EditTrigger.EditKeyPressed|self.treeView.EditTrigger.AnyKeyPressed)
         self.treeView.setAllColumnsShowFocus(True)
         self.treeView.setExpandsOnDoubleClick(False)
         self.treeView.setDragEnabled(True)

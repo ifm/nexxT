@@ -90,7 +90,7 @@ class FilterMockup(FilterEnvironment):
                 # don't want to pollute global namespace with this; need to update the
                 # the class if it is a wrapped shared pointer.
                 import cnexxT
-                if self._pluginClass is cnexxT.__dict__["QSharedPointer<nexxT::Filter >"]:
+                if self._pluginClass is cnexxT.__dict__["QSharedPointer_nexxT_Filter"]:
                     self._pluginClass = tempEnv.getPlugin().data().__class__
 
     def createFilter(self):
