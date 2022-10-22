@@ -29,9 +29,9 @@ class IntHandler(PropertyHandler):
         for k in options:
             if k in ["min", "max"]:
                 if not isinstance(options[k], int):
-                    raise PropertyParsingError("Unexpected type of option %s; expected int." % k)
+                    raise PropertyParsingError(f"Unexpected type of option {k}; expected int.")
             else:
-                raise PropertyParsingError("Unexpected option %s; expected 'min' or 'max'." % k)
+                raise PropertyParsingError(f"Unexpected option {k}; expected 'min' or 'max'.")
         self._options = options
 
     def options(self):
@@ -144,7 +144,7 @@ class StringHandler(PropertyHandler):
                     if not isinstance(v, str):
                         raise PropertyParsingError("enum options must be defined as list of strings.")
             else:
-                raise PropertyParsingError("Unknown option %s for string properties" % k)
+                raise PropertyParsingError(f"Unknown option {k} for string properties")
         self._options = options
 
     def options(self):
@@ -239,9 +239,9 @@ class FloatHandler(PropertyHandler):
         for k in options:
             if k in ["min", "max"]:
                 if not isinstance(options[k], int) and not isinstance(options[k], float):
-                    raise PropertyParsingError("Unexpected type of option %s; expected int." % k)
+                    raise PropertyParsingError(f"Unexpected type of option {k}; expected int.")
             else:
-                raise PropertyParsingError("Unexpected option %s; expected 'min' or 'max'." % k)
+                raise PropertyParsingError(f"Unexpected option {k}; expected 'min' or 'max'.")
         self._options = options
 
     def options(self):
@@ -330,7 +330,7 @@ class BoolHandler(PropertyHandler):
 
     def __init__(self, options):
         for k in options:
-            raise PropertyParsingError("Unexpected option %s; expected 'min' or 'max'." % k)
+            raise PropertyParsingError(f"Unexpected option {k}; expected 'min' or 'max'.")
         self._options = options
 
     def options(self):
@@ -420,4 +420,4 @@ def defaultHandler(propertyValue):
         return StringHandler
     if isinstance(propertyValue, float):
         return FloatHandler
-    raise PropertyCollectionUnknownType("Cannot deduce default handler for property value %s" % repr(propertyValue))
+    raise PropertyCollectionUnknownType(f"Cannot deduce default handler for property value {repr(propertyValue)}")

@@ -309,14 +309,14 @@ class ProfilingService(QObject):
         if t - self._lastEmitTime > 1e8:
             # emit each 100 ms
             self._lastEmitTime = t
-            for t in self._threadSpecificProfiling:
-                load = self._threadSpecificProfiling[t].getLoad()
+            for t, tsp in self._threadSpecificProfiling.items():
+                load = tsp.getLoad()
                 atimstamps = np.array([l[0] for l in load], dtype=np.int64)
                 aload = np.array([l[1] for l in load], dtype=np.float32)
                 if aload.size > 0:
                     self.loadDataUpdated.emit(t.objectName(), QByteArray(atimstamps.tobytes()),
                                               QByteArray(aload.tobytes()))
-                port_spans = self._threadSpecificProfiling[t].getSpans()
+                port_spans = tsp.getSpans()
                 for port, spans in port_spans.items():
                     spans = np.array(spans, dtype=np.int64)
                     if spans.size > 0:

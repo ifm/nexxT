@@ -59,7 +59,7 @@ def byteArrayToNumpy(qByteArray):
     fmt = hdr.format.decode()
     # sanity check
     if not fmt in ImageFormats:
-        raise RuntimeError("Unknown image format %s" % fmt)
+        raise RuntimeError(f"Unknown image format {fmt}")
     # get number of channels and the numpy dtype of the target array
     numChannels, dtype = ImageFormats[hdr.format.decode()]
     # calculate the number of bytes per pixel

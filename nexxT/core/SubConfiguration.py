@@ -104,7 +104,7 @@ class SubConfiguration(QObject):
         :param connection: a 4-tuple ("name1", "port1", "name2", "port2")
         :return: a string "name1.port1 -> name2.port2"
         """
-        return "%s.%s -> %s.%s" % connection
+        return "%s.%s -> %s.%s" % connection # pylint: disable=consider-using-f-string
 
     def load(self, cfg, compositeLookup):
         """
@@ -121,7 +121,7 @@ class SubConfiguration(QObject):
             if not n["library"].startswith("composite://"):
                 p = PropertyCollectionImpl(n["name"], self._propertyCollection, n["properties"])
                 # apply node gui state
-                nextP = PropertyCollectionImpl("_nexxT", p, {"thread": n["thread"]})
+                PropertyCollectionImpl("_nexxT", p, {"thread": n["thread"]})
                 logger.debug("loading: subconfig %s / node %s -> thread: %s", self._name, n["name"], n["thread"])
                 tmp = self._graph.addNode(n["library"], n["factoryFunction"], suggestedName=n["name"],
                                           dynamicInputPorts=n["dynamicInputPorts"],
@@ -164,7 +164,7 @@ class SubConfiguration(QObject):
                     ncfg["library"] = "composite://ref"
                     ncfg["factoryFunction"] = lib.getName()
                 else:
-                    raise NexTInternalError("Unexpected factory function '%s'" % factory)
+                    raise NexTInternalError(f"Unexpected factory function '{factory}'")
             else:
                 ncfg["library"] = lib
                 ncfg["factoryFunction"] = factory
@@ -222,6 +222,7 @@ class SubConfiguration(QObject):
         :return: set of strings
         """
         # pylint: disable=import-outside-toplevel
+        # pylint: disable=cyclic-import
         # needed to avoid recursive import
         from nexxT.core.CompositeFilter import CompositeFilter
         from nexxT.core.FilterMockup import FilterMockup

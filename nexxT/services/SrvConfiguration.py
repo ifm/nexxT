@@ -441,6 +441,9 @@ class ConfigurationModel(QAbstractItemModel):
         return 2
 
     def headerData(self, section, orientation, role):
+        """
+        Overwritten from QAbstractItemModel. Provide header names for the columns.
+        """
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return ["Name", "Property"][section]
         return super().headerData(section, orientation, role)
@@ -581,7 +584,7 @@ class ConfigurationModel(QAbstractItemModel):
             return True
         return False
 
-    def headerDate(self, section, orientation, role): # pylint: disable=no-self-use
+    def headerDate(self, section, orientation, role):
         """
         Returns the header data of this model
 
@@ -597,10 +600,17 @@ class ConfigurationModel(QAbstractItemModel):
         return None
 
     def mimeTypes(self):
+        """
+        Overwritten from QAbstractItemModel, provide a mime type for copy/pasting
+        """
         logger.debug("mimeTypes")
         return ["application/x-nexxT-compositefilter"]
 
     def mimeData(self, indices):
+        """
+        Overwritten from QAbstractItemModel, provide the mime data for copy/pasting (note that this doesn't work across
+        processes.
+        """
         logger.debug("mimeData")
         if len(indices) == 1 and indices[0].isValid():
             index = indices[0]
@@ -628,7 +638,7 @@ class MVCConfigurationBase(QObject):
         configuration.appActivated.connect(self.appActivated)
 
     @Slot()
-    def activate(self): # pylint: disable=no-self-use
+    def activate(self):
         """
         Call this slot to activate the current application
 
@@ -647,7 +657,7 @@ class MVCConfigurationBase(QObject):
         execute()
 
     @Slot()
-    def deactivate(self): # pylint: disable=no-self-use
+    def deactivate(self):
         """
         Call this slot to deactivate the current application
 

@@ -208,8 +208,8 @@ class BaseGraphScene(QGraphicsScene):
             style = BaseGraphScene.getData if self.scene() is None else self.scene().getData
             size = style(self, BaseGraphScene.STYLE_ROLE_SIZE)
             vspacing = style(self, BaseGraphScene.STYLE_ROLE_VSPACING)
-            inPortHeight = sum([style(ip, BaseGraphScene.STYLE_ROLE_VSPACING) for ip in self.inPortItems])
-            outPortHeight = sum([style(op, BaseGraphScene.STYLE_ROLE_VSPACING) for op in self.outPortItems])
+            inPortHeight = sum(style(ip, BaseGraphScene.STYLE_ROLE_VSPACING) for ip in self.inPortItems)
+            outPortHeight = sum(style(op, BaseGraphScene.STYLE_ROLE_VSPACING) for op in self.outPortItems)
             nodeHeight = size.height() + max(inPortHeight, outPortHeight)
             return nodeHeight+2*vspacing
 
@@ -237,8 +237,8 @@ class BaseGraphScene(QGraphicsScene):
             hspacing = style(self, BaseGraphScene.STYLE_ROLE_HSPACING)
             radius = style(self, BaseGraphScene.STYLE_ROLE_RRRADIUS)
 
-            inPortHeight = sum([style(ip, BaseGraphScene.STYLE_ROLE_VSPACING) for ip in self.inPortItems])
-            outPortHeight = sum([style(op, BaseGraphScene.STYLE_ROLE_VSPACING) for op in self.outPortItems])
+            inPortHeight = sum(style(ip, BaseGraphScene.STYLE_ROLE_VSPACING) for ip in self.inPortItems)
+            outPortHeight = sum(style(op, BaseGraphScene.STYLE_ROLE_VSPACING) for op in self.outPortItems)
             nodeHeight = size.height() + max(inPortHeight, outPortHeight)
             nodePP.addRoundedRect(hspacing, vspacing, size.width(), nodeHeight, radius, radius)
             if not hasattr(self, "nodeGrItem"):
@@ -1038,7 +1038,7 @@ class GraphScene(BaseGraphScene):
             self.actAddInputPort = QAction("Add dynamic input port ...", self)
             self.actAddOutputPort = QAction("Add dynamic output port ...", self)
             self.actSuggestDynamicPorts = QAction("Suggest dynamic ports ...", self)
-            self.entryPointActions = dict()
+            self.entryPointActions = {}
             for ep in pkg_resources.iter_entry_points("nexxT.filters"):
                 d = self.entryPointActions
                 groups = ep.name.split(".")
@@ -1051,7 +1051,7 @@ class GraphScene(BaseGraphScene):
                 groups = groups[:-1]
                 for g in groups:
                     if not g in d:
-                        d[g] = dict()
+                        d[g] = {}
                     d = d[g]
                 if name in d:
                     logger.warning("Entry point '%s' registered twice, ignoring duplicates", ep.name)
@@ -1106,8 +1106,10 @@ class GraphScene(BaseGraphScene):
                 return QBrush(QColor(255, 255, 255, 100))
         return BaseGraphScene.getData(item, role)
 
-
     def contextMenuEvent(self, event):
+        """
+        Overwritten from QGraphicsScene.
+        """
         item = self.graphItemAt(event.scenePos())
         self.itemOfContextMenu = item
         if isinstance(item, BaseGraphScene.NodeItem):
@@ -1327,8 +1329,7 @@ class GraphScene(BaseGraphScene):
             suff = "*.so"
         else:
             suff = "*.dll"
-        library, ok = QFileDialog.getOpenFileName(self.views()[0], "Choose Library",
-                                                  filter="Filters (*.py %s)" % suff)
+        library, ok = QFileDialog.getOpenFileName(self.views()[0], "Choose Library", filter=f"Filters (*.py {suff})")
         if not (ok and library is not None and os.path.exists(library)):
             return
         if library.endswith(".py"):

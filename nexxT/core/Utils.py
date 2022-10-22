@@ -221,7 +221,7 @@ class SQLiteHandler(logging.Handler):
             self.mutex = QRecursiveMutex()
             self.dbs = {}
         else:
-            raise RuntimeError("Unknown threadSafety option %s" % repr(self.threadSafety))
+            raise RuntimeError(f"Unknown threadSafety option {repr(self.threadSafety)}")
 
     def _getDB(self):
         if self.threadSafety == self.SINGLE_CONNECTION:
@@ -353,6 +353,7 @@ def handleException(func):
         except Exception: # pylint: disable=broad-except
             # catching a general exception is exactly wanted here
             excepthook(*sys.exc_info())
+            return None
     return wrapper
 
 class ElidedLabel(QFrame):
@@ -451,33 +452,3 @@ class ElidedLabel(QFrame):
                 painter.drawText(QPoint(0, y + fontMetrics.ascent()), elidedLastLine)
                 break
         textLayout.endLayout()
-
-if __name__ == "__main__": # pragma: no cover
-    def _smokeTestBarrier():
-        # pylint: disable=import-outside-toplevel
-        # pylint: disable=missing-class-docstring
-        import random
-
-        n = 10
-
-        barrier = Barrier(n)
-
-        def threadWork():
-            st = random.randint(0, 5000)/1000.
-            time.sleep(st)
-            barrier.wait()
-
-        class MyThread(QThread):
-            def run(self):
-                threadWork()
-
-        threads = []
-        for _ in range(n):
-            t = MyThread()
-            t.start()
-            threads.append(t)
-
-        for t in threads:
-            t.wait()
-
-    _smokeTestBarrier()

@@ -29,7 +29,7 @@ class NexTThread(QObject):
         """
 
         @handleException
-        def startupHook(self): # pylint: disable=no-self-use
+        def startupHook(self):
             """
             see https://github.com/nedbat/coveragepy/issues/582
             and https://github.com/nedbat/coveragepy/issues/686
@@ -110,8 +110,8 @@ class NexTThread(QObject):
             self._qthread.wait()
             self._qthread = None
         logger.internal("cleanup filters")
-        for name in self._filters:
-            self._filters[name].destroy()
+        for _, f in self._filters.items():
+            f.destroy()
         self._filters.clear()
         self._filter2name.clear()
         logger.internal("cleanup mockups")
@@ -179,10 +179,10 @@ class NexTThread(QObject):
             # wait for all threads
             barrier.wait()
         # perform operation for all filters
-        for name in self._mockups:
+        for name, mockup in self._mockups.items():
             try:
                 if operation == "create":
-                    res = self._mockups[name].createFilter()
+                    res = mockup.createFilter()
                     res.setParent(self)
                     self._filters[name] = res
                     self._filter2name[res] = name

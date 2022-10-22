@@ -221,7 +221,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
                 return
         # create new graph view
         srv = Services.getService("MainWindow")
-        graphDw = srv.newDockWidget("Graph (%s)" % (subConfig.getName()), parent=None,
+        graphDw = srv.newDockWidget(f"Graph ({subConfig.getName()})", parent=None,
                                     defaultArea=Qt.RightDockWidgetArea,
                                     allowedArea=Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         graphDw.setAttribute(Qt.WA_DeleteOnClose, True)

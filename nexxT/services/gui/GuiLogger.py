@@ -241,7 +241,7 @@ class LogView(QTableView):
             if enabled:
                 func = self.sizeHintForRow
             else:
-                func = lambda r: max(self._getCellHeights(r))
+                func = lambda r: max(self._getCellHeights(r)) # pylint: disable=unnecessary-lambda-assignment
             for r in range(self._model.rowCount(QModelIndex())):
                 self.setRowHeight(r, func(r))
             if self.follow:

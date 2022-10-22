@@ -8,8 +8,16 @@
 Setup the logging here until we have a better place.
 """
 
+cnexxT = None # pylint: disable=invalid-name
+useCImpl = True # pylint: disable=invalid-name
+__version__ = None # pylint: disable=invalid-name
+
 def setup():
+    """
+    Sets up the nexxT environment. In particular, provides the cnexxT and the Qt packages under the nexxT nameespace.
+    """
     # create an alias nexxT.Qt for PySide[26]
+    # pylint: disable=import-outside-toplevel
     import nexxT.QtMetaPackage
 
     try:
@@ -24,7 +32,8 @@ def setup():
     import platform
 
     logger = logging.getLogger()
-    INTERNAL = 5 # setup log level for internal messages
+    # setup log level for internal messages
+    INTERNAL = 5 # pylint: disable=invalid-name
     logging.addLevelName(INTERNAL, "INTERNAL")
     logging.INTERNAL = INTERNAL
     def internal(self, message, *args, **kws):
@@ -39,10 +48,10 @@ def setup():
     logger.info("configured logger")
     logger.setLevel(logging.INFO)
 
-    global __version__
+    global __version__  # pylint: disable=invalid-name
     __version__ = metadata.version("nexxT")
 
-    global useCImpl
+    global useCImpl # pylint: disable=invalid-name
     useCImpl = not bool(int(os.environ.get("NEXXT_DISABLE_CIMPL", "0")))
     if useCImpl:
         # make sure to import nexxT.Qt before loading the cnexxT extension module because
@@ -67,7 +76,7 @@ def setup():
         import nexxT.Qt.QtWidgets
         import nexxT.Qt.QtGui
         import cnexxT as imp_cnexxT
-        global cnexxT
+        global cnexxT # pylint: disable=invalid-name
         cnexxT = imp_cnexxT
         def setLevel(level):
             ret = setLevel.origFunc(level)

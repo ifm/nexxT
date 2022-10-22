@@ -61,7 +61,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         self.actSeekBegin = QAction(QIcon.fromTheme("media-skip-backward",
                                                     style.standardIcon(QStyle.SP_MediaSkipBackward)),
                                     "Seek Begin", self)
-        self.actSetTimeFactor = {r : QAction("x 1/%d" % (1/r), self) if r < 1 else QAction("x %d" % r, self)
+        self.actSetTimeFactor = {r : QAction(f"x 1/{1//r}", self) if r < 1 else QAction(f"x {r}", self)
                                  for r in (1/8, 1/4, 1/2, 1, 2, 4, 8)}
 
         # pylint: disable=unnecessary-lambda
@@ -266,6 +266,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
 
     @staticmethod
     def _timeToString(milliseconds):
+        # pylint: disable=consider-using-f-string
         return "%02d:%02d:%02d.%03d" % (MVCPlaybackControlGUI._splitTime(milliseconds))
 
     def _currentTimestampChanged(self, currentTime):
@@ -401,9 +402,9 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         logger.debug("new timeRatio: %f", newRatio)
         for r in [1/8, 1/4, 1/2, 1, 2, 4, 8]:
             if abs(newRatio / r - 1) < 0.01:
-                self.timeRatioLabel.setText(("x 1/%d"%(1/r)) if r < 1 else ("x %d"%r))
+                self.timeRatioLabel.setText((f"x 1/{1//r}") if r < 1 else (f"x {r}"))
                 return
-        self.timeRatioLabel.setText("%.2f" % newRatio)
+        self.timeRatioLabel.setText(f"{newRatio:.2f}")
         super()._timeRatioChanged(newRatio)
 
     def selectedStream(self):

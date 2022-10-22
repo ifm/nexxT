@@ -43,8 +43,7 @@ class ActiveApplication(QObject):
         self._interThreadConns = []
         self._operationInProgress = False
         # connect signals and slots
-        for tname in self._threads:
-            t = self._threads[tname]
+        for _, t in self._threads.items():
             t.operationFinished.connect(self._operationFinished)
             # we use a queued connection because we want to be able to connect signals
             # to and from this object after constructor has passed
@@ -86,7 +85,7 @@ class ActiveApplication(QObject):
 
     def __del__(self):
         logger.debug("destructor of ActiveApplication")
-        if self._state != FilterState.DESTRUCTING and self._state != FilterState.DESTRUCTED:
+        if self._state not in (FilterState.DESTRUCTING, FilterState.DESTRUCTED):
             logger.warning("ActiveApplication: shutdown in destructor")
             self.cleanup()
         logger.debug("destructor of ActiveApplication done")
@@ -136,7 +135,7 @@ class ActiveApplication(QObject):
         if self._state == FilterState.CONSTRUCTED:
             self.destruct()
         if not self._state == FilterState.DESTRUCTED:
-            raise NexTInternalError("Unexpected state '%s' after shutdown." % FilterState.state2str(self._state))
+            raise NexTInternalError(f"Unexpected state '{FilterState.state2str(self._state)}' after shutdown.")
 
     def stopThreads(self):
         """
@@ -145,8 +144,8 @@ class ActiveApplication(QObject):
         """
         logger.internal("stopping threads...")
         assertMainThread()
-        for tname in self._threads:
-            self._threads[tname].cleanup()
+        for _, t in self._threads.items():
+            t.cleanup()
         self._threads.clear()
 
     @staticmethod
@@ -185,8 +184,7 @@ class ActiveApplication(QObject):
         """
         proxyInputPorts = {}
         proxyOutputPorts = {}
-        for compName in self._composite2graphs:
-            subgraph = self._composite2graphs[compName]
+        for compName, subgraph in self._composite2graphs.items():
             cin_node = "CompositeInput"
             for fromPort in subgraph.allOutputPorts(cin_node):
                 proxyInputPorts[compName, fromPort] = []
@@ -208,7 +206,7 @@ class ActiveApplication(QObject):
         return all connections of this application including the connections from and to composite nodes
         """
         proxyInputPorts, proxyOutputPorts = self._calculateProxyPorts()
-        allGraphs = set([(n, self._composite2graphs[n]) for n in self._composite2graphs] + [("", self._graph)])
+        allGraphs = set(list(self._composite2graphs.items()) + [("", self._graph)])
         res = []
 
         for namePrefix, graph in allGraphs:

@@ -126,7 +126,7 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
 
     for s in execScripts:
         logger.info("Executing script '%s'", s)
-        with open(s) as fscript:
+        with open(s, encoding="utf-8") as fscript:
             # note that exec is used intentionally here to provide the user with scripting possibilities
             exec(compile(fscript.read(), s, 'exec'), code_globals)  # pylint: disable=exec-used
         logger.debug("Executing script done")

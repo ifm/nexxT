@@ -27,7 +27,7 @@ def makeRecord(self, name, level, filename, lineno, msg, args, excInfo, func=Non
     """
     if extra is not None:
         filename, lineno = extra
-        name = "c++/%s" % (os.path.split(filename)[1])
+        name = f"c++/{os.path.split(filename)[1]}"
     return logging.LogRecord(name, level, filename, lineno, msg, args, excInfo, func, sinfo)
 # pylint: enable=too-many-arguments
 # pylint: enable=unused-argument
@@ -39,7 +39,7 @@ class ConsoleLogger(QObject):
     Logging service to console (using python logging module). This class is used to log messages in C++.
     """
     @Slot(int, str, str, int)
-    def log(self, level, message, file, line): # pylint: disable=no-self-use
+    def log(self, level, message, file, line):
         """
         Called from c++ to log a message.
 

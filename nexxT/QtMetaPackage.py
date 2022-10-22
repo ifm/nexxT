@@ -116,7 +116,7 @@ def setup():
     if len(libs) != 1:
         raise RuntimeError("nexxT needs either PySide6 or PySide2 installed (available: %s).", libs)
     libs = libs[0]
-    sys.meta_path.append(QtFinder(QtLoader("nexxT.Qt", libs[0])))
-    sys.meta_path.append(QtFinder(QtLoader("nexxT.shiboken", libs[1])))
+    sys.meta_path = ([QtFinder(QtLoader("nexxT.Qt", libs[0])), QtFinder(QtLoader("nexxT.shiboken", libs[1]))] +
+                     sys.meta_path)
 
 setup()

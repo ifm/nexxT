@@ -17,7 +17,7 @@ from nexxT.core.Exceptions import NexTInternalError, UnexpectedFilterState
 logger = logging.getLogger(__name__)
 
 if useCImpl:
-    import cnexxT
+    import cnexxT # pylint: disable=import-error
     # pylint: disable=invalid-name
     # this is not really a constant, but a class name
     BaseFilterEnvironment = cnexxT.nexxT.BaseFilterEnvironment

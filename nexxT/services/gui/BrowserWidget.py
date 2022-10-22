@@ -12,7 +12,6 @@ from pathlib import Path
 import os
 import platform
 import string
-import nexxT.Qt
 from nexxT.Qt.QtCore import (QAbstractTableModel, Qt, Signal, QModelIndex, QDateTime, QFileInfo, QDir, QEvent)
 from nexxT.Qt.QtGui import QKeyEvent, QKeySequence
 from nexxT.Qt.QtWidgets import (QWidget, QVBoxLayout, QTreeView, QFileIconProvider, QCompleter, QLineEdit, QHeaderView)
@@ -109,8 +108,8 @@ class FolderListModel(QAbstractTableModel):
             self._filter = flt
             if platform.system() == "Windows":
                 if listDrives:
-                    self._children = [Path("%s:/" % dl) for dl in string.ascii_uppercase
-                                      if self.statCache(Path("%s:/" % dl).exists)]
+                    self._children = [Path(f"{dl}:/") for dl in string.ascii_uppercase
+                                      if self.statCache(Path(f"{dl}:/").exists)]
                 else:
                     self._children = [f / ".."]
             else:
@@ -180,11 +179,11 @@ class FolderListModel(QAbstractTableModel):
                 except Exception: # pylint: disable=broad-except
                     return ""
                 if s >= 1024*1024*1024:
-                    return "%.0f GB" % (s / (1024*1024*1024))
+                    return f"{s / (1024*1024*1024):.0f} GB"
                 if s >= 1024*1024:
-                    return "%.0f MB" % (s / (1024*1024))
+                    return f"{s / (1024*1024):.0f} MB"
                 if s >= 1024:
-                    return "%.0f kB" % (s / 1024)
+                    return f"{s / 1024:.0f} kB"
                 return s
             if index.column() == 2:
                 try:
@@ -271,6 +270,9 @@ class TabCompletionLineEdit(QLineEdit):
         return super().event(event)
 
     def keyPressEvent(self, event):
+        """
+        Overwritten from QWidget, intermit paste events to log in the text directly after pasting.
+        """
         ret = super().keyPressEvent(event)
         if event.matches(QKeySequence.Paste):
             self.pasted.emit()
@@ -404,21 +406,3 @@ class BrowserWidget(QWidget):
             self.activated.emit(str(c))
         else:
             self._model.setFolder(c)
-
-if __name__ == "__main__": # pragma: no-cover
-    def main():
-        """
-        Test function
-
-        :return:
-        """
-        # this is just the test function part
-        from nexxT.Qt.QtWidgets import QApplication
-
-        app = QApplication()
-        bw = BrowserWidget()
-        bw.activated.connect(print)
-        bw.setActive("/home/wiedeman/.bashrc")
-        bw.show()
-        nexxT.Qt.call_exec(app)
-    main()

@@ -72,6 +72,11 @@ class PropertyCollectionImpl(PropertyCollection):
         self._loadedFromConfig = loadedFromConfig
 
     def childEvent(self, event):
+        """
+        Overwritten from QObject
+
+        :param event: a QChildEvent instance.
+        """
         assertMainThread()
         if event.added():
             self.childAdded.emit(self, event.child().objectName())
@@ -124,6 +129,7 @@ class PropertyCollectionImpl(PropertyCollection):
             assert isinstance(propertyHandler, PropertyHandler)
             assert isinstance(options, dict)
             if propertyHandler.validate(defaultVal) != defaultVal:
+                # pylint: disable=consider-using-f-string
                 raise PropertyInconsistentDefinition(
                     "The validation of the default value must be the identity (%s != %s)!" %
                     (repr(propertyHandler.validate(defaultVal)), repr(defaultVal)))
@@ -135,8 +141,8 @@ class PropertyCollectionImpl(PropertyCollection):
                     try:
                         p.value = p.handler.validate(p.handler.fromConfig(l))
                     except Exception as e:
-                        raise PropertyParsingError("Error parsing property %s from %s (original exception: %s)" %
-                                                   (name, repr(l), str(e)))
+                        raise PropertyParsingError(
+                            f"Error parsing property {name} from {repr(l)} (original exception: {str(e)})") from e
                 self.propertyAdded.emit(self, name)
             else:
                 # the arguments to getProperty shall be consistent among calls
@@ -198,8 +204,8 @@ class PropertyCollectionImpl(PropertyCollection):
             try:
                 value = p.handler.validate(value)
             except Exception as e:
-                raise PropertyParsingError("Error parsing property %s from %s (original exception: %s)" %
-                                           (name, repr(value), str(e)))
+                raise PropertyParsingError(
+                    f"Error parsing property {name} from {repr(value)} (original exception: {str(e)})") from e
             if value != p.value:
                 p.value = value
                 self.propertyChanged.emit(self, name)
@@ -210,8 +216,8 @@ class PropertyCollectionImpl(PropertyCollection):
         :return: None
         """
         with QMutexLocker(self._propertyMutex):
-            for n in self._properties:
-                self._properties[n].used = False
+            for _, p in self._properties.items():
+                p.used = False
 
     def deleteUnused(self):
         """
@@ -223,8 +229,8 @@ class PropertyCollectionImpl(PropertyCollection):
             return
         with QMutexLocker(self._propertyMutex):
             toDel = []
-            for n in self._properties:
-                if not self._properties[n].used:
+            for n, p in self._properties.items():
+                if not p.used:
                     toDel.append(n)
             for n in toDel:
                 del self._properties[n]
@@ -308,9 +314,9 @@ class PropertyCollectionImpl(PropertyCollection):
             NEXXT_VARIANT="release"
         )
         if platform.system() == "Windows":
-            default_environ["NEXXT_PLATFORM"] = "msvc_x86%s" % ("_64" if platform.architecture()[0] == "64bit" else "")
+            default_environ["NEXXT_PLATFORM"] = f"msvc_x86{'_64' if platform.architecture()[0] == '64bit' else ''}"
         else:
-            default_environ["NEXXT_PLATFORM"] = "linux_x86%s" % ("_64" if platform.architecture()[0] == "64bit" else "")
+            default_environ["NEXXT_PLATFORM"] = f"linux_x86{'_64' if platform.architecture()[0] == '64bit' else ''}"
         origpath = path
         path = string.Template(path).safe_substitute({**default_environ, **os.environ})
         logger.debug("interpolated path %s -> %s", origpath, path)

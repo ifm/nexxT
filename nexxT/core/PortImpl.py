@@ -24,9 +24,9 @@ class InterThreadConnection(QObject):
     """
     transmitInterThread = Signal(object, QSemaphore)
 
-    def __init__(self, qthread_from):
+    def __init__(self, qthreadFrom):
         super().__init__()
-        self.moveToThread(qthread_from)
+        self.moveToThread(qthreadFrom)
         self.semaphore = QSemaphore(1)
         self._stopped = True
 
@@ -224,7 +224,7 @@ class InputPortImpl(InputPortInterface):
                 # first acquire is done by caller
                 self._semaphoreN[semaphore] -= 1
                 # the semaphore's N is too large, try acquires to reduce the size
-                for i in range(1, delta):
+                for _ in range(1, delta):
                     if semaphore.tryAcquire(1):
                         self._semaphoreN[semaphore] -= 1
                     else:
@@ -303,6 +303,7 @@ class InputPortImpl(InputPortInterface):
         if enabled != self._interthreadDynamicQueue:
             state = self.environment().state()
             # pylint: disable=import-outside-toplevel
+            # pylint: disable=cyclic-import
             # needed to avoid recursive import
             from nexxT.interface.Filters import FilterState # avoid recursive import
             if state not in [FilterState.CONSTRUCTING, FilterState.CONSTRUCTED,

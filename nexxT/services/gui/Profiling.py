@@ -75,17 +75,17 @@ class LoadDisplayWidget(QWidget):
         if thread in self._loadData:
             del self._loadData[thread]
 
-    def paintEvent(self, ev):
+    def paintEvent(self, event):
         """
         Manually implemented paint event
 
-        :param ev: the QT paint event
+        :param event: the QT paint event
         :return:
         """
         h = self.height()
         w = self.width()
         p = QPainter(self)
-        p.setClipRect(ev.region().boundingRect())
+        p.setClipRect(event.region().boundingRect())
         pen = QPen(QColor(0, 0, 0))
         pen.setWidth(4)
         ls = QFontMetricsF(p.font()).lineSpacing()
@@ -99,7 +99,7 @@ class LoadDisplayWidget(QWidget):
             p.drawText(QPointF(35, y), t)
 
         if len(self._loadData) > 0:
-            right = max([polygon[polygon.count()-1].x() for _, polygon in self._loadData.items()])
+            right = max(polygon[polygon.count()-1].x() for _, polygon in self._loadData.items())
         else:
             right = 0.0
         p.translate(w-10-right*20, h-10)
@@ -173,18 +173,18 @@ class SpanDisplayWidget(QWidget):
         if thread in self._spanData:
             self._removedThreads.add(thread)
 
-    def paintEvent(self, ev):
+    def paintEvent(self, event):
         """
         Manually implemented paint event of the time / occupancy diagram.
 
-        :param ev: the qt paint event
+        :param event: the qt paint event
         :return:
         """
         bgcolor = self.palette().color(self.backgroundRole())
         h = self.height()
         w = self.width()
         p = QPainter(self)
-        p.setClipRect(ev.region().boundingRect())
+        p.setClipRect(event.region().boundingRect())
         pen = QPen(QColor(0, 0, 0))
         pen.setWidth(0)
         pen.setCosmetic(True)
@@ -248,9 +248,9 @@ class SpanDisplayWidget(QWidget):
         :return: a string instance containing the profiling info.
         """
         sd = self._spanData[thread][port]
-        res = "Thread: %s, Port: %s\n" % (thread, port)
+        res = f"Thread: {thread}, Port: {port}\n"
         groups = []
-        activeGroup = dict()
+        activeGroup = {}
         for i in range(sd.shape[0]):
             if len(activeGroup) > 0:
                 if sd[i, 1] <= activeGroup["finish"]:
@@ -260,27 +260,27 @@ class SpanDisplayWidget(QWidget):
             activeGroup = dict(start=sd[i, 0], finish=sd[i, 1], subcalls=[])
         for i, g in enumerate(groups[::-1]):
             total = (g["finish"] - g["start"])*1e-6
-            exclusive = sum([sc[1]-sc[0] for sc in g["subcalls"]])*1e-6
+            exclusive = sum(sc[1]-sc[0] for sc in g["subcalls"])*1e-6
             subcalls = total - exclusive
-            res += " event[%d] Total runtime: %.1f ms; Exclusive time: %.1f ms; Subcall time: %.1f ms\n" % (
-                -i-1, total, exclusive, subcalls)
+            res += f" event[{-i-1}] Total runtime: {total:.1f} ms;"
+            res += f" Exclusive time: {exclusive:.1f} ms; Subcall time: {subcalls:.1f} ms\n"
             if i >= 9: # show last 10 calls
                 break
         return res
 
-    def event(self, ev):
+    def event(self, event):
         """
         Event filter for generating tool tips.
 
-        :param ev: a QEvent instance.
+        :param event: a QEvent instance.
         :return:
         """
-        if ev.type() == QEvent.ToolTip:
+        if event.type() == QEvent.ToolTip:
             for thread, port, y1, y2 in self.portYCoords:
-                if ev.pos().y() >= y1 and ev.pos().y() <= y2:
-                    QToolTip.showText(ev.globalPos(), self.textDescription(thread, port))
+                if event.pos().y() >= y1 and event.pos().y() <= y2:
+                    QToolTip.showText(event.globalPos(), self.textDescription(thread, port))
             return True
-        return super().event(ev)
+        return super().event(event)
 
 class Profiling(ProfilingService):
     """

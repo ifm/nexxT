@@ -15,7 +15,7 @@ class PropertyDelegate(QStyledItemDelegate):
     """
     This class provides a delegate for providing editor widgets for the nexxT gui service Configuration.
     """
-    def __init__(self, model, role, PropertyContent, parent):
+    def __init__(self, model, role, PropertyContent, parent): # pylint: disable=invalid-name
         """
         Constructor.
 

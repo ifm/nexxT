@@ -45,7 +45,7 @@ class FilterState:
         for k in FilterState.__dict__:
             if k[0] != "_" and k.upper() == k and getattr(FilterState, k) == state:
                 return k
-        raise RuntimeError("Unknown state %s" % state)
+        raise RuntimeError(f"Unknown state {state}")
 
 
 class Filter(QObject):
@@ -243,7 +243,7 @@ class Filter(QObject):
         """
         return self._environment
 
-    def onSuggestDynamicPorts(self): # pylint: disable=no-self-use
+    def onSuggestDynamicPorts(self):
         """
         Shall return the suggested dynamic ports of this filter. Prominent example is to return the streams
         contained in a HDF5 file. Note that it is safe to assume that the instance lives in the GUI thread,

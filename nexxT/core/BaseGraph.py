@@ -50,9 +50,9 @@ class BaseGraph(QObject):
         if not nodeName in self._nodes:
             return nodeName
         t = 2
-        while "%s%d" % (nodeName, t) in self._nodes:
+        while f"{nodeName}{t}" in self._nodes:
             t += 1
-        return "%s%d" % (nodeName, t)
+        return f"{nodeName}{t}"
 
     def protect(self, name):
         """
@@ -97,7 +97,7 @@ class BaseGraph(QObject):
         of = self._nodes[oldName]
         del self._nodes[oldName]
         self._nodes[newName] = of
-        for i in range(len(self._connections)):
+        for i, c in enumerate(self._connections):
             c = self._connections[i]
             if c[0] == oldName:
                 c = (newName, c[1], c[2], c[3])
@@ -199,8 +199,7 @@ class BaseGraph(QObject):
         if not portName in self._nodes[node]["inports"]:
             raise PortNotFoundError(node, portName)
         toDel = []
-        for i in range(len(self._connections)):
-            fromNode, fromPort, toNode, toPort = self._connections[i]
+        for fromNode, fromPort, toNode, toPort in self._connections:
             if (toNode == node and toPort == portName):
                 toDel.append((fromNode, fromPort, toNode, toPort))
         for c in toDel:
@@ -229,8 +228,7 @@ class BaseGraph(QObject):
             raise PortExistsError(node, newPortName)
         idx = self._nodes[node]["inports"].index(oldPortName)
         self._nodes[node]["inports"][idx] = newPortName
-        for i in range(len(self._connections)):
-            fromNode, fromPort, toNode, toPort = self._connections[i]
+        for i, (fromNode, fromPort, toNode, toPort) in enumerate(self._connections):
             if (toNode == node and toPort == oldPortName):
                 toPort = newPortName
             self._connections[i] = (fromNode, fromPort, toNode, toPort)
@@ -266,8 +264,7 @@ class BaseGraph(QObject):
         if not portName in self._nodes[node]["outports"]:
             raise PortNotFoundError(node, portName)
         toDel = []
-        for i in range(len(self._connections)):
-            fromNode, fromPort, toNode, toPort = self._connections[i]
+        for fromNode, fromPort, toNode, toPort in self._connections:
             if (fromNode == node and fromPort == portName):
                 toDel.append((fromNode, fromPort, toNode, toPort))
         for c in toDel:
@@ -296,8 +293,7 @@ class BaseGraph(QObject):
             raise PortExistsError(node, newPortName)
         idx = self._nodes[node]["outports"].index(oldPortName)
         self._nodes[node]["outports"][idx] = newPortName
-        for i in range(len(self._connections)):
-            fromNode, fromPort, toNode, toPort = self._connections[i]
+        for i, (fromNode, fromPort, toNode, toPort) in enumerate(self._connections):
             if (fromNode == node and fromPort == oldPortName):
                 fromPort = newPortName
             self._connections[i] = (fromNode, fromPort, toNode, toPort)
