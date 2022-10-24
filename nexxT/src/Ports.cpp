@@ -32,9 +32,10 @@ namespace nexxT
 
     struct InterThreadConnectionD
     {
+        int width;
         QSemaphore semaphore;
         std::atomic_bool stopped;
-        InterThreadConnectionD(int n) : semaphore(n), stopped(true) {}
+        InterThreadConnectionD(int width) : width(width), semaphore(width), stopped(true) {}
     };
 
 };
@@ -86,8 +87,8 @@ SharedPortPtr Port::make_shared(Port *port)
     return SharedPortPtr(port);
 }
 
-InterThreadConnection::InterThreadConnection(QThread *from_thread)
-    : d(new InterThreadConnectionD(1))
+InterThreadConnection::InterThreadConnection(QThread *from_thread, int width)
+    : d(new InterThreadConnectionD(width))
 {
     moveToThread(from_thread);
 }
@@ -106,9 +107,9 @@ void InterThreadConnection::receiveSample(const QSharedPointer<const DataSample>
             NEXXT_LOG_WARN("The inter-thread connection is set to stopped mode; data sample discarded.");
             break;
         }
-        if( d->semaphore.tryAcquire(1, 500) )
+        if( (d->width == 0) || (d->semaphore.tryAcquire(1, 500)) )
         {
-            emit transmitInterThread(sample, &d->semaphore);
+            emit transmitInterThread(sample, (d->width > 0) ? (&d->semaphore) : 0 );
             break;
         }
     }

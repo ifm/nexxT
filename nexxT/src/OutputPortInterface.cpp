@@ -47,9 +47,9 @@ void OutputPortInterface::setupDirectConnection(const SharedPortPtr &op, const S
                      p1, SLOT(receiveSync(const QSharedPointer<const nexxT::DataSample> &)));
 }
 
-QObject *OutputPortInterface::setupInterThreadConnection(const SharedPortPtr &op, const SharedPortPtr &ip, QThread &outputThread)
+QObject *OutputPortInterface::setupInterThreadConnection(const SharedPortPtr &op, const SharedPortPtr &ip, QThread &outputThread, int width)
 {
-    InterThreadConnection *itc = new InterThreadConnection(&outputThread);
+    InterThreadConnection *itc = new InterThreadConnection(&outputThread, width);
     const OutputPortInterface *p0 = dynamic_cast<const OutputPortInterface *>(op.data());
     const InputPortInterface *p1 = dynamic_cast<const InputPortInterface *>(ip.data());
     QObject::connect(p0, SIGNAL(transmitSample(const QSharedPointer<const nexxT::DataSample>&)),

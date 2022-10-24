@@ -89,7 +89,7 @@ namespace nexxT
 
         InterThreadConnectionD *const d;
     public:
-        InterThreadConnection(QThread *qthread_from);
+        InterThreadConnection(QThread *qthread_from, int width);
         virtual ~InterThreadConnection();
 
     signals:
