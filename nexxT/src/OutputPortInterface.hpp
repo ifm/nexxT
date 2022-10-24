@@ -69,7 +69,7 @@ namespace nexxT
         /*!
             Called by the nexxT framework, not intended to be used directly.
         */
-        static QObject *setupInterThreadConnection(const SharedPortPtr &, const SharedPortPtr &, QThread &);
+        static QObject *setupInterThreadConnection(const SharedPortPtr &, const SharedPortPtr &, QThread &, int width);
     };
 
 };

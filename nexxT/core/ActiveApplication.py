@@ -161,11 +161,13 @@ class ActiveApplication(QObject):
                 for idx in range(len(proxy[compName, fromPort])):
                     if proxy[compName, fromPort][idx] is None:
                         continue
-                    proxyNode, proxyPort = proxy[compName, fromPort][idx]
+                    proxyNode, proxyPort, w = proxy[compName, fromPort][idx]
                     # if fromNode is itself a composite node, resolve it
                     if (proxyNode, proxyPort) in proxy:
                         changed = True
                         proxy[compName, fromPort][idx] = None
+                        for _, _, widths in proxy[proxyNode, proxyPort]:
+                            widths.extend(w)
                         proxy[compName, fromPort].extend(proxy[proxyNode, proxyPort])
         # remove None's
         for compName, fromPort in proxy:
@@ -189,13 +191,15 @@ class ActiveApplication(QObject):
             for fromPort in subgraph.allOutputPorts(cin_node):
                 proxyInputPorts[compName, fromPort] = []
                 for _, _, toNode, toPort in subgraph.allConnectionsFromOutputPort(cin_node, fromPort):
-                    proxyInputPorts[compName, fromPort].append((compName + "/" + toNode, toPort))
+                    width = subgraph.getConnectionProperties(cin_node, fromPort, toNode, toPort)["width"]
+                    proxyInputPorts[compName, fromPort].append((compName + "/" + toNode, toPort, [width]))
                 proxyOutputPorts[compName + "/" + cin_node, fromPort] = []
             cout_node = "CompositeOutput"
             for toPort in subgraph.allInputPorts(cout_node):
                 proxyOutputPorts[compName, toPort] = []
                 for fromNode, fromPort, _, _ in subgraph.allConnectionsToInputPort(cout_node, toPort):
-                    proxyOutputPorts[compName, toPort].append((compName + "/" + fromNode, fromPort))
+                    width = subgraph.getConnectionProperties(fromNode, fromPort, cout_node, toPort)["width"]
+                    proxyOutputPorts[compName, toPort].append((compName + "/" + fromNode, fromPort, [width]))
                 proxyInputPorts[compName + "/" + cout_node, toPort] = []
 
         return self._compress(proxyInputPorts), self._compress(proxyOutputPorts)
@@ -211,22 +215,24 @@ class ActiveApplication(QObject):
 
         for namePrefix, graph in allGraphs:
             for fromNode, fromPort, toNode, toPort in graph.allConnections():
+                width = graph.getConnectionProperties(fromNode, fromPort, toNode, toPort)["width"]
                 fromName = namePrefix + "/" + fromNode
                 toName = namePrefix + "/" + toNode
 
                 if (fromName, fromPort) in proxyOutputPorts:
                     src = proxyOutputPorts[fromName, fromPort]
                 else:
-                    src = [(fromName, fromPort)]
+                    src = [(fromName, fromPort, [width])]
 
                 if (toName, toPort) in proxyInputPorts:
                     dest = proxyInputPorts[toName, toPort]
                 else:
-                    dest = [(toName, toPort)]
+                    dest = [(toName, toPort, [width])]
 
                 for s in src:
                     for d in dest:
-                        res.append(s + d)
+                        widths = set(s[2] + d[2] + [width])
+                        res.append((s[:2] + d[:2], 0 if 0 in widths else max(widths)))
         return res
 
     def _setupConnections(self):
@@ -239,7 +245,7 @@ class ActiveApplication(QObject):
         graph = {}
         if self._graphConnected:
             return
-        for fromNode, fromPort, toNode, toPort in self._allConnections():
+        for (fromNode, fromPort, toNode, toPort), width in self._allConnections():
             fromThread = self._filters2threads[fromNode]
             toThread = self._filters2threads[toNode]
             t0 = self._threads[fromThread]
@@ -249,13 +255,14 @@ class ActiveApplication(QObject):
             if toThread == fromThread:
                 OutputPortInterface.setupDirectConnection(p0, p1)
             else:
-                itc = OutputPortInterface.setupInterThreadConnection(p0, p1, self._threads[fromThread].qthread())
+                itc = OutputPortInterface.setupInterThreadConnection(p0, p1, self._threads[fromThread].qthread(), width)
                 self._interThreadConns.append(itc)
                 if not fromThread in graph:
                     graph[fromThread] = set()
                 if not toThread in graph:
                     graph[toThread] = set()
-                graph[fromThread].add(toThread)
+                if width > 0:
+                    graph[fromThread].add(toThread)
 
         def _checkCycle(thread, cycleInfo):
             if thread in cycleInfo:

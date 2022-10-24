@@ -32,7 +32,7 @@ class FilterGraph(BaseGraph):
     dynOutputPortDeleted = Signal(str, str)
 
     def __init__(self, subConfig):
-        super().__init__()
+        super().__init__(defaultConnProp=dict(width=1))
         assertMainThread()
         self._parent = subConfig
         self._filters = {}
