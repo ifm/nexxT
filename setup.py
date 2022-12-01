@@ -141,7 +141,10 @@ if build_required:
         raise RuntimeError("PySide%s must be installed for building the extension module." % os.environ.get("PYSIDEVERSION", "6"))
     cwd = pathlib.Path().absolute()
     os.chdir("workspace")
-    subprocess.run([sys.executable, os.path.dirname(sys.executable) + "/scons", "-j%d" % multiprocessing.cpu_count(), ".."], check=True)
+    if platform.system() == "Linux":
+        subprocess.run([sys.executable, os.path.dirname(sys.executable) + "/scons", "-j%d" % multiprocessing.cpu_count(), ".."], check=True)
+    else:
+        subprocess.run([os.path.join(os.path.dirname(sys.executable), "scons.exe"), "-j%d" % multiprocessing.cpu_count(), ".."], check=True)    
     os.chdir(str(cwd))    
     
 setup(name='nexxT',
