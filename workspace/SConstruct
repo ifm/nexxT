@@ -53,16 +53,18 @@ if platform.system() == "Linux":
     
 else:
     # windows environment
-    env = Environment(MSVC_VERSION="14.0", 
-                      tools=["default", "qt5"], 
+    env = Environment(MSVC_VERSION="14.2", 
+                      tools=["default"], 
                       toolpath=["#/sconstools3"],
                       target_platform="msvc_x86_64",
                       deploy_platform="msvc_x86_64",
                       variant="unknown")                     
     if qtversion[0] == "5":
         env["QT5VERSION"] = qtversion
+        env.Tool("qt5")
     elif qtversion[0] == "6":
         env["QT6VERSION"] = qtversion
+        env.Tool("qt6")
     else:
         raise RuntimeError("Unknown Qt Version: %s", qtversion)
 
@@ -84,10 +86,10 @@ if platform.system() == "Linux":
                         variant="release")    
 else:    
     env.Append(CPPDEFINES=["_CRT_SECURE_NO_WARNINGS"])
-    dbg_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Od /Ob2 /Z7 /MD /std:%s" % standard),
+    dbg_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Od /Ob2 /Z7 /MD /std:%s /Zc:__cplusplus /permissive-" % standard),
                         LINKFLAGS=Split("/nologo /DEBUG"),
                         variant="nonopt")
-    rel_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Ox /Z7 /MD /std:%s" % standard),
+    rel_env = env.Clone(CCFLAGS=Split("/nologo /EHsc /TP /W3 /Ox /Z7 /MD /std:%s /Zc:__cplusplus /permissive-" % standard),
                         LINKFLAGS=Split("/nologo /DEBUG"),
                         variant="release")
 
