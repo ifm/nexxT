@@ -219,10 +219,13 @@ void InputPortInterface::receiveAsync(const QSharedPointer<const DataSample> &sa
             stackDepth--;
         }
         addToQueue(sample);
-        if(!d->interthreadDynamicQueue)
+        if( (!d->interthreadDynamicQueue) || (!semaphore) )
         {
             transmit();
-            semaphore->release(1);
+            if(semaphore)
+            {
+                semaphore->release(1);
+            }
         } else
         {
             if( d->semaphoreN.find(semaphore) == d->semaphoreN.end() )

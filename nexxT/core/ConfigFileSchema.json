@@ -16,7 +16,7 @@
     "connection": {
       "description": "Used for specifying a connection.",
       "type": "string",
-      "pattern": "^[A-Za-z_][A-Za-z0-9_-]*[.][A-Za-z_][A-Za-z0-9_-]*\\s*[-][>]\\s*[A-Za-z_][A-Za-z0-9_-]*[.][A-Za-z_][A-Za-z0-9_-]*$"
+      "pattern": "^[A-Za-z_][A-Za-z0-9_-]*[.][A-Za-z_][A-Za-z0-9_-]*\\s*[-]\\d*[>]\\s*[A-Za-z_][A-Za-z0-9_-]*[.][A-Za-z_][A-Za-z0-9_-]*$"
     },
     "propertySection": {
       "type": "object",

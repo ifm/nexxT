@@ -12,6 +12,7 @@ Real gui testing, a handy command for monitoring what's going on in the headless
 You can also pass --no-xvfb to pytest and also --keep-open for inspecting the issue in head mode.
 """
 
+import json
 import os
 import logging
 from pathlib import Path
@@ -1273,10 +1274,13 @@ class DeadlockTestIssue25(GuiTestBase):
     """
     Concrete test class for the test_property test case
     """
-    def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir):
+    def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir, change_conn):
         super().__init__(qtbot, xvfb, keep_open, delay, tmpdir)
+        self.change_conn = change_conn
+        self.tmpdir = tmpdir
 
     def _stage0(self):
+        tmpdir = self.tmpdir
         conf = None
         mw = None
         try:
@@ -1285,7 +1289,17 @@ class DeadlockTestIssue25(GuiTestBase):
             conf = Services.getService("Configuration")
             log = Services.getService("Logging")
             # load recent config
-            fn = str((Path(__file__).parent.parent / "core" / "test_deadlock.json").absolute())
+            if self.change_conn is None:
+                fn = str((Path(__file__).parent.parent / "core" / "test_deadlock.json").absolute())
+            else:
+                cfg = json.load((Path(__file__).parent.parent / "core" / "test_deadlock.json").open("rb"))
+                conns = cfg["applications"][0]["connections"]
+                conns = conns[:self.change_conn] + conns[self.change_conn+1:]
+                cfg["applications"][0]["connections"] = conns
+                fn = Path(tmpdir) / "test_deadlock.json"
+                with fn.open("w") as fp:
+                    json.dump(cfg, fp)
+                fn = str(fn.absolute())
             logger.info("laoding fn=%s", fn)
             QTimer.singleShot(self.delay, lambda: self.enterText(fn))
             conf.actLoad.trigger()
@@ -1293,10 +1307,15 @@ class DeadlockTestIssue25(GuiTestBase):
 
             appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("deadlock"))
             self.cmContextMenu(conf, appidx, CM_INIT_APP)
-            self.qtbot.wait(1000)
-            logMsg = "This graph is not deadlock-safe. A cycle has been found in the thread graph: main->compute->main"
-            self.noWarningsInLog(log, ignore=[logMsg])
-            self.assertLogItem(log, "ERROR", logMsg)
+            if self.change_conn in [None, 0, 2]:
+                self.qtbot.wait(1000)
+                logMsg = "This graph is not deadlock-safe. A cycle has been found in the thread graph: main->compute->main"
+                self.noWarningsInLog(log, ignore=[logMsg])
+                self.assertLogItem(log, "ERROR", logMsg)
+            else:
+                self.qtbot.wait(10000)
+                self.noWarningsInLog(log)
+
             # assert that the samples arrived in the correct order
             def assertSampleOrder():
                 numRows = log.logWidget.model().rowCount(QModelIndex())
@@ -1330,8 +1349,9 @@ class DeadlockTestIssue25(GuiTestBase):
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])
 @pytest.mark.timeout(60, method="thread")
-def test_deadlock_issue25(qtbot, xvfb, keep_open, delay, tmpdir):
-    test = DeadlockTestIssue25(qtbot, xvfb, keep_open, delay, tmpdir)
+@pytest.mark.parametrize("change_conn", [None, 0, 1, 2, 3])
+def test_deadlock_issue25(qtbot, xvfb, keep_open, delay, tmpdir, change_conn):
+    test = DeadlockTestIssue25(qtbot, xvfb, keep_open, delay, tmpdir, change_conn)
     test.test()
 
 class ExecutionOrderTest(GuiTestBase):

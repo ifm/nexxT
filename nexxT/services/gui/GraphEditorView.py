@@ -77,7 +77,7 @@ class GraphEditorView(QGraphicsView):
             saved["nodes"] = saved["nodes"][:i] + saved["nodes"][i+1:]
         cToDel = set()
         for c in saved["connections"]:
-            node1, _, node2, _ = SubConfiguration.connectionStringToTuple(c)
+            node1, _, node2, _, _ = SubConfiguration.connectionStringToTuple(c)
             if node1 in deletedNodes or node2 in deletedNodes:
                 cToDel.add(c)
         for c in cToDel:
@@ -107,10 +107,10 @@ class GraphEditorView(QGraphicsView):
                 n["name"] = nameTransformations[n["name"]]
             newConn = []
             for c in cfg["connections"]:
-                node1, port1, node2, port2 = SubConfiguration.connectionStringToTuple(c)
+                node1, port1, node2, port2, props = SubConfiguration.connectionStringToTuple(c)
                 node1 = nameTransformations[node1]
                 node2 = nameTransformations[node2]
-                newConn.append(SubConfiguration.tupleToConnectionString((node1, port1, node2, port2)))
+                newConn.append(SubConfiguration.tupleToConnectionString((node1, port1, node2, port2, props)))
             cfg["connections"] = newConn
             def compositeLookup(name):
                 return self.scene().graph.getSubConfig().getConfiguration().compositeFilterByName(name)

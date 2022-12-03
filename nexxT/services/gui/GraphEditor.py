@@ -1028,9 +1028,15 @@ class GraphScene(BaseGraphScene):
         self.actAddNode = QAction("Add filter from file ...", self)
         self.actAutoLayout = QAction("Auto layout", self)
         self.actRemoveConnection = QAction("Remove connection ...", self)
+        self.actSetNonblockingConnection = QAction("Set non blocking", self)
+        self.actSetStandardBlockingConnection = QAction("Set blocking", self)
+        self.actSetCustomBlockingConnection = QAction("Set blocking with width ...", self)
         self.actRenameNode.triggered.connect(self.renameDialog)
         self.actRemoveNode.triggered.connect(self.removeDialog)
         self.actRemoveConnection.triggered.connect(self.onConnectionRemove)
+        self.actSetNonblockingConnection.triggered.connect(self.onConnSetNonBlocking)
+        self.actSetStandardBlockingConnection.triggered.connect(self.onConnSetBlocking)
+        self.actSetCustomBlockingConnection.triggered.connect(self.onConnSetCustom)
         self.actAutoLayout.triggered.connect(self.autoLayout)
         if isinstance(self.graph, FilterGraph):
             self.actRenamePort = QAction("Rename dynamic port ...", self)
@@ -1104,6 +1110,20 @@ class GraphScene(BaseGraphScene):
                 if len(threads) > 1:
                     return QBrush(QColor(255, 255, 255, 200))
                 return QBrush(QColor(255, 255, 255, 100))
+        if isinstance(item, BaseGraphScene.ConnectionItem) and isinstance(self.graph, FilterGraph):
+            if role == BaseGraphScene.STYLE_ROLE_PEN:
+                pen = BaseGraphScene.getData(item, role)
+                assert isinstance(pen, QPen)
+                nodeFrom = item.portFrom.nodeItem.name
+                portFrom = item.portFrom.name
+                nodeTo = item.portTo.nodeItem.name
+                portTo = item.portTo.name
+                width = self.graph.getConnectionProperties(nodeFrom, portFrom, nodeTo, portTo)["width"]
+                if width == 0:
+                    pen.setColor(QColor.fromString("red"))
+                elif width > 1:
+                    pen.setColor(QColor.fromString("blue"))
+                return pen
         return BaseGraphScene.getData(item, role)
 
     def contextMenuEvent(self, event):
@@ -1142,7 +1162,10 @@ class GraphScene(BaseGraphScene):
             nexxT.Qt.call_exec(m, event.screenPos())
         elif isinstance(item, BaseGraphScene.ConnectionItem):
             m = QMenu(self.views()[0])
-            m.addActions([self.actRemoveConnection])
+            m.addActions([self.actSetNonblockingConnection,
+                          self.actSetStandardBlockingConnection,
+                          self.actSetCustomBlockingConnection,
+                          self.actRemoveConnection])
             nexxT.Qt.call_exec(m, event.screenPos())
         else:
             self.itemOfContextMenu = event.scenePos()
@@ -1230,6 +1253,27 @@ class GraphScene(BaseGraphScene):
         item = self.itemOfContextMenu
         self.graph.deleteConnection(item.portFrom.nodeItem.name, item.portFrom.name,
                                     item.portTo.nodeItem.name, item.portTo.name)
+
+    def onConnSetNonBlocking(self):
+        item = self.itemOfContextMenu
+        self.graph.setConnectionProperties(item.portFrom.nodeItem.name, item.portFrom.name,
+                                           item.portTo.nodeItem.name, item.portTo.name, dict(width=0))
+        item.sync()
+
+    def onConnSetBlocking(self):
+        item = self.itemOfContextMenu
+        self.graph.setConnectionProperties(item.portFrom.nodeItem.name, item.portFrom.name,
+                                           item.portTo.nodeItem.name, item.portTo.name, dict(width=1))
+        item.sync()
+
+    def onConnSetCustom(self):
+        item = self.itemOfContextMenu
+        c = item.portFrom.nodeItem.name, item.portFrom.name, item.portTo.nodeItem.name, item.portTo.name
+        width = self.graph.getConnectionProperties(*c)["width"]
+        width, ok = QInputDialog.getInt(self.views()[0], self.sender().text(), "Enter connection width", width, 1)
+        if ok:
+            self.graph.setConnectionProperties(*(c + (dict(width=width),)))
+            item.sync()
 
     def addInputPort(self):
         """
