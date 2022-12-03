@@ -168,7 +168,7 @@ class BaseGraph(QObject):
         :param portNameFrom: the source port
         :param nodeNameTo: the target node
         :param portNameTo: the target port
-        :return: NoWne
+        :return: None
         """
         assertMainThread()
         if (nodeNameFrom, portNameFrom, nodeNameTo, portNameTo) not in self._connections:
