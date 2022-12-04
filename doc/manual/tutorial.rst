@@ -149,6 +149,31 @@ Now it's time to save the configuration in the tool bar and test it. Initialize 
 
 .. image:: example-first-app-running.png
 
+Thread cycles and Deadlocks
++++++++++++++++++++++++++++
+
+When you get error messages like
+
+.. code-block:: console
+
+    nexxT.core.ActiveApplication: This graph is not deadlock-safe. A cycle has been found in the thread graph: main->compute->main
+
+you have tried to create an application which is potentially deadlocking. In the message above, it is stated that
+there is a dependency cycle in the filters of the threads main and compute. This is the corresponding filter graph:
+
+.. image:: example-deadlock.png
+
+The reason for the possible deadlocks is that nexxT by default uses a semaphore to control the number of pending samples in inter-thread connections. When transmitting a sample to another thread which has not yet processed the last transmitted sample, the transmitting thread blocks until the last transmitted sample has been received by the receiving thread. This behaviour might cause deadlocks in the presence of cycles, nexxT detects these cycles and refuses to execute these applications.
+
+There are multiple solutions for this issue:
+
+- move filters to other threads. The above examples gets deadlock safe when moving the filter *filt_gui* from the gui thread (green) to the compute thread (dark-blue).
+- Moving all filters to the main thread is always a solution, but this might be too slow.
+- Use non-blocking connections for specific inter-thread connections (right-click on a connection and select *Set non blocking*. Non-blocking connections do not check for pending data samples, so they cannot cause deadlocks. Non blocking conenctions are displayed in red in the filter graph:
+
+.. image:: example-deadlock-fixed.png
+
+Note that non-blocking connections come with the risk that a potentially infinite amount of data is pending on inter-thread connections. This might cause high latency or event out-of-memory situations. Therefore, non-blocking connections are not recommended to be used at high data rate connections. Output ports triggered by sporadic events are best suited for non-blocking connections.
 
 Developer Perspectives
 ----------------------
