@@ -73,12 +73,12 @@ class BinaryDistribution(setuptools.Distribution):
         #print("IS_PURE WAS CALLED!")
         return False
         
-    def get_option_dict(self, k):
-        res = super().get_option_dict(k)
-        if k == "install":
-            res["install_lib"] = "platlib"
-        #print("GET_OPTION_DICT CALLED:", k, res)
-        return res
+    #def get_option_dict(self, k):
+    #    res = super().get_option_dict(k)
+    #    #if k == "install":
+    #    #    res["install_lib"] = "platlib"
+    #    #print("GET_OPTION_DICT CALLED:", k, res)
+    #    return res
     
 if platform.system() == "Linux":
     p = "linux_x86_64"
