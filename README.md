@@ -8,7 +8,7 @@
 - A state machine guarantees consistent behaviour in initialization, active and shutdown phases across plugins and threads.
 - Non-intrusive design. Unlike other frameworks, nexxT tries its best to leave the developers the freedom they need. No directory structures are predefined, no build tools are required, the data formats are not predefined.
 - Rapid prototyping of algorithms using python, both online (i.e. using an active sensor) and offline (i.e. using data from disk).
-- Visualization can be done using python visualization toolkits supporting QT5.
+- Visualization can be done using python visualization toolkits supporting QT6.
 - Efficient pipelines can be built without interacting with the python interpreter by using only C++ plugins.
 - The open source license gives freedom to adapt code if necessary.
 - Cross platform compatibility for windows and linux.
@@ -41,22 +41,36 @@ Assuming that you have a python3.7+ interpreter in your path, the installation i
     python -m pip install pip -U
     pip install nexxT
 
+## Porting from nexxT 0.x to nexxT 1.x (aka PySide2 to PySide6)
+
+The main change for nexxT 1.x is the update to QT6 and PySide6. For flexibility reasons, nexxT now provides a meta package nexxT.Qt, which can be used instead of PySide6. So for porting from PySide2 to PySide6, the necessary change is to replace
+
+    from PySide2 import xyz
+    from PySide2.QtWidgets import uvw
+
+to 
+
+    from nexxT.Qt import xyz
+    from nexxT.Qt.QtWidgets import uvw
+
+In the future, this approach might be also used to support PyQt6, so using nexxT.Qt is recommended over the also possible direct usage of PySide6. Note that the implementation of nexxT.Qt imports the PySide moduels on demand using sys.meta_path, so the approach is still efficient.
+
+Note the porting guide of PySide6: https://doc.qt.io/qtforpython/porting_from2.html. Note that QAction and QShortcut have been moved from QtWidgets to QtGui.
+
 ## Building from source
 
-Building from source requires a QT5 installation suited to the PySide2 version used for the build. It is ok to use 5.14.0 to build against all versions 5.14.x of PySide2 because of QT's binary compatibility. You have to set the environment variable QTDIR to the installation directory of QT. Note that this installation is only used during build time, at runtime, nexxT always uses the QT version shipped with PySide2.
+Building from source requires a QT6 installation suited to the PySide6 version used for the build. It is ok to use 6.4.0 to build against all versions 6.4.x of PySide6 because of QT's binary compatibility. You have to set the environment variable QTDIR to the installation directory of QT. Note that this installation is only used during build time, at runtime, nexxT always uses the QT version shipped with PySide6.
 
-On linux, you will be caught by the following known bug from QT: https://bugreports.qt.io/browse/QTBUG-80922?focusedCommentId=558603&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-558603. Apply the fix mentioned in the linked comment.
+On linux, you will also need llvm and clang installed (because of the shiboken6 dependency). You might need to set the environment variable LLVM_INSTALL_DIR.
 
-On linux, you will also need llvm and clang installed (because of the shiboken2 dependency). You might need to set the environment variable LLVM_INSTALL_DIR.
-
-The following commands build nexxT from source using the non-recommended pip package of shiboken2-generator.
+The following commands build nexxT from source using the non-recommended pip package of shiboken6-generator.
 
     git clone https://github.com/ifm/nexxT.git
     cd nexxT/workspace
     python3 -m venv venv
     source venv/bin/activate
     python3 -m pip install pip -U
-    pip install -r requirements.txt --find-links https://download.qt.io/official_releases/QtForPython/shiboken2-generator/
+    pip install -r requirements.txt --find-links https://download.qt.io/official_releases/QtForPython/shiboken6-generator/
     export QTDIR=<path>/<to>/<qt>
     export LLVM_INSTALL_DIR=<path>/<to>/<llvm>
     scons -j 8 ..
@@ -71,6 +85,3 @@ Originally we started with a commercial product from the automotive industry in 
 - The data transport layer of *ROS2* seemed not to fulfill our requirements. We have often use cases where we record data to disk and develop algorithms using that data. Because *ROS2* is mainly designed as a system where algorithms run online, its assumptions about the data transport is low latency in prior of reliability. If in question, *ROS2* decides to throw away messages, and this is very bad for the offline/testing usage when you have not such a big focus on algorithm runtime but maybe more on algorithm quality performance. In this use-case it is a reasonable model that slow algorithms shall be able to slow down the computation, but at the time of evaluation this was not easily possible in *ROS2*. A discussion about this topic can be found here: https://answers.ros.org/question/336930/ros2-fast-publisher-slow-subscriber-is-it-possible-to-slow-down-the-publisher/
 - It's not easily possible to start two *ROS2* applications side by side.
 
-## Current Status
-
-The current status is still in an early phase. We use the framework in newer projects, but there is still the chance for API-breaking changes. Some aspects like error handling are still a little rough.

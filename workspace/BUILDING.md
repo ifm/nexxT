@@ -12,7 +12,7 @@ The build expects the following dependencies to be available on the system:
   has a known bug of wrong paths in the lib/pkgconfig/*.pc files. These have
   to be fixed before building. Qt6 seem to have dropped the pkgconfig files.
   See https://bugreports.qt.io/browse/QTBUG-86080
-- shiboken2_generator: this is referenced in requirements.txt. A binary wheel
+- shiboken6_generator: this is referenced in requirements.txt. A binary wheel
   can be found here:
   https://download.qt.io/official_releases/QtForPython/shiboken6-generator/
   This is working for windows and debian builds and probably also for more,
@@ -25,7 +25,7 @@ The build expects the following dependencies to be available on the system:
 You can use pip to install the required dependencies like that
 
     python -m pip install pip -U
-    pip install -r requirements.txt -f https://download.qt.io/official_releases/QtForPython/shiboken6-generator/ download.qt.io
+    pip install -r requirements.txt -f https://download.qt.io/official_releases/QtForPython/shiboken6-generator/
 
 Be sure to have the environment variables QTDIR and LLVM_INSTALL_DIR set correctly.
 Afterwards you should be able to use 
