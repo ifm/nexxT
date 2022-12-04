@@ -388,6 +388,8 @@ class GenericReader(Filter):
             tmin = min(t, tmin)
             t = self._file.getRcvTimestamp(p, self._file.getNumberOfSamples(p)-1)
             tmax = max(t, tmax)
+        if tmin > tmax:
+            raise RuntimeError("It seems that the input file doesn't have any usable samples.")
         return (tmin*(1000000000//self._file.getTimestampResolution()),
                 tmax*(1000000000//self._file.getTimestampResolution()))
 
