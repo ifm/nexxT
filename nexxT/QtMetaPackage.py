@@ -32,7 +32,7 @@ class QtFinder(importlib.abc.MetaPathFinder):
 class QtLoader(importlib.abc.Loader):
     """
     The actual loader which maps PySide modules to nexxT.Qt. The approach is similar to executing a
-    "from PySide2 import *" statement in a real Qt.py module, but it is dynamically and prevents from loading unused
+    ``from PySide2 import *`` statement in a real Qt.py module, but it is dynamically and prevents from loading unused
     QT modules, like QtMultimedia, etc.
     """
 

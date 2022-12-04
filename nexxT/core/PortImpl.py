@@ -95,7 +95,7 @@ class OutputPortImpl(OutputPortInterface):
 
         :param outputPort: the output port instance to be connected
         :param inputPort: the input port instance to be connected
-        :return:None
+        :return: None
         """
         logger.info("setup direct connection between %s -> %s", outputPort.name(), inputPort.name())
         outputPort.transmitSample.connect(inputPort.receiveSync, Qt.DirectConnection)
