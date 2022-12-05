@@ -91,7 +91,8 @@ class SubConfiguration(QObject):
         """
         Converts a connection string to a 4 tuple.
 
-        :param con: a string containing a connection "name1.port1 -> name2.port2" or also "name1.port1 -[int]> name2.port2"
+        :param con: a string containing a connection "name1.port1 -> name2.port2"
+                    or also "name1.port1 -[int]> name2.port2"
         :return: a 5-tuple ("name1", "port1", "name2", "port2", connwidth)
         """
         if "->" in con:
