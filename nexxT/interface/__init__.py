@@ -10,13 +10,20 @@ This __init__.py generates shortcuts for exported classes
 
 import nexxT
 if nexxT.useCImpl:
-    import cnexxT
+    import cnexxT # pylint: disable=import-error
     # constants here are really classes
     # pylint: disable=invalid-name
     cnexxT = cnexxT.nexxT
     Filter = cnexxT.Filter
     FilterState = cnexxT.FilterState
-    DataSample = lambda *args, **kw: cnexxT.DataSample.make_shared(cnexxT.DataSample(*args, **kw))
+
+    def DataSample(*args, **kw):
+        """
+        DataSample factory function (create a shared pointer to a new DataSample instance)
+        """
+        return cnexxT.DataSample.make_shared(cnexxT.DataSample(*args, **kw))
+    #DataSample = lambda *args, **kw: cnexxT.DataSample.make_shared(cnexxT.DataSample(*args, **kw))
+
     DataSample.TIMESTAMP_RES = cnexxT.DataSample.TIMESTAMP_RES
     DataSample.copy = cnexxT.DataSample.copy
     DataSample.currentTime = cnexxT.DataSample.currentTime
@@ -28,9 +35,22 @@ if nexxT.useCImpl:
     PropertyCollection = cnexxT.PropertyCollection
     PropertyHandler = cnexxT.PropertyHandler
     Services = cnexxT.Services
-    OutputPort = lambda *args, **kw: Port.make_shared(OutputPortInterface(*args, **kw))
-    InputPort = (lambda dynamic, name, environment, queueSizeSamples=1, queueSizeSeconds=-1:
-                 Port.make_shared(InputPortInterface(dynamic, name, environment, queueSizeSamples, queueSizeSeconds)))
+
+    def OutputPort(*args, **kw):
+        """
+        OutputPort factory function (create a shared pointer to a new OutputPortInterface instance)
+        """
+        return Port.make_shared(OutputPortInterface(*args, **kw))
+    #OutputPort = lambda *args, **kw: Port.make_shared(OutputPortInterface(*args, **kw))
+
+    def InputPort(dynamic, name, environment, queueSizeSamples=1, queueSizeSeconds=-1):
+        """
+        InputPort factory function (create a shared pointer to a new InputPortInterface instance)
+        """
+        return Port.make_shared(InputPortInterface(dynamic, name, environment, queueSizeSamples, queueSizeSeconds))
+    #InputPort = (lambda dynamic, name, environment, queueSizeSamples=1, queueSizeSeconds=-1:
+    #        Port.make_shared(InputPortInterface(dynamic, name, environment, queueSizeSamples, queueSizeSeconds)))
+
     from nexxT.interface.Filters import FilterSurrogate
 else:
     # pylint: enable=invalid-name
@@ -48,5 +68,9 @@ else:
     from nexxT.interface.DataSamples import DataSample
     from nexxT.interface.PropertyCollections import PropertyCollection, PropertyHandler
     from nexxT.interface.Services import Services
+
+__all__ = ["Services", "PropertyCollection", "PropertyHandler", "DataSample",
+           "Filter", "FilterState", "FilterSurrogate",
+           "Port", "InputPort", "OutputPort", "OutputPortInterface", "InputPortInterface"]
 
 del nexxT

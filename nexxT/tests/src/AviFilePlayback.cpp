@@ -6,9 +6,9 @@
  */
 
 #include "AviFilePlayback.hpp"
-#include "Services.hpp"
-#include "PropertyCollection.hpp"
-#include "Logger.hpp"
+#include "nexxT/Services.hpp"
+#include "nexxT/PropertyCollection.hpp"
+#include "nexxT/Logger.hpp"
 #include "ImageFormat.h"
 #include <QtCore/QThread>
 #include <QtCore/QBuffer>
@@ -25,25 +25,25 @@ void VideoPlaybackDevice::openVideo()
     }
     NEXXT_LOG_DEBUG("entering openVideo");
     pauseOnStream = QString();
-    player = new QMediaPlayer(this, QMediaPlayer::VideoSurface);
-    player->setMuted(true);
+    player = new QMediaPlayer(this);
     videoSurface = new VideoGrabber(this);
     connect(player, SIGNAL(durationChanged(qint64)),
             this, SLOT(newDuration(qint64)));
     connect(player, SIGNAL(positionChanged(qint64)),
             this, SLOT(newPosition(qint64)));
-    connect(player, SIGNAL(currentMediaChanged(const QMediaContent &)),
-            this, SLOT(currentMediaChanged(const QMediaContent &)));
+    connect(player, SIGNAL(sourceChanged(const QUrl &)),
+            this, SLOT(currentMediaChanged(const QUrl &)));
     connect(videoSurface, SIGNAL(newImage(const QImage &)),
             this, SLOT(newImage(const QImage &)));
-    connect(player, SIGNAL(error(QMediaPlayer::Error)),
-            this, SLOT(mediaPlayerError(QMediaPlayer::Error)));
-    connect(player, SIGNAL(stateChanged(QMediaPlayer::State)),
-            this, SLOT(mediaPlayerStateChanged(QMediaPlayer::State)));
+    connect(player, SIGNAL(errorOccurred(QMediaPlayer::Error, const QString &)),
+            this, SLOT(mediaPlayerError(QMediaPlayer::Error, const QString &)));
+    connect(player, SIGNAL(playbackStateChanged(QMediaPlayer::PlaybackState)),
+            this, SLOT(mediaPlayerStateChanged(QMediaPlayer::PlaybackState)));
     connect(player, SIGNAL(playbackRateChanged(qreal)),
             this, SLOT(mediaPlayerPlaybackRateChanged(qreal)));
-    player->setMedia(QUrl::fromLocalFile(filename));
+    player->setSource(QUrl::fromLocalFile(filename));
     player->setVideoOutput(videoSurface);
+    player->setAudioOutput(0);
     player->setPlaybackRate(playbackRate);
     player->pause();
     NEXXT_LOG_DEBUG("leaving openVideo");
@@ -51,20 +51,21 @@ void VideoPlaybackDevice::openVideo()
 
 void VideoPlaybackDevice::closeVideo()
 {
-    NEXXT_LOG_DEBUG("entering closeVideo");
-    if(player)
-    {
-        delete player;
-        player = nullptr;
-    }
-    if(videoSurface)
-    {
-        delete videoSurface;
-        videoSurface = nullptr;
-    }
+    NEXXT_LOG_INFO("entering closeVideo");
     NEXXT_LOG_INFO("emitting playback paused.");
     emit playbackPaused();
-    NEXXT_LOG_DEBUG("leaving closeVideo");
+    if(videoSurface)
+    {
+        videoSurface->deleteLater();
+        videoSurface = nullptr;
+    }
+    if(player)
+    {
+        player->stop();
+        player->deleteLater();
+        player = nullptr;
+    }
+    NEXXT_LOG_INFO("leaving closeVideo");
 }
 
 VideoPlaybackDevice::VideoPlaybackDevice(BaseFilterEnvironment *env) :
@@ -127,20 +128,24 @@ void VideoPlaybackDevice::newImage(const QImage &_img)
     );
 }
 
-void VideoPlaybackDevice::mediaPlayerError(QMediaPlayer::Error)
+void VideoPlaybackDevice::mediaPlayerError(QMediaPlayer::Error, const QString &msg)
 {
-    if(player) NEXXT_LOG_WARN(QString("error from QMediaPlayer: %1").arg(player->errorString()));
+    if(player) NEXXT_LOG_WARN(QString("error from QMediaPlayer: %1").arg(msg));
 }
 
-void VideoPlaybackDevice::mediaPlayerStateChanged(QMediaPlayer::State newState)
+void VideoPlaybackDevice::mediaPlayerStateChanged(QMediaPlayer::PlaybackState newState)
 {
     if(newState == QMediaPlayer::PlayingState)
     {
+        NEXXT_LOG_INFO("emitting playback started.");
         emit playbackStarted();
-    } else
+    } else if(newState == QMediaPlayer::PausedState)
     {
         NEXXT_LOG_INFO("emitting playback paused.");
         emit playbackPaused();
+    } else
+    {
+        NEXXT_LOG_INFO("unknown state.");
     }
 }
 
@@ -164,7 +169,7 @@ void VideoPlaybackDevice::newPosition(qint64 position)
     emit currentTimestampChanged(position*1000000);
 }
 
-void VideoPlaybackDevice::currentMediaChanged(const QMediaContent &)
+void VideoPlaybackDevice::currentMediaChanged(const QUrl &)
 {
     NEXXT_LOG_DEBUG("currentMediaChanged called");
 }
@@ -185,7 +190,7 @@ void VideoPlaybackDevice::stepForward(const QString &stream)
 {
     NEXXT_LOG_DEBUG(QString("stepForward(%1) called").arg(stream));
     pauseOnStream = "video";
-    if( player && player->state() != QMediaPlayer::PlayingState )
+    if( player && player->playbackState() != QMediaPlayer::PlayingState )
     {
         NEXXT_LOG_DEBUG("calling play");
         if(player) player->play();

@@ -8,7 +8,7 @@
 This module defines the PropertyCollection interface class of the nexxT framework.
 """
 
-from PySide2.QtCore import QObject, Signal, Slot
+from nexxT.Qt.QtCore import QObject, Signal, Slot
 
 class PropertyHandler:
     """

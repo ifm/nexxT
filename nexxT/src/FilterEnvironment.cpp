@@ -5,10 +5,10 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#include "FilterEnvironment.hpp"
-#include "Filters.hpp"
-#include "Logger.hpp" 
-#include "PropertyCollection.hpp"
+#include "nexxT/FilterEnvironment.hpp"
+#include "nexxT/Filters.hpp"
+#include "nexxT/Logger.hpp" 
+#include "nexxT/PropertyCollection.hpp"
 
 #include <QtCore/QThread>
 #include <QtCore/QCoreApplication>

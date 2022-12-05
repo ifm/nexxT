@@ -14,7 +14,7 @@ be defined by the user.
 
 import ctypes as ct
 import numpy as np
-from PySide2.QtCore import QByteArray
+from nexxT.Qt.QtCore import QByteArray
 
 # The supported image formats and the mapping to the number of channels and the numpy type.
 # Note that QT's QImage natively only supports intensity_u8, intensity_u16 and rgb_u8 images.
@@ -59,7 +59,7 @@ def byteArrayToNumpy(qByteArray):
     fmt = hdr.format.decode()
     # sanity check
     if not fmt in ImageFormats:
-        raise RuntimeError("Unknown image format %s" % fmt)
+        raise RuntimeError(f"Unknown image format {fmt}")
     # get number of channels and the numpy dtype of the target array
     numChannels, dtype = ImageFormats[hdr.format.decode()]
     # calculate the number of bytes per pixel

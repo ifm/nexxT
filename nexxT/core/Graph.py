@@ -9,7 +9,7 @@ This module defines the class FilterGraph
 """
 
 import logging
-from PySide2.QtCore import Signal, Slot
+from nexxT.Qt.QtCore import Signal, Slot
 from nexxT.interface import InputPortInterface, OutputPortInterface
 from nexxT.core.FilterMockup import FilterMockup
 from nexxT.core.BaseGraph import BaseGraph
@@ -32,7 +32,7 @@ class FilterGraph(BaseGraph):
     dynOutputPortDeleted = Signal(str, str)
 
     def __init__(self, subConfig):
-        super().__init__()
+        super().__init__(defaultConnProp=dict(width=1))
         assertMainThread()
         self._parent = subConfig
         self._filters = {}
@@ -57,7 +57,7 @@ class FilterGraph(BaseGraph):
         :param filterEnv: a FilterEnvironment instance
         :return: the name as string
         """
-        names = [n for n in self._filters if self._filters[n] is filterEnv]
+        names = [n for n,f in self._filters.items() if f is filterEnv]
         if len(names) != 1:
             raise NexTRuntimeError("Lookup of filter failed; either non-unique or not in graph.")
         return names[0]
@@ -263,9 +263,9 @@ class FilterGraph(BaseGraph):
         assertMainThread()
         def _nodeName():
             fe = self.sender()
-            name = [k for k in self._filters if self._filters[k] is fe]
+            name = [k for k, f in self._filters.items() if f is fe]
             if len(name) != 1:
-                raise RuntimeError("Unexpected list length of matched filters: %s" % (name))
+                raise RuntimeError(f"Unexpected list length of matched filters: {name}")
             return name[0]
 
         name = _nodeName()

@@ -6,7 +6,8 @@
  */
 
 #include "TestExceptionFilter.hpp"
-#include "PropertyCollection.hpp"
+#include "nexxT/PropertyCollection.hpp"
+#include <stdexcept>
 
 TestExceptionFilter::TestExceptionFilter(BaseFilterEnvironment *env)
     : Filter(false, false, env)

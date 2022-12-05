@@ -8,15 +8,16 @@
 This module provides the Configuration GUI service of the nexxT framework.
 """
 import logging
-import shiboken2
-from PySide2.QtCore import (Qt, QSettings, QByteArray, QDataStream, QIODevice, QTimer)
-from PySide2.QtGui import QIcon, QKeySequence
-from PySide2.QtWidgets import (QTreeView, QAction, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
+import nexxT.shiboken
+import nexxT.Qt
+from nexxT.Qt.QtCore import (Qt, QSettings, QByteArray, QDataStream, QIODevice, QTimer)
+from nexxT.Qt.QtGui import QIcon, QKeySequence, QAction
+from nexxT.Qt.QtWidgets import (QTreeView, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
                                QHeaderView, QMenu, QDockWidget)
 from nexxT.interface import Services, FilterState
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
-from nexxT.core.Utils import assertMainThread, MethodInvoker, mainThread
+from nexxT.core.Utils import assertMainThread, MethodInvoker, mainThread, handleException
 from nexxT.services.SrvConfiguration import MVCConfigurationBase, ConfigurationModel, ITEM_ROLE
 from nexxT.services.gui.PropertyDelegate import PropertyDelegate
 from nexxT.services.gui.GraphEditor import GraphScene
@@ -57,16 +58,16 @@ class MVCConfigurationGUI(MVCConfigurationBase):
 
         self.actReload = QAction(QIcon.fromTheme("browser-reload", style.standardIcon(QStyle.SP_BrowserReload)),
                                  "Reload python", self)
-        self.actReload.setShortcut(QKeySequence(Qt.CTRL + Qt.Key_P))
+        self.actReload.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_P))
         self.actReload.triggered.connect(self._execReload)
 
         self.actActivate = QAction(QIcon.fromTheme("arrow-up", style.standardIcon(QStyle.SP_ArrowUp)),
                                    "Initialize", self)
         self.actActivate.triggered.connect(self.activate)
-        self.actActivate.setShortcut(QKeySequence(Qt.CTRL + Qt.Key_I))
+        self.actActivate.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_I))
         self.actDeactivate = QAction(QIcon.fromTheme("arrow-down", style.standardIcon(QStyle.SP_ArrowDown)),
                                      "Deinitialize", self)
-        self.actDeactivate.setShortcut(QKeySequence(Qt.CTRL + Qt.Key_D))
+        self.actDeactivate.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_D))
         self.actDeactivate.triggered.connect(self.deactivate)
 
         confMenu.addAction(self.actLoad)
@@ -84,7 +85,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         toolBar.addAction(self.actDeactivate)
 
         self.recentConfigs = [QAction() for i in range(10)]
-        self.recentConfigs[0].setShortcut(QKeySequence(Qt.CTRL + Qt.Key_R))
+        self.recentConfigs[0].setShortcut(QKeySequence(Qt.CTRL | Qt.Key_R))
         confMenu.addSeparator()
         recentMenu = confMenu.addMenu("Recent")
         for a in self.recentConfigs:
@@ -96,7 +97,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self.treeView = QTreeView(self.mainWidget)
         self.treeView.setHeaderHidden(False)
         self.treeView.setSelectionMode(QAbstractItemView.NoSelection)
-        self.treeView.setEditTriggers(self.treeView.EditKeyPressed|self.treeView.AnyKeyPressed)
+        self.treeView.setEditTriggers(self.treeView.EditTrigger.EditKeyPressed|self.treeView.EditTrigger.AnyKeyPressed)
         self.treeView.setAllColumnsShowFocus(True)
         self.treeView.setExpandsOnDoubleClick(False)
         self.treeView.setDragEnabled(True)
@@ -210,7 +211,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         # remove already deleted graph views from internal list
         valid_graphViews = []
         for gv in self._graphViews:
-            if shiboken2.isValid(gv): # pylint: disable=no-member
+            if nexxT.shiboken.isValid(gv): # pylint: disable=no-member
                 valid_graphViews.append(gv)
         self._graphViews = valid_graphViews
         # check if graph view is already there
@@ -220,7 +221,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
                 return
         # create new graph view
         srv = Services.getService("MainWindow")
-        graphDw = srv.newDockWidget("Graph (%s)" % (subConfig.getName()), parent=None,
+        graphDw = srv.newDockWidget(f"Graph ({subConfig.getName()})", parent=None,
                                     defaultArea=Qt.RightDockWidgetArea,
                                     allowedArea=Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         graphDw.setAttribute(Qt.WA_DeleteOnClose, True)
@@ -232,10 +233,19 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         graphDw.visibleChanged.connect(self._removeGraphViewFromList)
 
     def _subConfigRemoved(self, subConfigName, configType):
+        self.__subConfigRemoved(subConfigName, configType)
+
+    @handleException
+    def __subConfigRemoved(self, subConfigName, configType):
         g = self._configuration.subConfigByNameAndTye(subConfigName, configType).getGraph()
-        for gv in self._graphViews:
-            if shiboken2.isValid(gv):  # pylint: disable=no-member
-                if gv.widget().scene().graph == g:
+        if nexxT.shiboken.isValid(g):
+            for gv in self._graphViews:
+                if not nexxT.shiboken.isValid(gv):
+                    continue
+                if (not nexxT.shiboken.isValid(gv.widget()) or
+                        not nexxT.shiboken.isValid(gv.widget().scene()) or
+                        not nexxT.shiboken.isValid(gv.widget().scene().graph) or
+                        gv.widget().scene().graph == g):
                     logger.debug("deleting graph view for subconfig %s", subConfigName)
                     gv.deleteLater()
 
@@ -284,13 +294,14 @@ class MVCConfigurationGUI(MVCConfigurationBase):
                         s2.append(aseq)
                 m2.addActions(s1)
                 m3.addActions(s2)
-            m.exec_(self.treeView.mapToGlobal(point))
+            nexxT.Qt.call_exec(m, self.treeView.mapToGlobal(point))
             return
         if self.model.isSubConfigParent(index) == Configuration.CONFIG_TYPE_APPLICATION:
             m = QMenu()
             a = QAction("Add application")
             m.addAction(a)
-            a = m.exec_(self.treeView.mapToGlobal(point))
+            point = self.treeView.mapToGlobal(point)
+            a = nexxT.Qt.call_exec(m, point)
             if a is not None:
                 self._configuration.addNewApplication()
             return
@@ -298,7 +309,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
             m = QMenu()
             a = QAction("Add composite filter")
             m.addAction(a)
-            a = m.exec_(self.treeView.mapToGlobal(point))
+            a = nexxT.Qt.call_exec(m, self.treeView.mapToGlobal(point))
             if a is not None:
                 self._configuration.addNewCompositeFilter()
             return
@@ -394,7 +405,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         pbsrv = Services.getService("PlaybackControl")
         try:
             pbsrv.playbackPaused.disconnect(self._singleShotPlay)
-        except RuntimeError:
+        except (RuntimeError, AttributeError):
             # we are already disconnected.
             pass
 

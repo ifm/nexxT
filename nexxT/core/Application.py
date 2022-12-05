@@ -10,7 +10,7 @@ This module defines the nexxT framework class Application
 
 import logging
 import re
-from PySide2.QtCore import QCoreApplication, Qt
+from nexxT.Qt.QtCore import QCoreApplication, Qt
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.SubConfiguration import SubConfiguration
 from nexxT.core.ActiveApplication import ActiveApplication

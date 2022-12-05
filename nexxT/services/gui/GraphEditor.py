@@ -12,12 +12,13 @@ import logging
 import platform
 import os.path
 import pkg_resources
-from PySide2.QtWidgets import (QGraphicsScene, QGraphicsItemGroup, QGraphicsSimpleTextItem,
-                               QGraphicsPathItem, QGraphicsItem, QMenu, QAction, QInputDialog, QMessageBox,
+import nexxT.Qt
+from nexxT.Qt.QtWidgets import (QGraphicsScene, QGraphicsItemGroup, QGraphicsSimpleTextItem,
+                               QGraphicsPathItem, QGraphicsItem, QMenu, QInputDialog, QMessageBox,
                                QGraphicsLineItem, QFileDialog, QDialog, QGridLayout, QCheckBox, QVBoxLayout, QGroupBox,
                                QDialogButtonBox, QGraphicsView, QStyle, QStyleOptionGraphicsItem)
-from PySide2.QtGui import QBrush, QPen, QColor, QPainterPath, QImage
-from PySide2.QtCore import QPointF, Signal, QObject, QRectF, QSizeF, Qt
+from nexxT.Qt.QtGui import QBrush, QPen, QColor, QPainterPath, QImage, QAction
+from nexxT.Qt.QtCore import QPointF, Signal, QObject, QRectF, QSizeF, Qt
 from nexxT.core.BaseGraph import BaseGraph
 from nexxT.core.Graph import FilterGraph
 from nexxT.core.SubConfiguration import SubConfiguration
@@ -207,8 +208,8 @@ class BaseGraphScene(QGraphicsScene):
             style = BaseGraphScene.getData if self.scene() is None else self.scene().getData
             size = style(self, BaseGraphScene.STYLE_ROLE_SIZE)
             vspacing = style(self, BaseGraphScene.STYLE_ROLE_VSPACING)
-            inPortHeight = sum([style(ip, BaseGraphScene.STYLE_ROLE_VSPACING) for ip in self.inPortItems])
-            outPortHeight = sum([style(op, BaseGraphScene.STYLE_ROLE_VSPACING) for op in self.outPortItems])
+            inPortHeight = sum(style(ip, BaseGraphScene.STYLE_ROLE_VSPACING) for ip in self.inPortItems)
+            outPortHeight = sum(style(op, BaseGraphScene.STYLE_ROLE_VSPACING) for op in self.outPortItems)
             nodeHeight = size.height() + max(inPortHeight, outPortHeight)
             return nodeHeight+2*vspacing
 
@@ -236,8 +237,8 @@ class BaseGraphScene(QGraphicsScene):
             hspacing = style(self, BaseGraphScene.STYLE_ROLE_HSPACING)
             radius = style(self, BaseGraphScene.STYLE_ROLE_RRRADIUS)
 
-            inPortHeight = sum([style(ip, BaseGraphScene.STYLE_ROLE_VSPACING) for ip in self.inPortItems])
-            outPortHeight = sum([style(op, BaseGraphScene.STYLE_ROLE_VSPACING) for op in self.outPortItems])
+            inPortHeight = sum(style(ip, BaseGraphScene.STYLE_ROLE_VSPACING) for ip in self.inPortItems)
+            outPortHeight = sum(style(op, BaseGraphScene.STYLE_ROLE_VSPACING) for op in self.outPortItems)
             nodeHeight = size.height() + max(inPortHeight, outPortHeight)
             nodePP.addRoundedRect(hspacing, vspacing, size.width(), nodeHeight, radius, radius)
             if not hasattr(self, "nodeGrItem"):
@@ -983,7 +984,7 @@ class PortSelectorDialog(QDialog):
         :param nodeName: the name of the corresponding node
         """
         d = PortSelectorDialog(parent, inputPorts, outputPorts, graph, nodeName)
-        if d.exec() == QDialog.Accepted:
+        if nexxT.Qt.call_exec(d) == QDialog.Accepted:
             return d.selectedInputPorts, d.selectedOutputPorts
         return [], []
 
@@ -1027,9 +1028,15 @@ class GraphScene(BaseGraphScene):
         self.actAddNode = QAction("Add filter from file ...", self)
         self.actAutoLayout = QAction("Auto layout", self)
         self.actRemoveConnection = QAction("Remove connection ...", self)
+        self.actSetNonblockingConnection = QAction("Set non blocking", self)
+        self.actSetStandardBlockingConnection = QAction("Set blocking", self)
+        self.actSetCustomBlockingConnection = QAction("Set blocking with width ...", self)
         self.actRenameNode.triggered.connect(self.renameDialog)
         self.actRemoveNode.triggered.connect(self.removeDialog)
         self.actRemoveConnection.triggered.connect(self.onConnectionRemove)
+        self.actSetNonblockingConnection.triggered.connect(self.onConnSetNonBlocking)
+        self.actSetStandardBlockingConnection.triggered.connect(self.onConnSetBlocking)
+        self.actSetCustomBlockingConnection.triggered.connect(self.onConnSetCustom)
         self.actAutoLayout.triggered.connect(self.autoLayout)
         if isinstance(self.graph, FilterGraph):
             self.actRenamePort = QAction("Rename dynamic port ...", self)
@@ -1037,7 +1044,7 @@ class GraphScene(BaseGraphScene):
             self.actAddInputPort = QAction("Add dynamic input port ...", self)
             self.actAddOutputPort = QAction("Add dynamic output port ...", self)
             self.actSuggestDynamicPorts = QAction("Suggest dynamic ports ...", self)
-            self.entryPointActions = dict()
+            self.entryPointActions = {}
             for ep in pkg_resources.iter_entry_points("nexxT.filters"):
                 d = self.entryPointActions
                 groups = ep.name.split(".")
@@ -1050,7 +1057,7 @@ class GraphScene(BaseGraphScene):
                 groups = groups[:-1]
                 for g in groups:
                     if not g in d:
-                        d[g] = dict()
+                        d[g] = {}
                     d = d[g]
                 if name in d:
                     logger.warning("Entry point '%s' registered twice, ignoring duplicates", ep.name)
@@ -1103,10 +1110,26 @@ class GraphScene(BaseGraphScene):
                 if len(threads) > 1:
                     return QBrush(QColor(255, 255, 255, 200))
                 return QBrush(QColor(255, 255, 255, 100))
+        if isinstance(item, BaseGraphScene.ConnectionItem) and isinstance(self.graph, FilterGraph):
+            if role == BaseGraphScene.STYLE_ROLE_PEN:
+                pen = BaseGraphScene.getData(item, role)
+                assert isinstance(pen, QPen)
+                nodeFrom = item.portFrom.nodeItem.name
+                portFrom = item.portFrom.name
+                nodeTo = item.portTo.nodeItem.name
+                portTo = item.portTo.name
+                width = self.graph.getConnectionProperties(nodeFrom, portFrom, nodeTo, portTo)["width"]
+                if width == 0:
+                    pen.setColor(QColor.fromString("red"))
+                elif width > 1:
+                    pen.setColor(QColor.fromString("blue"))
+                return pen
         return BaseGraphScene.getData(item, role)
 
-
     def contextMenuEvent(self, event):
+        """
+        Overwritten from QGraphicsScene.
+        """
         item = self.graphItemAt(event.scenePos())
         self.itemOfContextMenu = item
         if isinstance(item, BaseGraphScene.NodeItem):
@@ -1127,7 +1150,7 @@ class GraphScene(BaseGraphScene):
                     self.actSetThread.setEnabled(False)
                 else:
                     self.actSetThread.setEnabled(True)
-            m.exec_(event.screenPos())
+            nexxT.Qt.call_exec(m, event.screenPos())
         elif isinstance(item, BaseGraphScene.PortItem):
             m = QMenu(self.views()[0])
             if isinstance(self.graph, FilterGraph):
@@ -1136,11 +1159,14 @@ class GraphScene(BaseGraphScene):
                 self.actRenamePort.setEnabled(port.dynamic())
                 self.actRemovePort.setEnabled(port.dynamic())
             m.addActions([self.actRenamePort, self.actRemovePort])
-            m.exec_(event.screenPos())
+            nexxT.Qt.call_exec(m, event.screenPos())
         elif isinstance(item, BaseGraphScene.ConnectionItem):
             m = QMenu(self.views()[0])
-            m.addActions([self.actRemoveConnection])
-            m.exec_(event.screenPos())
+            m.addActions([self.actSetNonblockingConnection,
+                          self.actSetStandardBlockingConnection,
+                          self.actSetCustomBlockingConnection,
+                          self.actRemoveConnection])
+            nexxT.Qt.call_exec(m, event.screenPos())
         else:
             self.itemOfContextMenu = event.scenePos()
             m = QMenu(self.views()[0])
@@ -1156,7 +1182,7 @@ class GraphScene(BaseGraphScene):
                         menu.addAction(src[k])
             populate(flm, self.entryPointActions)
             m.addAction(self.actAutoLayout)
-            m.exec_(event.screenPos())
+            nexxT.Qt.call_exec(m, event.screenPos())
         self.itemOfContextMenu = None
 
     def compositeFilters(self):
@@ -1227,6 +1253,27 @@ class GraphScene(BaseGraphScene):
         item = self.itemOfContextMenu
         self.graph.deleteConnection(item.portFrom.nodeItem.name, item.portFrom.name,
                                     item.portTo.nodeItem.name, item.portTo.name)
+
+    def onConnSetNonBlocking(self):
+        item = self.itemOfContextMenu
+        self.graph.setConnectionProperties(item.portFrom.nodeItem.name, item.portFrom.name,
+                                           item.portTo.nodeItem.name, item.portTo.name, dict(width=0))
+        item.sync()
+
+    def onConnSetBlocking(self):
+        item = self.itemOfContextMenu
+        self.graph.setConnectionProperties(item.portFrom.nodeItem.name, item.portFrom.name,
+                                           item.portTo.nodeItem.name, item.portTo.name, dict(width=1))
+        item.sync()
+
+    def onConnSetCustom(self):
+        item = self.itemOfContextMenu
+        c = item.portFrom.nodeItem.name, item.portFrom.name, item.portTo.nodeItem.name, item.portTo.name
+        width = self.graph.getConnectionProperties(*c)["width"]
+        width, ok = QInputDialog.getInt(self.views()[0], self.sender().text(), "Enter connection width", width, 1)
+        if ok:
+            self.graph.setConnectionProperties(*(c + (dict(width=width),)))
+            item.sync()
 
     def addInputPort(self):
         """
@@ -1326,8 +1373,7 @@ class GraphScene(BaseGraphScene):
             suff = "*.so"
         else:
             suff = "*.dll"
-        library, ok = QFileDialog.getOpenFileName(self.views()[0], "Choose Library",
-                                                  filter="Filters (*.py %s)" % suff)
+        library, ok = QFileDialog.getOpenFileName(self.views()[0], "Choose Library", filter=f"Filters (*.py {suff})")
         if not (ok and library is not None and os.path.exists(library)):
             return
         if library.endswith(".py"):

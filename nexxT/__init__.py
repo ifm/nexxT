@@ -8,7 +8,18 @@
 Setup the logging here until we have a better place.
 """
 
+cnexxT = None # pylint: disable=invalid-name
+useCImpl = True # pylint: disable=invalid-name
+__version__ = None # pylint: disable=invalid-name
+
 def setup():
+    """
+    Sets up the nexxT environment. In particular, provides the cnexxT and the Qt packages under the nexxT nameespace.
+    """
+    # create an alias nexxT.Qt for PySide[26]
+    # pylint: disable=import-outside-toplevel
+    import nexxT.QtMetaPackage
+
     try:
         from importlib import metadata
     except ImportError:
@@ -21,7 +32,8 @@ def setup():
     import platform
 
     logger = logging.getLogger()
-    INTERNAL = 5 # setup log level for internal messages
+    # setup log level for internal messages
+    INTERNAL = 5 # pylint: disable=invalid-name
     logging.addLevelName(INTERNAL, "INTERNAL")
     logging.INTERNAL = INTERNAL
     def internal(self, message, *args, **kws):
@@ -36,15 +48,15 @@ def setup():
     logger.info("configured logger")
     logger.setLevel(logging.INFO)
 
-    global __version__
+    global __version__  # pylint: disable=invalid-name
     __version__ = metadata.version("nexxT")
 
-    global useCImpl
+    global useCImpl # pylint: disable=invalid-name
     useCImpl = not bool(int(os.environ.get("NEXXT_DISABLE_CIMPL", "0")))
     if useCImpl:
-        # make sure to import PySide2 before loading the cnexxT extension module because
+        # make sure to import nexxT.Qt before loading the cnexxT extension module because
         # there is a link-time dependency which would be impossible to resolve otherwise
-        import PySide2.QtCore
+        import nexxT.Qt.QtCore
         p = os.environ.get("NEXXT_CEXT_PATH", None)
         if p is None:
             variant = os.environ.get("NEXXT_VARIANT", "release")
@@ -59,8 +71,12 @@ def setup():
             p = str(Path(p).absolute())
             logger.info("c extension module search path: %s", p)
             sys.path.append(p)
+        # TODO: following two lines can be removed after this bug has been
+        #       fixed: https://bugreports.qt.io/browse/PYSIDE-1627
+        import nexxT.Qt.QtWidgets
+        import nexxT.Qt.QtGui
         import cnexxT as imp_cnexxT
-        global cnexxT
+        global cnexxT # pylint: disable=invalid-name
         cnexxT = imp_cnexxT
         def setLevel(level):
             ret = setLevel.origFunc(level)

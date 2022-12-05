@@ -10,9 +10,9 @@ This module provides the recording control GUI service for the nexxT framework.
 
 import logging
 from pathlib import Path
-from PySide2.QtCore import Qt, QStorageInfo
-from PySide2.QtGui import QIcon, QTextOption
-from PySide2.QtWidgets import QAction, QApplication, QStyle, QWidget, QBoxLayout, QToolBar, QFileDialog
+from nexxT.Qt.QtCore import Qt, QStorageInfo
+from nexxT.Qt.QtGui import QAction, QIcon, QTextOption
+from nexxT.Qt.QtWidgets import QApplication, QStyle, QWidget, QBoxLayout, QToolBar, QFileDialog
 from nexxT.core.Utils import assertMainThread, ElidedLabel
 from nexxT.core.Exceptions import PropertyCollectionPropertyNotFound
 from nexxT.interface import Services
@@ -129,28 +129,28 @@ class MVCRecordingControlGUI(MVCRecordingControlBase):
         if bytesWritten is None:
             bw = "??"
         elif bytesWritten < 1024:
-            bw = "%3d bytes" % bytesWritten
+            bw = f"{bytesWritten:3d} bytes"
         elif bytesWritten < 1024*1024:
-            bw = "%.1f kb" % (bytesWritten/1024)
+            bw = f"{bytesWritten/1024:.1f} kb"
         elif bytesWritten < 1024*1024*1024:
-            bw = "%.1f Mb" % (bytesWritten/1024/1024)
+            bw = f"{bytesWritten/1024/1024:.1f} Mb"
         else:
-            bw = "%.1f Gb" % (bytesWritten/1024/1024/1024)
+            bw = f"{bytesWritten/1024/1024/1024:.1f} Gb"
 
         if length is None:
             sl = "?? s"
         elif length < 60:
-            sl = "%.1f sec" % length
+            sl = f"{length:.1f} sec"
         else:
-            sl = "%.1f min" % (length//60)
+            sl = f"{length/60:.1f} min"
 
         bytesAv = QStorageInfo(file).bytesAvailable()
         if length is not None and bytesWritten is not None and bytesAv >= 0 and bytesWritten > 0:
             timeAv = length*bytesAv/bytesWritten - length
             if timeAv < 60:
-                av = "%.1f sec" % timeAv
+                av = f"{timeAv:.1f} sec"
             elif timeAv < 3600:
-                av = "%.1f min" % (timeAv // 60)
+                av = f"{timeAv/60:.1f} min"
             else:
                 av = "> 1 hour"
         else:

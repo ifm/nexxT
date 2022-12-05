@@ -4,6 +4,23 @@
  *
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
+#include <QtGlobal>
+
+#if QT_VERSION < 0x060000
+#include "AviFilePlayback.hpp"
+#include "CameraGrabber.hpp"
+#include "SimpleSource.hpp"
+#include "TestExceptionFilter.hpp"
+
+NEXXT_PLUGIN_DEFINE_START()
+NEXXT_PLUGIN_ADD_FILTER(VideoPlaybackDevice)
+NEXXT_PLUGIN_ADD_FILTER(CameraGrabber)
+NEXXT_PLUGIN_ADD_FILTER(SimpleSource)
+NEXXT_PLUGIN_ADD_FILTER(TestExceptionFilter)
+NEXXT_PLUGIN_DEFINE_FINISH()
+
+#else
+/* QT 6.1.x does not support multimedia */
 
 #include "AviFilePlayback.hpp"
 #include "CameraGrabber.hpp"
@@ -16,3 +33,5 @@ NEXXT_PLUGIN_ADD_FILTER(CameraGrabber)
 NEXXT_PLUGIN_ADD_FILTER(SimpleSource)
 NEXXT_PLUGIN_ADD_FILTER(TestExceptionFilter)
 NEXXT_PLUGIN_DEFINE_FINISH()
+
+#endif

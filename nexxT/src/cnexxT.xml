@@ -19,6 +19,12 @@
     <load-typesystem name="typesystem_core.xml" generate="no" />
     <load-typesystem name="typesystem_core_common.xml" generate="no" />
 
+    <load-typesystem name="typesystem_widgets.xml" generate="no" />
+    <load-typesystem name="typesystem_widgets_common.xml" generate="no" />
+
+    <load-typesystem name="typesystem_gui.xml" generate="no" />
+    <load-typesystem name="typesystem_gui_common.xml" generate="no" />
+
     <primitive-type name="int64_t" />
 
     <smart-pointer-type name="QSharedPointer" type="shared" getter="data" />
@@ -58,7 +64,7 @@
         </object-type>
         
         <object-type name="InputPortInterface" allow-thread="true">
-            <modify-function signature="receiveAsync(const QSharedPointer&lt;const nexxT::DataSample&gt; &amp;, QSemaphore *)">
+            <modify-function signature="receiveAsync(QSharedPointer&lt;const nexxT::DataSample&gt;, QSemaphore *, bool)">
                 <modify-argument index="2">
                     <define-ownership owner="c++"/>
                 </modify-argument>
@@ -133,6 +139,17 @@
         </object-type>
 
         <object-type name="Logging" />
+
+        <object-type name="Compatibility">
+            <modify-function signature="getMenuFromAction(QAction*)">
+                <modify-argument index="return">
+                    <define-ownership owner="c++"/>
+                </modify-argument>
+                <modify-argument index="1">
+                    <define-ownership owner="c++"/>
+                </modify-argument>
+            </modify-function>
+        </object-type>
 
     </namespace-type>
 </typesystem>

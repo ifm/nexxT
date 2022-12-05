@@ -9,7 +9,8 @@ import logging
 from pathlib import Path
 import pytest
 import pytestqt
-from PySide2.QtCore import QCoreApplication, QTimer
+import nexxT.Qt
+from nexxT.Qt.QtCore import QCoreApplication, QTimer
 from nexxT.interface import FilterState, Services
 from nexxT.core.ConfigFiles import ConfigFileLoader
 from nexxT.core.Application import Application
@@ -99,7 +100,7 @@ def exception_setup(python, thread, where, activeTime_s):
             aa.open()
             aa.start()
 
-            app.exec_()
+            nexxT.Qt.call_exec(app)
         finally:
             del t
             del t2

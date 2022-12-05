@@ -16,10 +16,15 @@ cfilters = set(["examples.videoplayback.AviReader",
                 "tests.nexxT.CSimpleSource",
                 "tests.nexxT.CTestExceptionFilter"])
 
+blacklist = set(["examples.videoplayback.AviReader",
+                 "examples.framework.CameraGrabber"])
+
 @pytest.mark.parametrize("ep",
-                         [pytest.param(e.name, marks=pytest.mark.skipif(not nexxT.useCImpl and e.name in cfilters,
-                                                                        reason="testing a pure python variant"))
-                            for e in pkg_resources.iter_entry_points("nexxT.filters")])
+    [pytest.param(e.name,
+     marks=[pytest.mark.skipif(not nexxT.useCImpl and e.name in cfilters, reason="testing a pure python variant"),
+            pytest.mark.skipif(e.name in blacklist, reason="testing blacklisted filter")
+           ]
+    ) for e in pkg_resources.iter_entry_points("nexxT.filters")])
 def test_EntryPoint(ep):
     env = FilterEnvironment("entry_point://" + ep, "entry_point", PropertyCollectionImpl('propColl', None))
     PluginManager.singleton().unloadAll()

@@ -12,7 +12,7 @@ from pathlib import Path
 import os
 from nexxT.interface import FilterSurrogate
 if os.environ.get("READTHEDOCS", None) is None:
-    from PySide2 import QtMultimedia # needed to load corresponding DLL before loading the nexxT plugin
+    from nexxT.Qt import QtMultimedia # needed to load corresponding DLL before loading the nexxT plugin
 
 AviReader = FilterSurrogate(
     "binary://" + str((Path(__file__).parent.parent / "tests" /

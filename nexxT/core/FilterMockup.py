@@ -9,7 +9,7 @@ This module defines the FilterMockup class
 """
 
 import logging
-from PySide2.QtCore import QMutexLocker, Qt
+from nexxT.Qt.QtCore import QMutexLocker, Qt
 from nexxT.interface import InputPort, OutputPort, InputPortInterface, OutputPortInterface
 from nexxT.core.FilterEnvironment import FilterEnvironment
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
@@ -101,10 +101,11 @@ class FilterMockup(FilterEnvironment):
             self._pluginClass = tempEnv.getPlugin().__class__
             if nexxT.useCImpl:
                 # pylint: disable=import-outside-toplevel
+                # pylint: disable=cyclic-import
                 # don't want to pollute global namespace with this; need to update the
                 # the class if it is a wrapped shared pointer.
-                import cnexxT
-                if self._pluginClass is cnexxT.__dict__["QSharedPointer<nexxT::Filter >"]:
+                import cnexxT # pylint: disable=import-error
+                if self._pluginClass is cnexxT.QSharedPointer_nexxT_Filter:
                     self._pluginClass = tempEnv.getPlugin().data().__class__
 
     def createFilter(self):

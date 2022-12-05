@@ -17,7 +17,7 @@ from collections import OrderedDict
 import importlib.util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 import pkg_resources
-from PySide2.QtCore import QObject
+from nexxT.Qt.QtCore import QObject
 from nexxT.core.Exceptions import UnknownPluginType, NexTRuntimeError, PluginException
 from nexxT.interface import Filter, FilterSurrogate
 from nexxT.core import PluginInterface
@@ -36,7 +36,7 @@ class BinaryLibrary:
     def __getattr__(self, attr):
         if attr in self._availableFilterTypes:
             return lambda env, library=self._library: PluginInterface.singleton().create(library, attr, env)
-        raise NexTRuntimeError("requested creation func '%s' not found in %s" % (attr, self._library))
+        raise NexTRuntimeError(f"requested creation func '{attr}' not found in {self._library}")
 
     def __getitem__(self, idx):
         return self._availableFilterTypes[idx]
@@ -63,7 +63,8 @@ class PythonLibrary:
     LIBTYPE_ENTRY_POINT = 2
 
     # blacklisted packages are not unloaded when closing an application.
-    BLACKLISTED_PACKAGES = ["h5py", "numpy", "matplotlib", "PySide2", "shiboken2", "torch", "tf"]
+    BLACKLISTED_PACKAGES = ["h5py", "numpy", "matplotlib", "nexxT.Qt", "PySide6",
+                            "nexxT.shiboken", "shiboken2", "shiboken6", "torch", "tf"]
 
     def __init__(self, library, libtype):
         self._library = library
@@ -73,7 +74,7 @@ class PythonLibrary:
             PythonLibrary._pyLoadCnt += 1
             logging.getLogger(__name__).debug("importing python module from file '%s'", library)
             # https://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
-            spec = importlib.util.spec_from_file_location("nexxT.plugins.plugin%d" % PythonLibrary._pyLoadCnt, library)
+            spec = importlib.util.spec_from_file_location(f"nexxT.plugins.plugin{PythonLibrary._pyLoadCnt}", library)
             self._mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(self._mod)
         elif self._libtype == self.LIBTYPE_MODULE:
@@ -88,7 +89,7 @@ class PythonLibrary:
             if len(found) > 1:
                 logging.getLogger(__name__).warning("found more than one entry points named '%s'", library)
             if len(found) == 0:
-                raise ModuleNotFoundError("Entry point '%s' not found." % (library))
+                raise ModuleNotFoundError(f"Entry point '{library}' not found.")
             self._mod = found[0].load()
         modulesAfter = set(sys.modules.keys())
         self._loadedModules = modulesAfter.difference(modulesBefore)
@@ -106,7 +107,7 @@ class PythonLibrary:
             return getattr(PluginManager.singleton().getLibrary(dll), res.name())
         if res is not None:
             return res
-        raise NexTRuntimeError("requested creation func '%s' not found in %s" % (attr, self._library))
+        raise NexTRuntimeError(f"requested creation func '{attr}' not found in {self._library}")
 
     def _checkAvailableFilters(self):
         if self._libtype == self.LIBTYPE_ENTRY_POINT:
@@ -220,8 +221,8 @@ class PluginManager(QObject):
                     # catching a general exception is exactly what is wanted here
                     logging.getLogger(__name__).exception("Exception while creating %s from library '%s'",
                                                           factoryFunction, library)
-                    raise PluginException("Unexpected exception while loading the plugin %s:%s (%s)" %
-                                          (library, factoryFunction, e))
+                    raise PluginException(
+                        f"Unexpected exception while loading the plugin {library}:{factoryFunction} ({e})") from e
             res = getattr(self._libraries[library], factoryFunction)(filterEnvironment)
         else:
             res = getattr(library, factoryFunction)(filterEnvironment)
@@ -252,10 +253,8 @@ class PluginManager(QObject):
                 raise
             except Exception as e: # pylint: disable=broad-except
                 # catching a general exception is exactly what is wanted here
-                logging.getLogger(__name__).exception("Exception while loading library '%s'",
-                                                      library)
-                raise PluginException("Unexpected exception while loading the library %s (%s)" %
-                                      (library, e))
+                logging.getLogger(__name__).exception("Exception while loading library '%s'", library)
+                raise PluginException(f"Unexpected exception while loading the library {library} ({e})") from e
         lib = self._libraries[library]
         return lib
 
@@ -280,7 +279,7 @@ class PluginManager(QObject):
             return self._loadEntryPoint(library[len("entry_point://"):])
         if library.startswith("binary://"):
             return self._loadBinary(library[len("binary://"):], self._prop)
-        raise UnknownPluginType("don't know how to load library '%s'" % library)
+        raise UnknownPluginType(f"don't know how to load library '{library}'")
 
     @staticmethod
     def _loadPyfile(library, prop=None):

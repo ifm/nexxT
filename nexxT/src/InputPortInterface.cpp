@@ -5,13 +5,13 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#include "InputPortInterface.hpp"
-#include "DataSamples.hpp"
-#include "FilterEnvironment.hpp"
-#include "Filters.hpp"
-#include "Logger.hpp"
-#include "Services.hpp"
-#include "Logger.hpp"
+#include "nexxT/InputPortInterface.hpp"
+#include "nexxT/DataSamples.hpp"
+#include "nexxT/FilterEnvironment.hpp"
+#include "nexxT/Filters.hpp"
+#include "nexxT/Logger.hpp"
+#include "nexxT/Services.hpp"
+#include "nexxT/Logger.hpp"
 #include <atomic>
 #include <tuple>
 
@@ -219,10 +219,13 @@ void InputPortInterface::receiveAsync(const QSharedPointer<const DataSample> &sa
             stackDepth--;
         }
         addToQueue(sample);
-        if(!d->interthreadDynamicQueue)
+        if( (!d->interthreadDynamicQueue) || (!semaphore) )
         {
             transmit();
-            semaphore->release(1);
+            if(semaphore)
+            {
+                semaphore->release(1);
+            }
         } else
         {
             if( d->semaphoreN.find(semaphore) == d->semaphoreN.end() )

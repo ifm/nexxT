@@ -10,7 +10,7 @@ This module provides the playback control console service for the nexxT framewor
 
 import pathlib
 import logging
-from PySide2.QtCore import QObject, Signal, Slot, Qt, QDir, QMutex, QMutexLocker
+from nexxT.Qt.QtCore import QObject, Signal, Slot, Qt, QDir, QMutex, QMutexLocker
 from nexxT.interface import FilterState
 from nexxT.core.Exceptions import NexTRuntimeError
 from nexxT.core.Application import Application
@@ -232,8 +232,8 @@ class MVCPlaybackControlBase(QObject):
         :return:
         """
         with QMutexLocker(self._mutex):
-            for devid in self._registeredDevices:
-                if self._registeredDevices[devid]["object"] is playbackDevice:
+            for _, dev in self._registeredDevices.items():
+                if dev["object"] is playbackDevice:
                     raise NexTRuntimeError("Trying to register a playbackDevice object twice.")
 
             proxy = PlaybackDeviceProxy(self, playbackDevice, nameFilters)
@@ -271,8 +271,8 @@ class MVCPlaybackControlBase(QObject):
         """
         with QMutexLocker(self._mutex):
             found = []
-            for devid in self._registeredDevices:
-                if self._registeredDevices[devid]["object"] is playbackDevice:
+            for devid, dev in self._registeredDevices.items():
+                if dev["object"] is playbackDevice:
                     found.append(devid)
             if len(found) > 0:
                 for devid in found:
@@ -317,9 +317,9 @@ class MVCPlaybackControlBase(QObject):
         assertMainThread()
         featureset = set()
         nameFilters = set()
-        for devid in self._registeredDevices:
-            featureset = featureset.union(self._registeredDevices[devid]["featureset"])
-            nameFilters = nameFilters.union(self._registeredDevices[devid]["nameFilters"])
+        for _, dev in self._registeredDevices.items():
+            featureset = featureset.union(dev["featureset"])
+            nameFilters = nameFilters.union(dev["nameFilters"])
         self._supportedFeaturesChanged(featureset, nameFilters)
 
     def _supportedFeaturesChanged(self, featureset, nameFilters):

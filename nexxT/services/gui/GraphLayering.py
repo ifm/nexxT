@@ -73,9 +73,9 @@ class GraphRep:
         """
         if title is not None:
             print(title)
-        for n1 in self.dgForward:
+        for n1, fwd in self.dgForward.items():
             print(n1, end=": ")
-            for n2 in self.dgForward[n1]:
+            for n2 in fwd:
                 if (n1, n2) not in self.cycleEdges:
                     print(n2, end=",")
             print()
@@ -192,7 +192,7 @@ class GraphRep:
                     self.dgForward[nc].add(n2)
                     self.dgBackward[n2].add(nc)
         #self.dump("after adding virtual nodes")
-        nc = sum([numberOfCrossings(layers[i-1], layers[i]) for i in range(1, len(layers))])
+        nc = sum(numberOfCrossings(layers[i-1], layers[i]) for i in range(1, len(layers)))
         #print("numCrosses before heuristic:", nc)
         # heuristic for rearranging the layer according to the average position of previous nodes
         numCrosses = 0
@@ -230,7 +230,7 @@ class GraphRep:
                         layers[cl] = testL
                 if not found:
                     break
-        numCrosses = sum([numberOfCrossings(layers[i-1], layers[i]) for i in range(1, len(layers))])
+        numCrosses = sum(numberOfCrossings(layers[i-1], layers[i]) for i in range(1, len(layers)))
         return layers, numCrosses
 
     def layersToNodeNames(self, layers):

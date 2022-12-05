@@ -16,7 +16,7 @@ import logging
 import os
 import numpy as np
 import h5py
-from PySide2.QtCore import Signal
+from nexxT.Qt.QtCore import Signal
 from nexxT.interface import Filter, Services
 from nexxT.core.Utils import handleException, isMainThread
 from nexxT.filters.GenericReader import GenericReader, GenericReaderFile

@@ -14,6 +14,8 @@ import nexxT
 if nexxT.useCImpl:
     import cnexxT
     PluginInterface = cnexxT.nexxT.PluginInterface
+    Compatibility = cnexxT.nexxT.Compatibility
 else:
     PluginInterface = None
+    Compatibility = None
     

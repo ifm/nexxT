@@ -16,10 +16,10 @@ import datetime
 import os.path
 import sqlite3
 import time
-from PySide2.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
+from nexxT.Qt.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
                             QMutexLocker, QRecursiveMutex, QTimer, Qt, QPoint)
-from PySide2.QtGui import QColor, QPainter, QTextLayout, QTextOption
-from PySide2.QtWidgets import QFrame, QSizePolicy
+from nexxT.Qt.QtGui import QColor, QPainter, QTextLayout, QTextOption
+from nexxT.Qt.QtWidgets import QFrame, QSizePolicy
 from nexxT.core.Exceptions import NexTInternalError, InvalidIdentifierException
 
 logger = logging.getLogger(__name__)
@@ -221,7 +221,7 @@ class SQLiteHandler(logging.Handler):
             self.mutex = QRecursiveMutex()
             self.dbs = {}
         else:
-            raise RuntimeError("Unknown threadSafety option %s" % repr(self.threadSafety))
+            raise RuntimeError(f"Unknown threadSafety option {repr(self.threadSafety)}")
 
     def _getDB(self):
         if self.threadSafety == self.SINGLE_CONNECTION:
@@ -269,11 +269,11 @@ class SQLiteHandler(logging.Handler):
 class QByteArrayBuffer(io.IOBase):
     """
     Efficient IOBase wrapper around QByteArray for pythonic access, for memoryview doesn't seem
-    supported; note this seems to have changed in PySide2 5.14.2.
+    supported; note this seems to have changed in nexxT.Qt 5.14.2.
     """
     def __init__(self, qByteArray):
         super().__init__()
-        logger.warning("Using deprecated class QByteArrayBuffer. Since PySide2 5.14.2 you can cast QByteArrays directly"
+        logger.warning("Using deprecated class QByteArrayBuffer. Since PySide6 you can cast QByteArrays directly"
                        "to memoryview and this class is not needed anymore.")
         self._ba = qByteArray
         self._ptr = 0
@@ -341,7 +341,7 @@ def excepthook(*args):
 def handleException(func):
     """
     Can be used as decorator to enable generic exception catching. Important: Do not use
-    this for PySide2 slots because it confuses the PySide2 slot/thread detection logic.
+    this for nexxT.Qt slots because it confuses the nexxT.Qt slot/thread detection logic.
     Instead, make a non-slot method with exception handling and call that method from
     the slot.
     :param func: The function to be wrapped
@@ -353,6 +353,7 @@ def handleException(func):
         except Exception: # pylint: disable=broad-except
             # catching a general exception is exactly wanted here
             excepthook(*sys.exc_info())
+            return None
     return wrapper
 
 class ElidedLabel(QFrame):
@@ -451,33 +452,3 @@ class ElidedLabel(QFrame):
                 painter.drawText(QPoint(0, y + fontMetrics.ascent()), elidedLastLine)
                 break
         textLayout.endLayout()
-
-if __name__ == "__main__": # pragma: no cover
-    def _smokeTestBarrier():
-        # pylint: disable=import-outside-toplevel
-        # pylint: disable=missing-class-docstring
-        import random
-
-        n = 10
-
-        barrier = Barrier(n)
-
-        def threadWork():
-            st = random.randint(0, 5000)/1000.
-            time.sleep(st)
-            barrier.wait()
-
-        class MyThread(QThread):
-            def run(self):
-                threadWork()
-
-        threads = []
-        for _ in range(n):
-            t = MyThread()
-            t.start()
-            threads.append(t)
-
-        for t in threads:
-            t.wait()
-
-    _smokeTestBarrier()

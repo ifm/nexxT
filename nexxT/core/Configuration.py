@@ -9,7 +9,7 @@ This module provides the nexxT class Configuration
 """
 
 import logging
-from PySide2.QtCore import QObject, Slot, Signal
+from nexxT.Qt.QtCore import QObject, Slot, Signal
 from nexxT.core.Application import Application
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.Exceptions import (NexTRuntimeError, CompositeRecursion, NodeNotFoundError, NexTInternalError,
@@ -127,7 +127,7 @@ class Configuration(QObject):
                     raise CompositeRecursion(name)
                 try:
                     return self.compositeFilterByName(name)
-                except NodeNotFoundError:
+                except NodeNotFoundError as exc:
                     recursiveset.add(name)
                     try:
                         for cfg_cf in cfg["composite_filters"]:
@@ -135,7 +135,7 @@ class Configuration(QObject):
                                 cf = CompositeFilter(name, self)
                                 cf.load(cfg_cf, compositeLookup)
                                 return cf
-                        raise NodeNotFoundError("name")
+                        raise NodeNotFoundError("name") from exc
                     finally:
                         recursiveset.remove(name)
 
@@ -210,7 +210,7 @@ class Configuration(QObject):
             return match[0]
         if len(match) == 0:
             raise NodeNotFoundError(name)
-        raise NexTInternalError("non unique name %s" % name)
+        raise NexTInternalError(f"non unique name {name}")
 
     def applicationByName(self, name):
         """
@@ -223,7 +223,7 @@ class Configuration(QObject):
             return match[0]
         if len(match) == 0:
             raise NodeNotFoundError(name)
-        raise NexTInternalError("non unique name %s" % name)
+        raise NexTInternalError(f"non unique name {name}")
 
     def subConfigByNameAndTye(self, name, typeid):
         """
@@ -236,7 +236,7 @@ class Configuration(QObject):
             return self.applicationByName(name)
         if typeid == self.CONFIG_TYPE_COMPOSITE:
             return self.compositeFilterByName(name)
-        raise NexTInternalError("unknown typeid %s" % typeid)
+        raise NexTInternalError(f"unknown typeid {typeid}")
 
     @Slot(str)
     def activate(self, appname):
@@ -250,7 +250,7 @@ class Configuration(QObject):
                 app.activate()
                 self.appActivated.emit(appname, Application.activeApplication)
                 return
-        raise NexTRuntimeError("Application '%s' not found." % appname)
+        raise NexTRuntimeError(f"Application '{appname}' not found.")
 
     @Slot(str, str)
     def renameComposite(self, oldName, newName):
@@ -310,7 +310,7 @@ class Configuration(QObject):
         existing = [a.getName() for a in self._applications]
         while name in existing:
             idx += 1
-            name = "application_%d" % idx
+            name = f"application_{idx}"
         Application(name, self)
         return name
 
@@ -323,7 +323,7 @@ class Configuration(QObject):
         idx = 1
         while len([c for c in self._compositeFilters if c.getName() == name]) > 0:
             idx += 1
-            name = "composite_%d" % idx
+            name = f"composite_{idx}"
         CompositeFilter(name, self)
         return name
 
@@ -345,7 +345,7 @@ class Configuration(QObject):
     def _checkUniqueName(collection, name):
         for i in collection:
             if i.getName() == name:
-                raise NexTRuntimeError("Name '%s' is not unique." % name)
+                raise NexTRuntimeError(f"Name '{name}' is not unique.")
 
     def checkRecursion(self):
         """

@@ -5,17 +5,17 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#include "Services.hpp"
-#include "Logger.hpp"
+#include "nexxT/Services.hpp"
+#include "nexxT/Logger.hpp"
 #include <QtCore/QObject>
-#include <QtCore/QMutex>
+#include <QtCore/QRecursiveMutex>
 #include <QtCore/QMap>
 
 using namespace nexxT;
 
 Services *Services::_singleton = 0;
 
-typedef QSharedPointer<QMutex> SharedMutexPtr;
+typedef QSharedPointer<QRecursiveMutex> SharedMutexPtr;
 
 namespace nexxT
 {
@@ -27,7 +27,7 @@ namespace nexxT
 };
 
 Services::Services()
-    : d(new ServicesD{SharedMutexPtr(new QMutex(QMutex::Recursive))})
+    : d(new ServicesD{SharedMutexPtr(new QRecursiveMutex())})
 {
 }
 

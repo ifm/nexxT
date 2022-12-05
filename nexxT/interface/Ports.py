@@ -8,7 +8,7 @@
 This module defines the Port, InputPort and OutputPort interface classes of the nexxT framework.
 """
 
-from PySide2.QtCore import QObject, Signal
+from nexxT.Qt.QtCore import QObject, Signal
 
 class Port(QObject):
     """

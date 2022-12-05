@@ -8,7 +8,7 @@
 #ifndef SIMPLE_SOURCE_HPP
 #define SIMPLE_SOURCE_HPP
 
-#include "NexxTPlugins.hpp"
+#include "nexxT/NexxTPlugins.hpp"
 #include <QtCore/QTimer>
 #include <cstdint>
 

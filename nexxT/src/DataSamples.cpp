@@ -5,8 +5,8 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#include "DataSamples.hpp"
-#include "Logger.hpp"
+#include "nexxT/DataSamples.hpp"
+#include "nexxT/Logger.hpp"
 #include <chrono>
 #include <atomic>
 
