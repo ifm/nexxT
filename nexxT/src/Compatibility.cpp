@@ -1,4 +1,4 @@
-#include "Compatibility.hpp"
+#include "nexxT/Compatibility.hpp"
 
 using namespace nexxT;
 

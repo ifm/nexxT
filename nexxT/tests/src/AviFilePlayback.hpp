@@ -11,9 +11,9 @@
 #include <QtCore/QObject>
 #include <QtMultimedia/QMediaPlayer>
 #include "VideoGrabber.hpp"
-#include "Filters.hpp"
-#include "Ports.hpp"
-#include "NexxTPlugins.hpp"
+#include "nexxT/Filters.hpp"
+#include "nexxT/Ports.hpp"
+#include "nexxT/NexxTPlugins.hpp"
 
 using namespace nexxT;
 

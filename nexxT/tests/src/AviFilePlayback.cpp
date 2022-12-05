@@ -6,9 +6,9 @@
  */
 
 #include "AviFilePlayback.hpp"
-#include "Services.hpp"
-#include "PropertyCollection.hpp"
-#include "Logger.hpp"
+#include "nexxT/Services.hpp"
+#include "nexxT/PropertyCollection.hpp"
+#include "nexxT/Logger.hpp"
 #include "ImageFormat.h"
 #include <QtCore/QThread>
 #include <QtCore/QBuffer>

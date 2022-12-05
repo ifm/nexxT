@@ -8,9 +8,9 @@
 #ifndef TESTEXCEPTIONFILTER_HPP
 #define TESTEXCEPTIONFILTER_HPP
 
-#include "Filters.hpp"
-#include "Ports.hpp"
-#include "NexxTPlugins.hpp"
+#include "nexxT/Filters.hpp"
+#include "nexxT/Ports.hpp"
+#include "nexxT/NexxTPlugins.hpp"
 
 using namespace nexxT;
 

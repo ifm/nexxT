@@ -15,7 +15,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
-#include "NexxTLinkage.hpp"
+#include "nexxT/NexxTLinkage.hpp"
 
 namespace nexxT
 {

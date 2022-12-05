@@ -10,7 +10,7 @@
 
 #include <QtCore/QObject>
 #include <QtMultimedia/QVideoSink>
-#include "NexxTLinkage.hpp"
+#include "nexxT/NexxTLinkage.hpp"
 
 /* It would be lovely to do this stuff in python, but atm the binding is broken in PySide2
    See https://bugreports.qt.io/browse/PYSIDE-794

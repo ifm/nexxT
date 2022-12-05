@@ -5,8 +5,8 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#include "NexxTPlugins.hpp"
-#include "Logger.hpp"
+#include "nexxT/NexxTPlugins.hpp"
+#include "nexxT/Logger.hpp"
 #include <QtCore/QMap>
 #include <stdexcept>
 

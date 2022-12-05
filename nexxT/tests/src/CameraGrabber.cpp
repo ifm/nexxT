@@ -6,8 +6,8 @@
  */
 
 #include "CameraGrabber.hpp"
-#include "Logger.hpp"
-#include "PropertyCollection.hpp"
+#include "nexxT/Logger.hpp"
+#include "nexxT/PropertyCollection.hpp"
 #include <QtMultimedia/QCameraDevice>
 #include <QtMultimedia/QMediaDevices>
 #include <cstring>

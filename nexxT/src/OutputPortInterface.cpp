@@ -5,13 +5,13 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#include "OutputPortInterface.hpp"
-#include "InputPortInterface.hpp"
-#include "DataSamples.hpp"
-#include "FilterEnvironment.hpp"
-#include "Filters.hpp"
-#include "Logger.hpp"
-#include "Services.hpp"
+#include "nexxT/OutputPortInterface.hpp"
+#include "nexxT/InputPortInterface.hpp"
+#include "nexxT/DataSamples.hpp"
+#include "nexxT/FilterEnvironment.hpp"
+#include "nexxT/Filters.hpp"
+#include "nexxT/Logger.hpp"
+#include "nexxT/Services.hpp"
 #include <atomic>
 
 #include <QtCore/QThread>

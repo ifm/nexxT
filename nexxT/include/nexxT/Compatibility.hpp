@@ -15,7 +15,7 @@
 #include <QtGui/QAction>
 #include <QtWidgets/QMenu>
 
-#include "NexxTLinkage.hpp"
+#include "nexxT/NexxTLinkage.hpp"
 
 //! @cond Doxygen_Suppress
 namespace nexxT

@@ -10,9 +10,9 @@
 
 #include <QtCore/QObject>
 
-#include "SharedPointerTypes.hpp"
-#include "Filters.hpp"
-#include "NexxTLinkage.hpp"
+#include "nexxT/SharedPointerTypes.hpp"
+#include "nexxT/Filters.hpp"
+#include "nexxT/NexxTLinkage.hpp"
 
 namespace nexxT
 {

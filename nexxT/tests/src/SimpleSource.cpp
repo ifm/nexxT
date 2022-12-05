@@ -6,9 +6,9 @@
  */
 
 #include "SimpleSource.hpp"
-#include "PropertyCollection.hpp"
-#include "DataSamples.hpp"
-#include "Logger.hpp"
+#include "nexxT/PropertyCollection.hpp"
+#include "nexxT/DataSamples.hpp"
+#include "nexxT/Logger.hpp"
 #include <chrono>
 
 SimpleSource::SimpleSource(nexxT::BaseFilterEnvironment *env) : 

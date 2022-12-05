@@ -14,12 +14,12 @@
 #ifndef NEXXT_PLUGINS_HPP
 #define NEXXT_PLUGINS_HPP
 
-#include "Filters.hpp"
+#include "nexxT/Filters.hpp"
 /* included for convenience, these headers are usually needed in every filter */
-#include "DataSamples.hpp"
-#include "SharedPointerTypes.hpp"
-#include "OutputPortInterface.hpp"
-#include "InputPortInterface.hpp"
+#include "nexxT/DataSamples.hpp"
+#include "nexxT/SharedPointerTypes.hpp"
+#include "nexxT/OutputPortInterface.hpp"
+#include "nexxT/InputPortInterface.hpp"
 #include <QtCore/QLibrary>
 #include <QtCore/QMap>
 

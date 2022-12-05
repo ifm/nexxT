@@ -27,6 +27,7 @@ else:
     raise RuntimeError("invalid env variable PYSIDEVERSION=%s" % os.environ["PYSIDEVERSION"])
 
 env.Append(CPPPATH=[".",
+                    str(srcDir.Dir("..").Dir("include")),
                     purelib.abspath + "/shiboken%d_generator/include" % ver,
                     purelib.abspath + "/PySide%d/include/QtCore" % ver,
                     # TODO: the following 2 lines can be removed after this bug has been
@@ -53,24 +54,35 @@ if "linux" in env["target_platform"]:
 else:
     env["SHIBOKEN_INCFLAGS"] = ";".join(env["CPPPATH"])
 
-nexxT_headers = env.RegisterSources(
-    [srcDir.File("NexxTLinkage.hpp"),
-     srcDir.File("DataSamples.hpp"),
-     srcDir.File("Filters.hpp"),
-     ])
-apilib = env.SharedLibrary("nexxT", env.RegisterSources(Split("""
-    DataSamples.cpp 
-    FilterEnvironment.cpp
-    Filters.cpp
-    Logger.cpp
-    Ports.cpp
-    InputPortInterface.cpp
-    OutputPortInterface.cpp
-    Services.cpp
-    PropertyCollection.cpp
-    NexxTPlugins.cpp
-    Compatibility.cpp
-""")), CPPDEFINES=["NEXXT_LIBRARY_COMPILATION"])
+# we have to manually moc because of seperation of headers and sources
+moced = [
+    env.Moc6(os.path.basename(h) + ".cpp", srcDir.File(h))
+        for h in Split("""
+            ../include/nexxT/FilterEnvironment.hpp
+            ../include/nexxT/Filters.hpp
+            ../include/nexxT/InputPortInterface.hpp
+            ../include/nexxT/OutputPortInterface.hpp
+            ../include/nexxT/Ports.hpp
+            ../include/nexxT/Ports.hpp
+            ../include/nexxT/PropertyCollection.hpp
+        """)
+]
+
+apilib = env.SharedLibrary("nexxT", env.RegisterSources(
+    Split("""
+        DataSamples.cpp 
+        FilterEnvironment.cpp
+        Filters.cpp
+        Logger.cpp
+        Ports.cpp
+        InputPortInterface.cpp
+        OutputPortInterface.cpp
+        Services.cpp
+        PropertyCollection.cpp
+        NexxTPlugins.cpp
+        Compatibility.cpp
+    """)) + moced
+    , CPPDEFINES=["NEXXT_LIBRARY_COMPILATION"])
 env.RegisterTargets(apilib)
 
 spath = Dir("./cnexxT-shiboken")
@@ -148,7 +160,6 @@ Depends(dummy, apilib)
 # install python extension and library files into project directory
 env.RegisterTargets(env.Install(srcDir.Dir("..").Dir("binary").Dir(env.subst("$deploy_platform")).Dir(env.subst("$variant")).abspath, pyext+apilib))
 if env["variant"] == "release":
-    env.RegisterTargets(env.Install(srcDir.Dir("..").Dir("include").abspath, Glob(srcDir.abspath + "/*.hpp")))
     qrcsrc = srcDir.File('../../workspace/resources/nexxT.qrc')
     if os.environ.get("PYSIDEVERSION", "6") in "52":
         rccout = env.Qrc5('qrc_resources.py', qrcsrc.abspath, QT5_QRCFLAGS=Split("-g python"))

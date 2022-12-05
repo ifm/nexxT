@@ -15,9 +15,9 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QSemaphore>
-#include "NexxTLinkage.hpp"
-#include "SharedPointerTypes.hpp"
-#include "Ports.hpp"
+#include "nexxT/NexxTLinkage.hpp"
+#include "nexxT/SharedPointerTypes.hpp"
+#include "nexxT/Ports.hpp"
 
 namespace nexxT
 {

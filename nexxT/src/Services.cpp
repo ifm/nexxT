@@ -5,8 +5,8 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#include "Services.hpp"
-#include "Logger.hpp"
+#include "nexxT/Services.hpp"
+#include "nexxT/Logger.hpp"
 #include <QtCore/QObject>
 #include <QtCore/QRecursiveMutex>
 #include <QtCore/QMap>

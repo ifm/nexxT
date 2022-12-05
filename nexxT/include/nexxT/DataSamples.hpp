@@ -18,8 +18,8 @@
 #include <QtCore/QString>
 #include <QtCore/QSharedPointer>
 
-#include "NexxTLinkage.hpp"
-#include "SharedPointerTypes.hpp"
+#include "nexxT/NexxTLinkage.hpp"
+#include "nexxT/SharedPointerTypes.hpp"
 
 namespace nexxT
 {

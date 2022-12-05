@@ -5,12 +5,12 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#include "Filters.hpp"
-#include "FilterEnvironment.hpp"
-#include "Ports.hpp"
-#include "InputPortInterface.hpp"
-#include "OutputPortInterface.hpp"
-#include "Logger.hpp"
+#include "nexxT/Filters.hpp"
+#include "nexxT/FilterEnvironment.hpp"
+#include "nexxT/Ports.hpp"
+#include "nexxT/InputPortInterface.hpp"
+#include "nexxT/OutputPortInterface.hpp"
+#include "nexxT/Logger.hpp"
 #include <stdexcept>
 
 using namespace nexxT;

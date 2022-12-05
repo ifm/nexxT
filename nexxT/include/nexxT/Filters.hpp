@@ -18,8 +18,8 @@
 #include <QtCore/QObject>
 #include <QtCore/QList>
 
-#include "NexxTLinkage.hpp"
-#include "SharedPointerTypes.hpp"
+#include "nexxT/NexxTLinkage.hpp"
+#include "nexxT/SharedPointerTypes.hpp"
 
 namespace nexxT
 {

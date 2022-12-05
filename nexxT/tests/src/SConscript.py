@@ -30,7 +30,7 @@ elif os.environ.get("PYSIDEVERSION", "6") == "6":
     env.EnableQt6Modules(['QtCore', "QtGui", "QtMultimedia"])
     srcDir = Dir(".").srcnode()
 
-    env.Append(CPPPATH=["../../src", "."],
+    env.Append(CPPPATH=[srcDir.Dir("../../include"), "."],
                LIBPATH=["../../src"],
                LIBS=["nexxT"])
 

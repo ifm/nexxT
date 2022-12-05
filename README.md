@@ -43,6 +43,8 @@ Assuming that you have a python3.7+ interpreter in your path, the installation i
 
 ## Porting from nexxT 0.x to nexxT 1.x (aka PySide2 to PySide6)
 
+### Python
+
 The main change for nexxT 1.x is the update from QT5/PySide2 to QT6/PySide6. For flexibility reasons, nexxT now provides a meta package nexxT.Qt, which can be used instead of PySide6. So it is now recommended to replace
 
     from PySide2 import xyz
@@ -52,10 +54,20 @@ with
 
     from nexxT.Qt import xyz
     from nexxT.Qt.QtWidgets import uvw
-
+    
 In the future, this approach might be also used to support PyQt6, so using nexxT.Qt is recommended over the also possible direct usage of PySide6. Note that the implementation of nexxT.Qt imports the PySide moduels on demand using sys.meta_path, so unused QT modules are not loaded.
 
 Note the porting guide of PySide6: https://doc.qt.io/qtforpython/porting_from2.html: QAction and QShortcut have been moved from QtWidgets to QtGui.
+
+### C++
+
+For c++, nexxT includes shall be prefixed with nexxT/, for example
+
+    #include "Filters.hpp"
+    
+has to be replaced with
+
+    #include "nexxT/Filters.hpp"
 
 ## Building from source
 

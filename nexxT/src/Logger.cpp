@@ -5,7 +5,7 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#include "Logger.hpp"
+#include "nexxT/Logger.hpp"
 
 using namespace nexxT;
 

@@ -5,7 +5,7 @@
  * THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
  */
 
-#include "PropertyCollection.hpp"
+#include "nexxT/PropertyCollection.hpp"
 #include <stdexcept>
 
 #include <cstdio>

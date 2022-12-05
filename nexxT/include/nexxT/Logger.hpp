@@ -14,8 +14,8 @@
 #ifndef NEXXT_LOGGER_HPP
 #define NEXXT_LOGGER_HPP
 
-#include "Services.hpp"
-#include "NexxTLinkage.hpp"
+#include "nexxT/Services.hpp"
+#include "nexxT/NexxTLinkage.hpp"
 #include <QtCore/QMetaObject>
 
 //! @cond Doxygen_Suppress
