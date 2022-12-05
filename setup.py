@@ -22,7 +22,7 @@ from distutils.core import setup
 from distutils.command.install import INSTALL_SCHEMES
 
 # remove build results
-for p in ["nexxT/binary", "nexxT/include", "nexxT/tests/binary"]:
+for p in ["nexxT/binary", "nexxT/tests/binary"]:
     if os.path.exists(p):
         shutil.rmtree(p, ignore_errors=True)
     if os.path.exists(p):
@@ -122,7 +122,7 @@ with open("MANIFEST.in", "w") as manifest:
     manifest.write("include LICENSE\n")
     manifest.write("include NOTICE\n")
     if build_required:
-        manifest.write("include nexxT/include/*.hpp\n")
+        manifest.write("include nexxT/include/nexxT/*.hpp\n")
         for bf in build_files:
             manifest.write("include " + bf + "\n")
         manifest.write("exclude nexxT/src/*.*\n")
