@@ -111,16 +111,7 @@ targets += [spath.Dir("cnexxT").File("qsharedpointer_qobject_wrapper.cpp")]
 
 env = env.Clone()
 env.Append(LIBS=["nexxT"])
-if os.environ.get("PYSIDEVERSION", "6") in "52":
-    if "linux" in env["target_platform"]:
-        # the : notation is for the linker and enables to use lib names which are not
-        # ending with .so
-        qt5vend = ".".join(env.subst("$QT5VERSION").split(".")[:2])
-
-        env.Append(LIBS=[":libpyside2.abi3.so." + qt5vend,":libshiboken2.abi3.so." + qt5vend])
-    else:
-        env.Append(LIBS=["shiboken2.abi3", "pyside2.abi3"])
-elif os.environ.get("PYSIDEVERSION", "6") == "6":
+if os.environ.get("PYSIDEVERSION", "6") == "6":
     if "linux" in env["target_platform"]:
         # the : notation is for the linker and enables to use lib names which are not
         # ending with .so

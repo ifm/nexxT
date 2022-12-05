@@ -133,10 +133,10 @@ with open("MANIFEST.in", "w") as manifest:
 
 if build_required:
     try:
-        if os.environ.get("PYSIDEVERSION", "6") in "52":
-            import PySide2
-        else:
+        if os.environ.get("PYSIDEVERSION", "6") in "6":
             import PySide6
+        else:
+            raise RuntimeError("Don't know what to do with PYSIDEVERSION=%s" % os.environ.get("PYSIDEVERSION", "6"))
     except ImportError:
         raise RuntimeError("PySide%s must be installed for building the extension module." % os.environ.get("PYSIDEVERSION", "6"))
     cwd = pathlib.Path().absolute()
@@ -149,8 +149,8 @@ if build_required:
     
 setup(name='nexxT',
       install_requires=[
-        "PySide2==5.15.1" if os.environ.get("PYSIDEVERSION", "6") in "52" else "PySide6==6.4.1",
-        "shiboken2==5.15.1" if os.environ.get("PYSIDEVERSION", "6") in "52" else "PySide6==6.4.1",
+        "PySide6==6.4.1",
+        "shiboken6==6.4.1",
         "jsonschema>=3.2.0",
         "h5py>=2.10.0",
         "setuptools>=41.0.0",

@@ -273,7 +273,7 @@ class QByteArrayBuffer(io.IOBase):
     """
     def __init__(self, qByteArray):
         super().__init__()
-        logger.warning("Using deprecated class QByteArrayBuffer. Since PySide2 5.14.2 you can cast QByteArrays directly"
+        logger.warning("Using deprecated class QByteArrayBuffer. Since PySide6 you can cast QByteArrays directly"
                        "to memoryview and this class is not needed anymore.")
         self._ba = qByteArray
         self._ptr = 0

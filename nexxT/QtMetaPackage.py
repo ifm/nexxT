@@ -1,6 +1,6 @@
 """
 This module provides a QT meta package such that we are able to write "from nexxT.Qt.QtWidgets import QWidget" and
-nexxT.Qt will serve as an alias for PySide2 or PySide6
+nexxT.Qt will serve as an alias for PySide6
 
 It is loosly based on this tutorial:
 https://dev.to/dangerontheranger/dependency-injection-with-import-hooks-in-python-3-5hap
@@ -32,7 +32,7 @@ class QtFinder(importlib.abc.MetaPathFinder):
 class QtLoader(importlib.abc.Loader):
     """
     The actual loader which maps PySide modules to nexxT.Qt. The approach is similar to executing a
-    ``from PySide2 import *`` statement in a real Qt.py module, but it is dynamically and prevents from loading unused
+    ``from PySide6 import *`` statement in a real Qt.py module, but it is dynamically and prevents from loading unused
     QT modules, like QtMultimedia, etc.
     """
 
@@ -41,7 +41,7 @@ class QtLoader(importlib.abc.Loader):
         Constructor.
 
         :param prefix: the prefix for the proxied library (e.g. nexxT.Qt)
-        :param qtlib: the PySide library to be used, must be either PySide2 or PySide6
+        :param qtlib: the PySide library to be used, must be PySide6
         """
         self._prefix = prefix
         self._qtlib = qtlib
@@ -85,13 +85,6 @@ class QtLoader(importlib.abc.Loader):
                 if not hasattr(dst, o):
                     setattr(dst, o, getattr(src, o))
         _copy_attrs(proxymod, module)
-        if proxyname == "PySide2.QtGui":
-            # backward compatibility stuff
-            from PySide2.QtWidgets import QAction, QActionGroup
-            module.QAction = QAction
-            module.QActionGroup = QActionGroup
-        if proxyname == "PySide2":
-            module.call_exec = lambda instance, *args, **kw: instance.exec_(*args, **kw)
         if proxyname == "PySide6":
             module.call_exec = lambda instance, *args, **kw: instance.exec(*args, **kw)
 
@@ -108,13 +101,8 @@ def setup():
         libs.append(("PySide6", "shiboken6"))
     except ImportError:
         pass
-    try:
-        import PySide2
-        libs.append(("PySide2", "shiboken2"))
-    except ImportError:
-        pass
     if len(libs) != 1:
-        raise RuntimeError("nexxT needs either PySide6 or PySide2 installed (available: %s).", libs)
+        raise RuntimeError("nexxT needs PySide6 installed (available: %s).", libs)
     libs = libs[0]
     sys.meta_path = ([QtFinder(QtLoader("nexxT.Qt", libs[0])), QtFinder(QtLoader("nexxT.shiboken", libs[1]))] +
                      sys.meta_path)
