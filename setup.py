@@ -45,11 +45,9 @@ try:
             python, abi, plat = _bdist_wheel.get_tag(self)
             # uncomment for non-python extensions
             if platform.system() == "Linux":
-                abi = "abi3"
                 plat = "manylinux_2_28_x86_64"
-            else:
-                abi = "none"
-            python = "cp37.cp38.cp39"
+            abi = "abi3"
+            python = "cp37"
             print("plat=", plat)
             return python, abi, plat
             
