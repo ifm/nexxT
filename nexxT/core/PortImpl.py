@@ -9,7 +9,7 @@ This module contains implementations for abstract classes InputPort and OutputPo
 """
 
 import logging
-from PySide2.QtCore import QThread, QSemaphore, Signal, QObject, Qt
+from nexxT.Qt.QtCore import QThread, QSemaphore, Signal, QObject, Qt
 from nexxT.interface.Ports import InputPortInterface, OutputPortInterface
 from nexxT.interface.DataSamples import DataSample
 from nexxT.interface.Services import Services
@@ -24,10 +24,10 @@ class InterThreadConnection(QObject):
     """
     transmitInterThread = Signal(object, QSemaphore)
 
-    def __init__(self, qthread_from):
+    def __init__(self, qthreadFrom, width):
         super().__init__()
-        self.moveToThread(qthread_from)
-        self.semaphore = QSemaphore(1)
+        self.moveToThread(qthreadFrom)
+        self.semaphore = QSemaphore(width) if width > 0 else None
         self._stopped = True
 
     def receiveSample(self, dataSample):
@@ -45,7 +45,7 @@ class InterThreadConnection(QObject):
             if self._stopped:
                 logger.info("The inter-thread connection is set to stopped mode; data sample discarded.")
                 break
-            if self.semaphore.tryAcquire(1, 500):
+            if self.semaphore is None or self.semaphore.tryAcquire(1, 500):
                 self.transmitInterThread.emit(dataSample, self.semaphore)
                 break
 
@@ -95,24 +95,25 @@ class OutputPortImpl(OutputPortInterface):
 
         :param outputPort: the output port instance to be connected
         :param inputPort: the input port instance to be connected
-        :return:None
+        :return: None
         """
         logger.info("setup direct connection between %s -> %s", outputPort.name(), inputPort.name())
         outputPort.transmitSample.connect(inputPort.receiveSync, Qt.DirectConnection)
 
     @staticmethod
-    def setupInterThreadConnection(outputPort, inputPort, outputPortThread):
+    def setupInterThreadConnection(outputPort, inputPort, outputPortThread, width):
         """
         Setup an inter thread connection between outputPort and inputPort
 
         :param outputPort: the output port instance to be connected
         :param inputPort: the input port instance to be connected
         :param outputPortThread: the QThread instance of the outputPort instance
+        :param width: the width of the connection in DataSamples (0: infinite)
         :return: an InterThreadConnection instance which manages the connection (has
                  to survive until connections is deleted)
         """
         logger.info("setup inter thread connection between %s -> %s", outputPort.name(), inputPort.name())
-        itc = InterThreadConnection(outputPortThread)
+        itc = InterThreadConnection(outputPortThread, width)
         outputPort.transmitSample.connect(itc.receiveSample, Qt.DirectConnection)
         itc.transmitInterThread.connect(inputPort.receiveAsync, Qt.QueuedConnection)
         return itc
@@ -206,10 +207,11 @@ class InputPortImpl(InputPortInterface):
         if not QThread.currentThread() is self.thread():
             raise NexTInternalError("InputPort.receiveAsync has been called from an unexpected thread.")
         self._addToQueue(dataSample)
-        if not self._interthreadDynamicQueue:
+        if not self._interthreadDynamicQueue or semaphore is None:
             # usual behaviour
             self._transmit()
-            semaphore.release(1)
+            if semaphore is not None:
+                semaphore.release(1)
         else:
             if semaphore not in self._semaphoreN:
                 self._semaphoreN[semaphore] = 1
@@ -224,7 +226,7 @@ class InputPortImpl(InputPortInterface):
                 # first acquire is done by caller
                 self._semaphoreN[semaphore] -= 1
                 # the semaphore's N is too large, try acquires to reduce the size
-                for i in range(1, delta):
+                for _ in range(1, delta):
                     if semaphore.tryAcquire(1):
                         self._semaphoreN[semaphore] -= 1
                     else:
@@ -303,6 +305,7 @@ class InputPortImpl(InputPortInterface):
         if enabled != self._interthreadDynamicQueue:
             state = self.environment().state()
             # pylint: disable=import-outside-toplevel
+            # pylint: disable=cyclic-import
             # needed to avoid recursive import
             from nexxT.interface.Filters import FilterState # avoid recursive import
             if state not in [FilterState.CONSTRUCTING, FilterState.CONSTRUCTED,

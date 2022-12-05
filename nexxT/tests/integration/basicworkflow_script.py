@@ -6,7 +6,7 @@
 
 import glob
 import logging
-from PySide2.QtCore import Qt, QCoreApplication, QTimer, QModelIndex
+from nexxT.Qt.QtCore import Qt, QCoreApplication, QTimer, QModelIndex
 from nexxT.interface import Services, FilterState
 from nexxT.core.Utils import MethodInvoker, waitForSignal
 from nexxT.core.Application import Application

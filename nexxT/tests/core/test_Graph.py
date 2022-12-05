@@ -4,7 +4,7 @@
 # THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
 #
 
-from PySide2.QtCore import QCoreApplication
+from nexxT.Qt.QtCore import QCoreApplication
 from nexxT.interface import Services
 from nexxT.core.Graph import FilterGraph
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl

@@ -6,9 +6,9 @@
 
 import logging
 import time
-from PySide2.QtCore import Signal, Slot, QTimer, QUrl
-from PySide2.QtMultimedia import QMediaPlayer, QMediaPlaylist, QAbstractVideoSurface, QVideoFrame
-from PySide2.QtMultimediaWidgets import QVideoWidget
+from nexxT.Qt.QtCore import Signal, Slot, QTimer, QUrl
+from nexxT.Qt.QtMultimedia import QMediaPlayer, QMediaPlaylist, QAbstractVideoSurface, QVideoFrame
+from nexxT.Qt.QtMultimediaWidgets import QVideoWidget
 from nexxT.interface import Filter, OutputPort, DataSample, Services
 
 logger = logging.getLogger(__name__)

@@ -6,7 +6,8 @@
 
 import os
 import time
-from PySide2.QtCore import QCoreApplication, QTimer
+import nexxT.Qt
+from nexxT.Qt.QtCore import QCoreApplication, QTimer
 from nexxT.interface import FilterState
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.Application import Application
@@ -141,7 +142,7 @@ def simple_setup(sourceFreq, activeTime_s):
         aa.open()
         aa.start()
 
-        app.exec_()
+        nexxT.Qt.call_exec(app)
 
         return events
     finally:
@@ -302,7 +303,7 @@ def test_doubleNames():
         aa.open()
         aa.start()
 
-        app.exec_()
+        nexxT.Qt.call_exec(app)
 
         return events
     finally:

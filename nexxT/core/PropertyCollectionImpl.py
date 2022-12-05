@@ -14,8 +14,8 @@ import logging
 import platform
 import string
 import os
-import shiboken2
-from PySide2.QtCore import Signal, Slot, QMutex, QMutexLocker
+import nexxT.shiboken
+from nexxT.Qt.QtCore import Signal, Slot, QRecursiveMutex, QMutexLocker
 from nexxT.core.Exceptions import (PropertyCollectionChildNotFound, PropertyCollectionChildExists,
                                    PropertyParsingError, NexTInternalError,
                                    PropertyInconsistentDefinition, PropertyCollectionPropertyNotFound)
@@ -54,7 +54,7 @@ class PropertyCollectionImpl(PropertyCollection):
         self._properties = {}
         self._accessed = False # if no access to properties has been made, we stick with configs from config file.
         self._loadedFromConfig = loadedFromConfig if loadedFromConfig is not None else {}
-        self._propertyMutex = QMutex(QMutex.Recursive)
+        self._propertyMutex = QRecursiveMutex()
         if parentPropColl is not None:
             if not isinstance(parentPropColl, PropertyCollectionImpl):
                 raise NexTInternalError("parentPropColl should always be a property collection instance but it isn't")
@@ -72,6 +72,11 @@ class PropertyCollectionImpl(PropertyCollection):
         self._loadedFromConfig = loadedFromConfig
 
     def childEvent(self, event):
+        """
+        Overwritten from QObject
+
+        :param event: a QChildEvent instance.
+        """
         assertMainThread()
         if event.added():
             self.childAdded.emit(self, event.child().objectName())
@@ -124,6 +129,7 @@ class PropertyCollectionImpl(PropertyCollection):
             assert isinstance(propertyHandler, PropertyHandler)
             assert isinstance(options, dict)
             if propertyHandler.validate(defaultVal) != defaultVal:
+                # pylint: disable=consider-using-f-string
                 raise PropertyInconsistentDefinition(
                     "The validation of the default value must be the identity (%s != %s)!" %
                     (repr(propertyHandler.validate(defaultVal)), repr(defaultVal)))
@@ -135,8 +141,8 @@ class PropertyCollectionImpl(PropertyCollection):
                     try:
                         p.value = p.handler.validate(p.handler.fromConfig(l))
                     except Exception as e:
-                        raise PropertyParsingError("Error parsing property %s from %s (original exception: %s)" %
-                                                   (name, repr(l), str(e)))
+                        raise PropertyParsingError(
+                            f"Error parsing property {name} from {repr(l)} (original exception: {str(e)})") from e
                 self.propertyAdded.emit(self, name)
             else:
                 # the arguments to getProperty shall be consistent among calls
@@ -198,8 +204,8 @@ class PropertyCollectionImpl(PropertyCollection):
             try:
                 value = p.handler.validate(value)
             except Exception as e:
-                raise PropertyParsingError("Error parsing property %s from %s (original exception: %s)" %
-                                           (name, repr(value), str(e)))
+                raise PropertyParsingError(
+                    f"Error parsing property {name} from {repr(value)} (original exception: {str(e)})") from e
             if value != p.value:
                 p.value = value
                 self.propertyChanged.emit(self, name)
@@ -210,8 +216,8 @@ class PropertyCollectionImpl(PropertyCollection):
         :return: None
         """
         with QMutexLocker(self._propertyMutex):
-            for n in self._properties:
-                self._properties[n].used = False
+            for _, p in self._properties.items():
+                p.used = False
 
     def deleteUnused(self):
         """
@@ -223,8 +229,8 @@ class PropertyCollectionImpl(PropertyCollection):
             return
         with QMutexLocker(self._propertyMutex):
             toDel = []
-            for n in self._properties:
-                if not self._properties[n].used:
+            for n, p in self._properties.items():
+                if not p.used:
                     toDel.append(n)
             for n in toDel:
                 del self._properties[n]
@@ -290,8 +296,8 @@ class PropertyCollectionImpl(PropertyCollection):
         for c in cc.children():
             if isinstance(c, PropertyCollectionImpl):
                 cc.deleteChild(c.objectName())
-        if shiboken2.isValid(cc): # pylint: disable=no-member
-            shiboken2.delete(cc) # pylint: disable=no-member
+        if nexxT.shiboken.isValid(cc): # pylint: disable=no-member
+            nexxT.shiboken.delete(cc) # pylint: disable=no-member
 
     def evalpath(self, path):
         """
@@ -308,9 +314,9 @@ class PropertyCollectionImpl(PropertyCollection):
             NEXXT_VARIANT="release"
         )
         if platform.system() == "Windows":
-            default_environ["NEXXT_PLATFORM"] = "msvc_x86%s" % ("_64" if platform.architecture()[0] == "64bit" else "")
+            default_environ["NEXXT_PLATFORM"] = f"msvc_x86{'_64' if platform.architecture()[0] == '64bit' else ''}"
         else:
-            default_environ["NEXXT_PLATFORM"] = "linux_x86%s" % ("_64" if platform.architecture()[0] == "64bit" else "")
+            default_environ["NEXXT_PLATFORM"] = f"linux_x86{'_64' if platform.architecture()[0] == '64bit' else ''}"
         origpath = path
         path = string.Template(path).safe_substitute({**default_environ, **os.environ})
         logger.debug("interpolated path %s -> %s", origpath, path)

@@ -1,8 +1,10 @@
 -e .
+-e .
 Sphinx==3.3.1
-sphinx-rtd-theme==0.5.0
+sphinx-rtd-theme==1.1.1
 sphinxcontrib-apidoc==0.3.0
 breathe==4.25.1
 commonmark==0.9.1
 docutils==0.16
 recommonmark==0.7.1
+Jinja2<3.1.0

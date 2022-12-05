@@ -9,7 +9,7 @@ This module provides the recording control console service for the nexxT framewo
 """
 
 import logging
-from PySide2.QtCore import QObject, Signal, Slot, Qt, QMutex, QMutexLocker
+from nexxT.Qt.QtCore import QObject, Signal, Slot, Qt, QMutex, QMutexLocker
 from nexxT.core.Application import Application
 from nexxT.core.Exceptions import NexTRuntimeError
 from nexxT.interface import FilterState
@@ -54,8 +54,8 @@ class MVCRecordingControlBase(QObject):
         :return:
         """
         with QMutexLocker(self._mutex):
-            for devid in self._registeredDevices:
-                if self._registeredDevices[devid]["object"] is recordingDevice:
+            for _, dev in self._registeredDevices.items():
+                if dev["object"] is recordingDevice:
                     raise NexTRuntimeError("Trying to register a playbackDevice object twice.")
 
             if not self._startRecording.connect(recordingDevice.startRecording):
@@ -94,8 +94,8 @@ class MVCRecordingControlBase(QObject):
         """
         with QMutexLocker(self._mutex):
             found = []
-            for devid in self._registeredDevices:
-                if self._registeredDevices[devid]["object"] is recordingDevice:
+            for devid, dev in self._registeredDevices.items():
+                if dev["object"] is recordingDevice:
                     found.append(devid)
             if len(found) > 0:
                 for devid in found:
@@ -109,12 +109,12 @@ class MVCRecordingControlBase(QObject):
     def _updateFeatureSet(self):
         featureset = set()
         featureCount = {}
-        for devid in self._registeredDevices:
-            for f in self._registeredDevices[devid]["featureset"]:
+        for _, dev in self._registeredDevices.items():
+            for f in dev["featureset"]:
                 if not f in featureCount:
                     featureCount[f] = 0
                 featureCount[f] += 1
-            featureset = featureset.union(self._registeredDevices[devid]["featureset"])
+            featureset = featureset.union(dev["featureset"])
         self._supportedFeaturesChanged(featureset)
 
     def _supportedFeaturesChanged(self, featureset):

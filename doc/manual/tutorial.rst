@@ -149,6 +149,31 @@ Now it's time to save the configuration in the tool bar and test it. Initialize 
 
 .. image:: example-first-app-running.png
 
+Thread cycles and Deadlocks
++++++++++++++++++++++++++++
+
+When you get error messages like
+
+.. code-block:: console
+
+    nexxT.core.ActiveApplication: This graph is not deadlock-safe. A cycle has been found in the thread graph: main->compute->main
+
+you have tried to create an application which is potentially deadlocking. In the message above, it is stated that
+there is a dependency cycle in the filters of the threads main and compute. This is the corresponding filter graph:
+
+.. image:: example-deadlock.png
+
+The reason for the possible deadlocks is that nexxT by default uses a semaphore to control the number of pending samples in inter-thread connections. When transmitting a sample to another thread which has not yet processed the last transmitted sample, the transmitting thread blocks until the last transmitted sample has been received by the receiving thread. This behaviour might cause deadlocks in the presence of cycles, nexxT detects these cycles and refuses to execute these applications.
+
+There are multiple solutions for this issue:
+
+- move filters to other threads. The above examples gets deadlock safe when moving the filter *filt_gui* from the gui thread (green) to the compute thread (dark-blue).
+- Moving all filters to the main thread is always a solution, but this might be too slow.
+- Use non-blocking connections for specific inter-thread connections (right-click on a connection and select *Set non blocking*). Non-blocking connections do not check for pending data samples, so they cannot cause deadlocks. Non blocking connections are displayed in red in the filter graph:
+
+.. image:: example-deadlock-fixed.png
+
+Note that non-blocking connections come with the risk that a potentially infinite amount of data is pending on inter-thread connections. This might cause high latency or even out-of-memory situations. Therefore, non-blocking connections are not recommended to be used at high data rate connections. Output ports triggered by sporadic events are best suited for non-blocking connections.
 
 Developer Perspectives
 ----------------------
@@ -256,13 +281,13 @@ The onClose(...) method is the inverse of onOpen(...). It releases the widget fr
 C++
 +++
 
-**What are the benefits of using C++ instead of python?** While you can argue that performance is not affected much if the filter only uses a wrapper around a library such as opencv, the `python GIL <https://wiki.python.org/moin/GlobalInterpreterLock>`_ is a factor which might limit performance in a multithreaded application like nexxT. In a nutshell it means, that whenever python code is executed, the interpreter has the GIL locked to prevent other threads from modifying interpreter states. C extensions like numpy, opencv or PySide2 unlock the GIL during long-duration calls. As a consequence, heavily using pure python will slow down other threads because the GIL limits parallel execution. Using C++ filters, it is possible to design operations which are not affected by the GIL at all.
+**What are the benefits of using C++ instead of python?** While you can argue that performance is not affected much if the filter only uses a wrapper around a library such as opencv, the `python GIL <https://wiki.python.org/moin/GlobalInterpreterLock>`_ is a factor which might limit performance in a multithreaded application like nexxT. In a nutshell it means, that whenever python code is executed, the interpreter has the GIL locked to prevent other threads from modifying interpreter states. C extensions like numpy, opencv or PySide6 unlock the GIL during long-duration calls. As a consequence, heavily using pure python will slow down other threads because the GIL limits parallel execution. Using C++ filters, it is possible to design operations which are not affected by the GIL at all.
 
 Filters in C++ are very similar to filters in python. They are defined using a class inheriting from :cpp:class:`nexxT::Filter` and overwriting the same methods just like in python. One difference is the usage of nexxT services like the MainWindow service (see :ref:`tutorial:Display filters`). In C++, these services are of type QObject. Therefore, you need to use `QMetaObject::invokeMethod <https://doc.qt.io/qt-5/qmetaobject.html#invokeMethod>`_ for accessing slots of the services.
 
-The plugin library links against the nexxT runtime library (*libnexxT.so* or *nexxT.dll*) which is provided in nexxT installation directory. It also links against a QT library used for development. Note that during runtime, the QT library bundled with PySide2 will be used regardless of which QT library has been used to develop. To be on the safe side, you should use a matching major.minor version, the patch level should be non-relevant. For example, to compile a plugin for the PySide2 version 5.14.2.3, you can use QT 5.14.0. Plugin libraries do not use shiboken2 for exposing the filters in python, instead they use a QLibrary interface.
+The plugin library links against the nexxT runtime library (*libnexxT.so* or *nexxT.dll*) which is provided in nexxT installation directory. It also links against a QT library used for development. Note that during runtime, the QT library bundled with PySide6 will be used regardless of which QT library has been used to develop. To be on the safe side, you should use a matching major.minor version, the patch level should be non-relevant. For example, to compile a plugin for the PySide6 version 5.14.2.3, you can use QT 5.14.0. Plugin libraries do not use shiboken2 for exposing the filters in python, instead they use a QLibrary interface.
 
-Note that - unlike pure QT - PySide2 does not provide any compatibility guarantees between minor or patch level releases. This means that it is generally not possible to use nexxT with a different PySide2 version than it was compiled against. 
+Note that - unlike pure QT - PySide6 does not provide any compatibility guarantees between minor or patch level releases. This means that it is generally not possible to use nexxT with a different PySide6 version than it was compiled against. 
 
 Each plugin library can announce one or more filter classes.
 

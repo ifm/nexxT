@@ -11,8 +11,8 @@ This module provides a generic reader which can be inherited to use new data for
 import time
 import logging
 import math
-from PySide2.QtCore import Signal, QTimer, Qt
-from PySide2.QtWidgets import QFileDialog
+from nexxT.Qt.QtCore import Signal, QTimer, Qt
+from nexxT.Qt.QtWidgets import QFileDialog
 from nexxT.interface import Filter, Services, DataSample
 from nexxT.core.Utils import handleException, isMainThread, MethodInvoker
 
@@ -30,7 +30,6 @@ class GenericReaderFile:
     See :py:class:`nexxT.filters.hdf5.Hdf5File` and :py:class:`nexxT.filters.hdf5.Hdf5Reader` for an example.
     """
 
-    # pylint: disable=no-self-use
     # this is an abstract class and the methods are provided for reference
 
     def close(self):
@@ -105,7 +104,7 @@ class GenericReader(Filter):
 
     # methods to be overloaded
 
-    def getNameFilter(self): # pylint: disable=no-self-use
+    def getNameFilter(self):
         """
         Returns the name filter associated with the input files.
 
@@ -113,7 +112,7 @@ class GenericReader(Filter):
         """
         raise NotImplementedError()
 
-    def openFile(self, filename): # pylint: disable=no-self-use
+    def openFile(self, filename):
         """
         Opens the given file and return an instance of GenericReaderFile.
 
@@ -369,7 +368,7 @@ class GenericReader(Filter):
         """
         try:
             fn, ok = QFileDialog.getOpenFileName(caption="Choose template hdf5 file",
-                                                 filter="Support files (%s)" % (" ".join(self.getNameFilter())))
+                                                 filter=f"Support files ({' '.join(self.getNameFilter())})")
             if ok:
                 f = self.openFile(fn) # pylint: disable=assignment-from-no-return
                 if not isinstance(f, GenericReaderFile):
@@ -389,6 +388,8 @@ class GenericReader(Filter):
             tmin = min(t, tmin)
             t = self._file.getRcvTimestamp(p, self._file.getNumberOfSamples(p)-1)
             tmax = max(t, tmax)
+        if tmin > tmax:
+            raise RuntimeError("It seems that the input file doesn't have any usable samples.")
         return (tmin*(1000000000//self._file.getTimestampResolution()),
                 tmax*(1000000000//self._file.getTimestampResolution()))
 
@@ -453,7 +454,7 @@ class GenericReader(Filter):
         self._ports[[p.name() for p in self._ports].index(pname)].transmit(sample)
         self._currentTimestampChanged(rcvTimestamp*(1000000000//self._file.getTimestampResolution()))
         if self._untilStream is not None:
-            if self._untilStream == pname or self._untilStream == '':
+            if self._untilStream in (pname, ''):
                 self.pausePlayback()
         return res
 

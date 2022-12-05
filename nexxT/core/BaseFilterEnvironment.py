@@ -9,7 +9,7 @@ This module defines the class BaseFilterEnvironment.
 """
 
 import logging
-from PySide2.QtCore import QObject, QThread
+from nexxT.Qt.QtCore import QObject, QThread
 from nexxT import useCImpl
 from nexxT.interface import FilterState
 from nexxT.core.Exceptions import NexTInternalError, UnexpectedFilterState
@@ -17,7 +17,7 @@ from nexxT.core.Exceptions import NexTInternalError, UnexpectedFilterState
 logger = logging.getLogger(__name__)
 
 if useCImpl:
-    import cnexxT
+    import cnexxT # pylint: disable=import-error
     # pylint: disable=invalid-name
     # this is not really a constant, but a class name
     BaseFilterEnvironment = cnexxT.nexxT.BaseFilterEnvironment

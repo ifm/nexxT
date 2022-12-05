@@ -35,7 +35,7 @@ def test_latency():
     try:
         p = subprocess.run(
             [sys.executable, "-m", "nexxT.core.AppConsole", "--gui", "false", "-a", "test_latency", "-e", """\
-from PySide2.QtCore import QTimer, QObject, QCoreApplication
+from nexxT.Qt.QtCore import QTimer, QObject, QCoreApplication
 from nexxT.core.Application import Application
 from nexxT.interface import Services, FilterState 
 conf = Services.getService("Configuration")

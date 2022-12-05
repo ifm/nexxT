@@ -22,7 +22,7 @@ from distutils.core import setup
 from distutils.command.install import INSTALL_SCHEMES
 
 # remove build results
-for p in ["nexxT/binary", "nexxT/include", "nexxT/tests/binary"]:
+for p in ["nexxT/binary", "nexxT/tests/binary"]:
     if os.path.exists(p):
         shutil.rmtree(p, ignore_errors=True)
     if os.path.exists(p):
@@ -46,7 +46,7 @@ try:
             # uncomment for non-python extensions
             if platform.system() == "Linux":
                 abi = "abi3"
-                plat = "manylinux2014_x86_64"
+                plat = "manylinux_2_28_x86_64"
             else:
                 abi = "none"
             python = "cp37.cp38.cp39"
@@ -73,12 +73,12 @@ class BinaryDistribution(setuptools.Distribution):
         #print("IS_PURE WAS CALLED!")
         return False
         
-    def get_option_dict(self, k):
-        res = super().get_option_dict(k)
-        if k == "install":
-            res["install_lib"] = "platlib"
-        #print("GET_OPTION_DICT CALLED:", k, res)
-        return res
+    #def get_option_dict(self, k):
+    #    res = super().get_option_dict(k)
+    #    #if k == "install":
+    #    #    res["install_lib"] = "platlib"
+    #    #print("GET_OPTION_DICT CALLED:", k, res)
+    #    return res
     
 if platform.system() == "Linux":
     p = "linux_x86_64"
@@ -122,7 +122,7 @@ with open("MANIFEST.in", "w") as manifest:
     manifest.write("include LICENSE\n")
     manifest.write("include NOTICE\n")
     if build_required:
-        manifest.write("include nexxT/include/*.hpp\n")
+        manifest.write("include nexxT/include/nexxT/*.hpp\n")
         for bf in build_files:
             manifest.write("include " + bf + "\n")
         manifest.write("exclude nexxT/src/*.*\n")
@@ -133,22 +133,28 @@ with open("MANIFEST.in", "w") as manifest:
 
 if build_required:
     try:
-        import PySide2
+        if os.environ.get("PYSIDEVERSION", "6") in "6":
+            import PySide6
+        else:
+            raise RuntimeError("Don't know what to do with PYSIDEVERSION=%s" % os.environ.get("PYSIDEVERSION", "6"))
     except ImportError:
-        raise RuntimeError("PySide2 must be installed for building the extension module.")
+        raise RuntimeError("PySide%s must be installed for building the extension module." % os.environ.get("PYSIDEVERSION", "6"))
     cwd = pathlib.Path().absolute()
     os.chdir("workspace")
-    subprocess.run([sys.executable, os.path.dirname(sys.executable) + "/scons", "-j%d" % multiprocessing.cpu_count(), ".."], check=True)
+    if platform.system() == "Linux":
+        subprocess.run([sys.executable, os.path.dirname(sys.executable) + "/scons", "-j%d" % multiprocessing.cpu_count(), ".."], check=True)
+    else:
+        subprocess.run([os.path.join(os.path.dirname(sys.executable), "scons.exe"), "-j%d" % multiprocessing.cpu_count(), ".."], check=True)    
     os.chdir(str(cwd))    
     
 setup(name='nexxT',
       install_requires=[
-        "PySide2==5.15.1", 
-        "shiboken2==5.15.1", 
-        "jsonschema>=3.2.0", 
+        "PySide6==6.4.1",
+        "shiboken6==6.4.1",
+        "jsonschema>=3.2.0",
         "h5py>=2.10.0",
         "setuptools>=41.0.0",
-        'importlib-metadata >= 1.0 ; python_version < "3.8"', 
+        'importlib-metadata >= 1.0 ; python_version < "3.8"',
         "pip-licenses",
       ],
       version=os.environ.get("NEXXT_VERSION", "0.0.0"),

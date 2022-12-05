@@ -10,6 +10,7 @@ This module defines exceptions used in the nexxT framework.
 
 def _factoryToString(factory):
     # pylint: disable=import-outside-toplevel
+    # pylint: disable=cyclic-import
     # needed to avoid recursive import
     from nexxT.interface.Ports import InputPortInterface, OutputPortInterface
     if isinstance(factory, str):
@@ -31,56 +32,56 @@ class NodeExistsError(NexTRuntimeError):
     raised node is added or renamed which already exists
     """
     def __init__(self, nodeName):
-        super().__init__("Node %s already exists." % (nodeName))
+        super().__init__(f"Node {nodeName} already exists.")
 
 class NodeNotFoundError(NexTRuntimeError):
     """
     raised node is added or renamed which already exists
     """
     def __init__(self, nodeName):
-        super().__init__("Node %s not found." % (nodeName))
+        super().__init__(f"Node {nodeName} not found.")
 
 class NodeProtectedError(NexTRuntimeError):
     """
     raised if protected node is to be deleted or renamed
     """
     def __init__(self, nodeName):
-        super().__init__("Node %s is protected and cannot be deleted or renamed." % (nodeName))
+        super().__init__(f"Node {nodeName} is protected and cannot be deleted or renamed.")
 
 class PortExistsError(NexTRuntimeError):
     """
     raised when a port is added or renamed which already exists
     """
     def __init__(self, nodeName, portName, factory=None):
-        super().__init__("%sPort %s/%s already exists." % (_factoryToString(factory), nodeName, portName))
+        super().__init__(f"{_factoryToString(factory)}Port {nodeName}/{portName} already exists.")
 
 class PortNotFoundError(NexTRuntimeError):
     """
     raised when a referenced port is not found.
     """
     def __init__(self, nodeName, portName, factory=None):
-        super().__init__("%sPort %s/%s not found." % (_factoryToString(factory), nodeName, portName))
+        super().__init__(f"{_factoryToString(factory)}Port {nodeName}/{portName} not found.")
 
 class DynamicPortUnsupported(NexTRuntimeError):
     """
     raised for unsupported dynamic port operations
     """
     def __init__(self, portName, factory=None):
-        super().__init__("No dynamic %sPort support; port name: %s" % (_factoryToString(factory), portName))
+        super().__init__(f"No dynamic {_factoryToString(factory)}Port support; port name: {portName}")
 
 class ConnectionExistsError(NexTRuntimeError):
     """
     raised when a connection is added twice
     """
     def __init__(self, nodeFrom, portFrom, nodeTo, portTo):
-        super().__init__("Connection from %s/%s to %s/%s already exists." % (nodeFrom, portFrom, nodeTo, portTo))
+        super().__init__(f"Connection from {nodeFrom}/{portFrom} to {nodeTo}/{portTo} already exists.")
 
 class ConnectionNotFound(NexTRuntimeError):
     """
     raised when a connection is added twice
     """
     def __init__(self, nodeFrom, portFrom, nodeTo, portTo):
-        super().__init__("Connection from %s/%s to %s/%s not found." % (nodeFrom, portFrom, nodeTo, portTo))
+        super().__init__(f"Connection from {nodeFrom}/{portFrom} to {nodeTo}/{portTo} not found.")
 
 class UnknownPluginType(NexTRuntimeError):
     """
@@ -98,9 +99,10 @@ class UnexpectedFilterState(NexTRuntimeError):
     """
     def __init__(self, state, operation):
         # pylint: disable=import-outside-toplevel
+        # pylint: disable=cyclic-import
         # needed to avoid recursive import
         from nexxT.interface.Filters import FilterState
-        super().__init__("Operation '%s' cannot be performed in state %s" % (operation, FilterState.state2str(state)))
+        super().__init__(f"Operation '{operation}' cannot be performed in state {FilterState.state2str(state)}")
 
 class FilterStateMachineError(UnexpectedFilterState):
     """
@@ -108,6 +110,7 @@ class FilterStateMachineError(UnexpectedFilterState):
     """
     def __init__(self, oldState, newState):
         # pylint: disable=import-outside-toplevel
+        # pylint: disable=cyclic-import
         # needed to avoid recursive import
         from nexxT.interface.Filters import FilterState
         super().__init__(oldState, "Transition to " + FilterState.state2str(newState))
@@ -117,28 +120,28 @@ class PropertyCollectionChildExists(NexTRuntimeError):
     raised when trying to create an already existing property collection
     """
     def __init__(self, name):
-        super().__init__("PropertyCollection already has a child named %s" % name)
+        super().__init__(f"PropertyCollection already has a child named {name}")
 
 class PropertyCollectionChildNotFound(NexTRuntimeError):
     """
     raised when trying to access a non-existing property collection
     """
     def __init__(self, name):
-        super().__init__("PropertyCollection has no child named %s" % name)
+        super().__init__(f"PropertyCollection has no child named {name}")
 
 class PropertyCollectionPropertyNotFound(NexTRuntimeError):
     """
     raised when trying to set the value of an unknown property
     """
     def __init__(self, name):
-        super().__init__("PropertyCollection has no property named %s" % name)
+        super().__init__(f"PropertyCollection has no property named {name}")
 
 class PropertyCollectionUnknownType(NexTRuntimeError):
     """
     raised when the type given to getProperty or setProperty is unknown to the property system
     """
     def __init__(self, value):
-        super().__init__("PropertyCollection has been provided with an invalid typed value %s" % (repr(value)))
+        super().__init__(f"PropertyCollection has been provided with an invalid typed value {repr(value)}")
 
 class PropertyParsingError(NexTRuntimeError):
     """
@@ -150,25 +153,25 @@ class PropertyInconsistentDefinition(NexTRuntimeError):
     raised when the same property is defined in different ways
     """
     def __init__(self, name):
-        super().__init__("Inconsistent definitions for property named %s" % name)
+        super().__init__(f"Inconsistent definitions for property named {name}")
 
 class InvalidIdentifierException(NexTRuntimeError):
     """
     raised when a provided name doesn't confirm to identifier specification
     """
     def __init__(self, name):
-        super().__init__("Invalid identifier '%s'" % name)
+        super().__init__(f"Invalid identifier '{name}'")
 
 class CompositeRecursion(NexTRuntimeError):
     """
     raised when a composite filter is dependent on itself
     """
     def __init__(self, name):
-        super().__init__("Composite filter '%s' depends on itself." % name)
+        super().__init__(f"Composite filter '{name}' depends on itself.")
 
 class PossibleDeadlock(NexTRuntimeError):
     """
     raised during application activation when a possible deadlock is detected (a cycle was found in the thread graph)
     """
     def __init__(self, cycle):
-        super().__init__("This graph is not deadlock-safe. A cycle has been found in the thread graph: %s" % cycle)
+        super().__init__(f"This graph is not deadlock-safe. A cycle has been found in the thread graph: {cycle}")

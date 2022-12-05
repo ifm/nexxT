@@ -8,9 +8,10 @@
 This module defines the class SubConfiguration
 """
 
-import logging
 from collections import OrderedDict
-from PySide2.QtCore import QObject, Signal
+import logging
+import re
+from nexxT.Qt.QtCore import QObject, Signal
 from nexxT.core.Graph import FilterGraph
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.Exceptions import NexTInternalError, PropertyCollectionPropertyNotFound, PropertyCollectionChildNotFound
@@ -89,22 +90,35 @@ class SubConfiguration(QObject):
     def connectionStringToTuple(con):
         """
         Converts a connection string to a 4 tuple.
+
         :param con: a string containing a connection "name1.port1 -> name2.port2"
-        :return: a 4-tuple ("name1", "port1", "name2", "port2")
+                    or also "name1.port1 -[int]> name2.port2"
+        :return: a 5-tuple ("name1", "port1", "name2", "port2", connwidth)
         """
-        f, t = con.split("->")
-        fromNode, fromPort = f.strip().split(".")
-        toNode, toPort = t.strip().split(".")
-        return fromNode.strip(), fromPort.strip(), toNode.strip(), toPort.strip()
+        if "->" in con:
+            f, t = con.split("->")
+            fromNode, fromPort = f.strip().split(".")
+            toNode, toPort = t.strip().split(".")
+            width = 1
+        else:
+            match = re.match(r"^(.+)\.(.+)\s*-(\d)+>\s*(.+)\.(.+)$", con)
+            if match is None:
+                raise RuntimeError(f"Cannot parse connection string '{con}'")
+            fromNode, fromPort, width, toNode, toPort = match.groups()
+            width = int(width)
+        return fromNode.strip(), fromPort.strip(), toNode.strip(), toPort.strip(), width
 
     @staticmethod
     def tupleToConnectionString(connection):
         """
         Converts a 4-tuple connection to a string.
-        :param connection: a 4-tuple ("name1", "port1", "name2", "port2")
-        :return: a string "name1.port1 -> name2.port2"
+        :param connection: a 4-tuple ("name1", "port1", "name2", "port2", width)
+        :return: a string "name1.port1 -1> name2.port2"
         """
-        return "%s.%s -> %s.%s" % connection
+        fromPort, fromNode, toPort, toNode, width = connection
+        if width == 1:
+            return f"{fromPort}.{fromNode} -> {toPort}.{toNode}"
+        return f"{fromPort}.{fromNode} -{width}> {toPort}.{toNode}"
 
     def load(self, cfg, compositeLookup):
         """
@@ -121,7 +135,7 @@ class SubConfiguration(QObject):
             if not n["library"].startswith("composite://"):
                 p = PropertyCollectionImpl(n["name"], self._propertyCollection, n["properties"])
                 # apply node gui state
-                nextP = PropertyCollectionImpl("_nexxT", p, {"thread": n["thread"]})
+                PropertyCollectionImpl("_nexxT", p, {"thread": n["thread"]})
                 logger.debug("loading: subconfig %s / node %s -> thread: %s", self._name, n["name"], n["thread"])
                 tmp = self._graph.addNode(n["library"], n["factoryFunction"], suggestedName=n["name"],
                                           dynamicInputPorts=n["dynamicInputPorts"],
@@ -148,7 +162,8 @@ class SubConfiguration(QObject):
             self._graph.getMockup(n["name"]).createFilterAndUpdate()
         for c in cfg["connections"]:
             contuple = self.connectionStringToTuple(c)
-            self._graph.addConnection(*contuple)
+            self._graph.addConnection(*contuple[:-1])
+            self._graph.setConnectionProperties(*contuple[:-1], {"width": contuple[-1]})
 
     def save(self):
         """
@@ -164,7 +179,7 @@ class SubConfiguration(QObject):
                     ncfg["library"] = "composite://ref"
                     ncfg["factoryFunction"] = lib.getName()
                 else:
-                    raise NexTInternalError("Unexpected factory function '%s'" % factory)
+                    raise NexTInternalError(f"Unexpected factory function '{factory}'")
             else:
                 ncfg["library"] = lib
                 ncfg["factoryFunction"] = factory
@@ -210,7 +225,10 @@ class SubConfiguration(QObject):
                 pass
             ncfg["properties"] = p.saveDict()
             cfg["nodes"].append(ncfg)
-        cfg["connections"] = [self.tupleToConnectionString(c) for c in self._graph.allConnections()]
+        cfg["connections"] = []
+        for c in self._graph.allConnections():
+            ct = c + (self._graph.getConnectionProperties(*c)["width"],)
+            cfg["connections"].append(self.tupleToConnectionString(ct))
         return cfg
 
     @staticmethod
@@ -222,6 +240,7 @@ class SubConfiguration(QObject):
         :return: set of strings
         """
         # pylint: disable=import-outside-toplevel
+        # pylint: disable=cyclic-import
         # needed to avoid recursive import
         from nexxT.core.CompositeFilter import CompositeFilter
         from nexxT.core.FilterMockup import FilterMockup

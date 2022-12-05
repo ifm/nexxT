@@ -6,6 +6,7 @@
 
 from pathlib import Path
 from nexxT.interface import FilterSurrogate
+import nexxT.Qt.QtMultimedia
 
 CSimpleSource = FilterSurrogate(
     "binary://" + str((Path(__file__).parent /

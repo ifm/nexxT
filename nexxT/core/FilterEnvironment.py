@@ -10,7 +10,7 @@ This module defines the class FilterEnvironment.
 
 import copy
 import logging
-from PySide2.QtCore import Signal, QMutex, QMutexLocker
+from nexxT.Qt.QtCore import Signal, QRecursiveMutex, QMutexLocker
 from nexxT.interface import FilterState, InputPortInterface, OutputPortInterface
 from nexxT import useCImpl
 from nexxT.core.BaseFilterEnvironment import BaseFilterEnvironment
@@ -32,7 +32,7 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
     def __init__(self, library, factoryFunction, propertyCollection, mockup=None):
         BaseFilterEnvironment.__init__(self, propertyCollection)
         # ports are accessed by multiple threads (from FilterMockup.createFilter)
-        self._portMutex = QMutex(QMutex.Recursive)
+        self._portMutex = QRecursiveMutex()
         self._ports = []
         self._mockup = mockup
         self._state = FilterState.CONSTRUCTING
@@ -84,6 +84,7 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
         :return:
         """
         # pylint: disable=import-outside-toplevel
+        # pylint: disable=cyclic-import
         # to avoid recursive import
         from nexxT.core.Thread import NexTThread
         from nexxT.core.Application import Application
@@ -102,6 +103,7 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
         :return: a string instance.
         """
         # pylint: disable=import-outside-toplevel
+        # pylint: disable=cyclic-import
         # to avoid recursive import
         from nexxT.core.Thread import NexTThread
         from nexxT.core.Application import Application
@@ -274,7 +276,7 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
             FilterState.DEINITIALIZING: (FilterState.INITIALIZED, FilterState.CONSTRUCTED, self.getPlugin().onDeinit),
             FilterState.DESTRUCTING: (FilterState.CONSTRUCTED, None, None),
         }
-        fromState, toState, function = operations[operation]
+        fromState, _, _ = operations[operation]
         if self._state != fromState:
             raise FilterStateMachineError(self._state, operation)
         self._state = operation
@@ -306,7 +308,7 @@ class FilterEnvironment(BaseFilterEnvironment): # pylint: disable=too-many-publi
         self._state = operation
         try:
             function()
-        except Exception as e: # pylint: disable=broad-except
+        except Exception: # pylint: disable=broad-except
             # What should be done on errors?
             #    1. inhibit state transition to higher state
             #         pro: prevent activation of not properly intialized filter

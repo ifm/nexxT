@@ -790,13 +790,15 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = ../../nexxT/src/DataSamples.hpp \
-                         ../../nexxT/src/Filters.hpp \
-                         ../../nexxT/src/Ports.hpp \
-                         ../../nexxT/src/PropertyCollection.hpp \
-                         ../../nexxT/src/Services.hpp \
-                         ../../nexxT/src/Logger.hpp \
-                         ../../nexxT/src/NexxTPlugins.hpp
+INPUT                  = ../../nexxT/src
+#                         ../../nexxT/src/DataSamples.hpp \
+#                         ../../nexxT/src/Filters.hpp \
+#                         ../../nexxT/src/Ports.hpp \
+#                         ../../nexxT/src/PropertyCollection.hpp \
+#                         ../../nexxT/src/Services.hpp \
+#                         ../../nexxT/src/Logger.hpp \
+#                         ../../nexxT/src/NexxTPlugins.hpp \
+#                         ../../nexxT/src/SharedPointerTypes.hpp
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses

@@ -12,9 +12,11 @@ from argparse import ArgumentParser, ArgumentTypeError, RawDescriptionHelpFormat
 import logging
 import signal
 import sys
-from PySide2.QtCore import QCoreApplication, QLocale
-from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import QApplication
+import nexxT
+import nexxT.Qt
+from nexxT.Qt.QtCore import QCoreApplication, QLocale
+from nexxT.Qt.QtGui import QIcon
+from nexxT.Qt.QtWidgets import QApplication
 
 from nexxT.core.Utils import SQLiteHandler, MethodInvoker, waitForSignal
 from nexxT.core.ConfigFiles import ConfigFileLoader
@@ -124,17 +126,17 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
 
     for s in execScripts:
         logger.info("Executing script '%s'", s)
-        with open(s) as fscript:
+        with open(s, encoding="utf-8") as fscript:
             # note that exec is used intentionally here to provide the user with scripting possibilities
             exec(compile(fscript.read(), s, 'exec'), code_globals)  # pylint: disable=exec-used
         logger.debug("Executing script done")
 
-    res = app.exec_()
+    res = nexxT.Qt.call_exec(app)
     logger.debug("closing config")
     config.close()
     cleanup()
 
-    logger.internal("app.exec_ returned")
+    logger.internal("app.exec returned")
 
     return res
 

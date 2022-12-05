@@ -9,16 +9,20 @@ This module defines the class BaseGraph
 """
 
 from collections import OrderedDict
-from PySide2.QtCore import QObject, Signal, Slot
+import logging
+from nexxT.Qt.QtCore import QObject, Signal, Slot
 from nexxT.core.Utils import assertMainThread
 from nexxT.core.Exceptions import (NodeExistsError, NodeNotFoundError, PortExistsError, PortNotFoundError,
                                    ConnectionExistsError, ConnectionNotFound, NodeProtectedError)
 
+logger = logging.getLogger(__name__)
+
 class BaseGraph(QObject):
     """
     This class defines a graph where the nodes can have input and output ports and
-    these ports can be connected together. All operations are performed with QT
-    signals and slots.
+    these ports can be connected together. Connections have a property dictionary.
+
+    All operations are performed with QT signals and slots.
     """
     nodeAdded = Signal(str)
     nodeRenamed = Signal(str, str)
@@ -33,12 +37,14 @@ class BaseGraph(QObject):
     connectionDeleted = Signal(str, str, str, str)
     dirtyChanged = Signal()
 
-    def __init__(self):
+    def __init__(self, defaultConnProp=None):
         assertMainThread()
         super().__init__()
         self._protected = set()
         self._nodes = OrderedDict()
         self._connections = []
+        self._connectionProps = {}
+        self._defaultConnProp = {} if defaultConnProp is None else defaultConnProp.copy()
 
     def uniqueNodeName(self, nodeName):
         """
@@ -50,9 +56,9 @@ class BaseGraph(QObject):
         if not nodeName in self._nodes:
             return nodeName
         t = 2
-        while "%s%d" % (nodeName, t) in self._nodes:
+        while f"{nodeName}{t}" in self._nodes:
             t += 1
-        return "%s%d" % (nodeName, t)
+        return f"{nodeName}{t}"
 
     def protect(self, name):
         """
@@ -97,7 +103,7 @@ class BaseGraph(QObject):
         of = self._nodes[oldName]
         del self._nodes[oldName]
         self._nodes[newName] = of
-        for i in range(len(self._connections)):
+        for i, c in enumerate(self._connections):
             c = self._connections[i]
             if c[0] == oldName:
                 c = (newName, c[1], c[2], c[3])
@@ -148,8 +154,10 @@ class BaseGraph(QObject):
             raise PortNotFoundError(nodeNameTo, portNameTo, "Input")
         if (nodeNameFrom, portNameFrom, nodeNameTo, portNameTo) in self._connections:
             raise ConnectionExistsError(nodeNameFrom, portNameFrom, nodeNameTo, portNameTo)
-        self._connections.append((nodeNameFrom, portNameFrom, nodeNameTo, portNameTo))
-        self.connectionAdded.emit(nodeNameFrom, portNameFrom, nodeNameTo, portNameTo)
+        conn = (nodeNameFrom, portNameFrom, nodeNameTo, portNameTo)
+        self._connections.append(conn)
+        self._connectionProps[conn] = self._defaultConnProp.copy()
+        self.connectionAdded.emit(*conn)
         self.dirtyChanged.emit()
 
     @Slot(str, str, str, str)
@@ -165,8 +173,10 @@ class BaseGraph(QObject):
         assertMainThread()
         if (nodeNameFrom, portNameFrom, nodeNameTo, portNameTo) not in self._connections:
             raise ConnectionNotFound(nodeNameFrom, portNameFrom, nodeNameTo, portNameTo)
-        self._connections.remove((nodeNameFrom, portNameFrom, nodeNameTo, portNameTo))
-        self.connectionDeleted.emit(nodeNameFrom, portNameFrom, nodeNameTo, portNameTo)
+        conn = (nodeNameFrom, portNameFrom, nodeNameTo, portNameTo)
+        self._connections.remove(conn)
+        del self._connectionProps[conn]
+        self.connectionDeleted.emit(*conn)
         self.dirtyChanged.emit()
 
     @Slot(str, str)
@@ -199,8 +209,7 @@ class BaseGraph(QObject):
         if not portName in self._nodes[node]["inports"]:
             raise PortNotFoundError(node, portName)
         toDel = []
-        for i in range(len(self._connections)):
-            fromNode, fromPort, toNode, toPort = self._connections[i]
+        for fromNode, fromPort, toNode, toPort in self._connections:
             if (toNode == node and toPort == portName):
                 toDel.append((fromNode, fromPort, toNode, toPort))
         for c in toDel:
@@ -229,11 +238,15 @@ class BaseGraph(QObject):
             raise PortExistsError(node, newPortName)
         idx = self._nodes[node]["inports"].index(oldPortName)
         self._nodes[node]["inports"][idx] = newPortName
-        for i in range(len(self._connections)):
-            fromNode, fromPort, toNode, toPort = self._connections[i]
+        for i, oldConn in enumerate(self._connections):
+            (fromNode, fromPort, toNode, toPort) = oldConn
             if (toNode == node and toPort == oldPortName):
                 toPort = newPortName
-            self._connections[i] = (fromNode, fromPort, toNode, toPort)
+            newConn = (fromNode, fromPort, toNode, toPort)
+            self._connections[i] = newConn
+            p = self._connectionProps[oldConn]
+            del self._connectionProps[oldConn]
+            self._connectionProps[newConn] = p
         self.inPortRenamed.emit(node, oldPortName, newPortName)
 
     @Slot(str, str)
@@ -266,8 +279,7 @@ class BaseGraph(QObject):
         if not portName in self._nodes[node]["outports"]:
             raise PortNotFoundError(node, portName)
         toDel = []
-        for i in range(len(self._connections)):
-            fromNode, fromPort, toNode, toPort = self._connections[i]
+        for fromNode, fromPort, toNode, toPort in self._connections:
             if (fromNode == node and fromPort == portName):
                 toDel.append((fromNode, fromPort, toNode, toPort))
         for c in toDel:
@@ -296,11 +308,15 @@ class BaseGraph(QObject):
             raise PortExistsError(node, newPortName)
         idx = self._nodes[node]["outports"].index(oldPortName)
         self._nodes[node]["outports"][idx] = newPortName
-        for i in range(len(self._connections)):
-            fromNode, fromPort, toNode, toPort = self._connections[i]
+        for i, oldConn in enumerate(self._connections):
+            (fromNode, fromPort, toNode, toPort) = oldConn
             if (fromNode == node and fromPort == oldPortName):
                 fromPort = newPortName
-            self._connections[i] = (fromNode, fromPort, toNode, toPort)
+            newConn = (fromNode, fromPort, toNode, toPort)
+            self._connections[i] = newConn
+            p = self._connectionProps[oldConn]
+            del self._connectionProps[oldConn]
+            self._connectionProps[newConn] = p
         self.outPortRenamed.emit(node, oldPortName, newPortName)
 
     def allNodes(self):
@@ -331,11 +347,43 @@ class BaseGraph(QObject):
     def allConnectionsFromOutputPort(self, fromNode, fromPort):
         """
         Return all connections from the specified port.
+
         :param fromNode: name of node
         :param fromPort: name of port
         :return: a list of 4 tuples of strings (nodeFrom, portFrom, nodeTo, portTo)
         """
         return [(a, b, c, d) for a, b, c, d, in self._connections if (a == fromNode and b == fromPort)]
+
+    def getConnectionProperties(self, nodeFrom, portFrom, nodeTo, portTo):
+        """
+        Return the connection properties of the specified connection
+
+        :param nodeFrom: name of the output node
+        :param portFrom: name of the output port
+        :param nodeTo: name of the input node
+        :param portTo: name of the input port
+        :return: a copy of the property dict (use setConnectionProperties to modify this)
+        """
+        if (nodeFrom, portFrom, nodeTo, portTo) not in self._connectionProps:
+            logger.info("connprops.keys()=%s", self._connectionProps.keys())
+            raise ConnectionNotFound(nodeFrom, portFrom, nodeTo, portTo)
+        return self._connectionProps[nodeFrom, portFrom, nodeTo, portTo].copy()
+
+    def setConnectionProperties(self, nodeFrom, portFrom, nodeTo, portTo, properties):
+        """
+        Set the connection properties of the specified connection to the given dict.
+
+        :param nodeFrom: name of the output node
+        :param portFrom: name of the output port
+        :param nodeTo: name of the input node
+        :param portTo: name of the input port
+        :param properties: a dict with the new properties
+        """
+        if (nodeFrom, portFrom, nodeTo, portTo) not in self._connectionProps:
+            raise ConnectionNotFound(nodeFrom, portFrom, nodeTo, portTo)
+        logger.info("set connprop: %s.%s -> %s.%s (%s)", nodeFrom, portFrom, nodeTo, portTo, properties)
+        self._connectionProps[nodeFrom, portFrom, nodeTo, portTo] = properties
+        self.dirtyChanged.emit()
 
     def allInputPorts(self, node):
         """

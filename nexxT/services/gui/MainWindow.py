@@ -10,14 +10,14 @@ This module provides a MainWindow GUI service for the nexxT framework.
 import logging
 import re
 import subprocess
-import sys
 import time
-import shiboken2
-from PySide2.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QAction, QWidget, QGridLayout,
-                               QMenuBar, QMessageBox, QScrollArea, QLabel, QActionGroup)
-from PySide2.QtCore import (QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings,
+import sys
+import nexxT.shiboken
+from nexxT.Qt.QtWidgets import (QMainWindow, QMdiArea, QMdiSubWindow, QDockWidget, QWidget, QGridLayout,
+                               QMenuBar, QMessageBox, QScrollArea, QLabel)
+from nexxT.Qt.QtCore import (QObject, Signal, Slot, Qt, QByteArray, QDataStream, QIODevice, QRect, QPoint, QSettings,
                             QTimer, QUrl, QEvent)
-from PySide2.QtGui import QDesktopServices
+from nexxT.Qt.QtGui import QDesktopServices, QAction, QActionGroup
 import nexxT
 from nexxT.interface import Filter
 from nexxT.core.Application import Application
@@ -78,8 +78,8 @@ class NexxTMdiSubWindow(QMdiSubWindow):
         stream.writeInt64(normalGeom.y())
         stream.writeInt64(normalGeom.width())
         stream.writeInt64(normalGeom.height())
-        stream.writeUInt32(self.windowState() & Qt.WindowMaximized)
-        stream.writeUInt32(self.windowState() & Qt.WindowFullScreen)
+        stream.writeUInt32(int(bool(self.windowState() & Qt.WindowMaximized)))
+        stream.writeUInt32(int(bool(self.windowState() & Qt.WindowFullScreen)))
         return array
 
     def restoreGeometry(self, geometry):
@@ -107,8 +107,8 @@ class NexxTMdiSubWindow(QMdiSubWindow):
         width = stream.readInt64()
         height = stream.readInt64()
         restoredNormalGeometry = QRect(x, y, width, height)
-        maximized = stream.readUInt32()
-        fullScreen = stream.readUInt32()
+        maximized = bool(stream.readUInt32())
+        fullScreen = bool(stream.readUInt32())
         frameHeight = 20
         if not restoredFrameGeometry.isValid():
             restoredFrameGeometry = QRect(QPoint(0, 0), self.sizeHint())
@@ -182,7 +182,7 @@ class MainWindow(QMainWindow):
         for framerate in [1, 2, 5, 10, 15, 20, 25, 40, 50, 100]:
             a = QAction(self)
             a.setData(framerate)
-            a.setText("%d Hz" % framerate)
+            a.setText(f"{framerate} Hz")
             a.setCheckable(True)
             if framerate == self.framerate:
                 a.setChecked(True)
@@ -203,13 +203,13 @@ class MainWindow(QMainWindow):
         m.addSeparator()
         m.addActions([self.aboutNexxT, self.aboutQt, self.aboutPython])
         self.helpNexxT.triggered.connect(lambda: QDesktopServices.openUrl(QUrl("https://nexxT.readthedocs.org")))
-        self.aboutNexxT.triggered.connect(lambda: QMessageBox.about(self, "About nexxT", """\
-This program uses <b>nexxT</b> %(version)s, a generic hybrid python/c++ framework for developing computer vision 
+        self.aboutNexxT.triggered.connect(lambda: QMessageBox.about(self, "About nexxT", f"""\
+This program uses <b>nexxT</b> {nexxT.__version__}, a generic hybrid python/c++ framework for developing computer vision 
 algorithms.<br><br>
 
 nexxT is available under the <a href='https://github.com/ifm/nexxT/blob/master/LICENSE'>Apache 2.0 License</a> together 
 with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>. 
-""" % dict(version=nexxT.__version__)))
+"""))
         self.aboutQt.triggered.connect(lambda: QMessageBox.aboutQt(self))
         self.aboutPython.triggered.connect(self._aboutPython)
         self.toolbar = None
@@ -225,6 +225,9 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         self._deferredUpdateTimer.timeout.connect(self._deferredUpdateTimeout)
 
     def eventFilter(self, obj, event):
+        """
+        Overwritten from QObject, for disabling mouse wheel scrolling on the main widget's viewport
+        """
         if obj is self.mdi.viewport() and event.type() == QEvent.Wheel:
             # disable mouse wheel scrolling on the viewport widget it's pretty annoying...
             return True
@@ -356,7 +359,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
             prefix = i["prefix"]
             logger.debug("save window geometry %s: %s", prefix, window.geometry())
             geom = str(window.saveGeometry().toBase64(), "ascii")
-            visible = self.windows[shiboken2.getCppPointer(window)[0]].isChecked() # pylint: disable=no-member
+            visible = self.windows[nexxT.shiboken.getCppPointer(window)[0]].isChecked() # pylint: disable=no-member
             propColl.setProperty(prefix + "_geom", geom)
             logger.debug("%s is visible: %d", prefix, int(visible))
             propColl.setProperty(prefix + "_visible", int(visible))
@@ -467,14 +470,14 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         """
         logger.internal("subplot '%s'", windowId)
         title, row, col = self.parseWindowId(windowId)
-        title = self._substWindowTitle(title, theFilter)        
+        title = self._substWindowTitle(title, theFilter)
         if title in self.managedSubplots and (row, col) in self.managedSubplots[title]["plots"]:
             logger.warning("subplot %s[%d,%d] is already registered. Creating a new window for the plot.",
                            title, row, col)
             i = 2
-            while "%s(%d)" % (title, i) in self.managedSubplots:
+            while f"{title}({i})" in self.managedSubplots:
                 i += 1
-            title = "%s(%d)" % (title, i)
+            title = f"{title}({i})"
             row = 0
             col = 0
         if title not in self.managedSubplots:
@@ -492,7 +495,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         #       with the 100 ms timeout this couldn't be reproduced
         QTimer.singleShot(100, lambda: (
             self.managedSubplots[title]["mdiSubWindow"].adjustSize() if
-            shiboken2.isValid(widget) and ( # pylint: disable=no-member
+            nexxT.shiboken.isValid(widget) and ( # pylint: disable=no-member
                 widget.parent().size().height() < widget.minimumSizeHint().height() or
                 widget.parent().size().height() < widget.minimumSize().height()) else None
         ))
@@ -520,9 +523,9 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         elif isinstance(arg, QWidget):
             widget = arg
             found = False
-            for title in self.managedSubplots:
-                for row, col in self.managedSubplots[title]["plots"]:
-                    if self.managedSubplots[title]["plots"][row, col] is widget:
+            for title, sp in self.managedSubplots.items():
+                for row, col in sp["plots"]:
+                    if sp["plots"][row, col] is widget:
                         found = True
                         break
                 if found:
@@ -605,15 +608,15 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         act.triggered.connect(ensureVisible)
         window.visibleChanged.connect(act.setChecked)
         nameChangedSignal.connect(act.setText)
-        self.windows[shiboken2.getCppPointer(window)[0]] = act # pylint: disable=no-member
+        self.windows[nexxT.shiboken.getCppPointer(window)[0]] = act # pylint: disable=no-member
         self.menu.addAction(act)
         logger.debug("Registering window %s, new len=%d",
-                     shiboken2.getCppPointer(window), len(self.windows)) # pylint: disable=no-member
+                     nexxT.shiboken.getCppPointer(window), len(self.windows)) # pylint: disable=no-member
         window.destroyed.connect(self._windowDestroyed)
 
     def _windowDestroyed(self, obj):
         logger.internal("_windowDestroyed")
-        ptr = shiboken2.getCppPointer(obj) # pylint: disable=no-member
+        ptr = nexxT.shiboken.getCppPointer(obj) # pylint: disable=no-member
         try:
             ptr = ptr[0]
         except TypeError:
@@ -630,7 +633,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         else:
             self.activeApp = None
 
-    def _aboutPython(self): # pylint: disable=no-self-use
+    def _aboutPython(self):
         piplic = subprocess.check_output([sys.executable, "-m", "piplicenses", "--format=plain"],
                                          encoding="utf-8").replace("\n", "<br>").replace(" ", "&nbsp;")
         piplic = piplic.replace("<br>", "<br><br>", 1)
