@@ -16,8 +16,7 @@ cfilters = set(["examples.videoplayback.AviReader",
                 "tests.nexxT.CSimpleSource",
                 "tests.nexxT.CTestExceptionFilter"])
 
-blacklist = set(["examples.videoplayback.AviReader",
-                 "examples.framework.CameraGrabber"])
+blacklist = set([])
 
 @pytest.mark.parametrize("ep",
     [pytest.param(e.name,
