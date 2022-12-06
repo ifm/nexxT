@@ -381,7 +381,6 @@ class BaseGraph(QObject):
         """
         if (nodeFrom, portFrom, nodeTo, portTo) not in self._connectionProps:
             raise ConnectionNotFound(nodeFrom, portFrom, nodeTo, portTo)
-        logger.info("set connprop: %s.%s -> %s.%s (%s)", nodeFrom, portFrom, nodeTo, portTo, properties)
         self._connectionProps[nodeFrom, portFrom, nodeTo, portTo] = properties
         self.dirtyChanged.emit()
 
