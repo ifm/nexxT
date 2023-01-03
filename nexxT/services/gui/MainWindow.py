@@ -110,6 +110,9 @@ class NexxTMdiSubWindow(QMdiSubWindow):
         maximized = bool(stream.readUInt32())
         fullScreen = bool(stream.readUInt32())
         frameHeight = 20
+        if (not restoredNormalGeometry.isValid()) and (restoredFrameGeometry.isValid()):
+            # there seems to be an issue in PySide6 that the normalGeometry is always invalid (?)
+            restoredNormalGeometry = restoredFrameGeometry
         if not restoredFrameGeometry.isValid():
             restoredFrameGeometry = QRect(QPoint(0, 0), self.sizeHint())
         if not restoredNormalGeometry.isValid():
