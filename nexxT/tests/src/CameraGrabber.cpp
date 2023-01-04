@@ -34,6 +34,10 @@ CameraGrabber::CameraGrabber(BaseFilterEnvironment *env)
     {
         devices.push_back(cameraDevice.description());
     }
+    if(devices.size() == 0)
+    {
+        devices.push_back("dummy");
+    }
     pc->defineProperty("device", devices[0], "the camera device", {{"enum", devices}});
 }
 
