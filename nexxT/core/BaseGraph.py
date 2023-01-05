@@ -105,11 +105,19 @@ class BaseGraph(QObject):
         self._nodes[newName] = of
         for i, c in enumerate(self._connections):
             c = self._connections[i]
+            oldConn = c
+            changed = False
             if c[0] == oldName:
                 c = (newName, c[1], c[2], c[3])
+                changed = True
             if c[2] == oldName:
                 c = (c[0], c[1], newName, c[3])
-            self._connections[i] = c
+                changed = True
+            if changed:
+                self._connections[i] = c
+                p = self._connectionProps[oldConn]
+                del self._connectionProps[oldConn]
+                self._connectionProps[c] = p            
         self.nodeRenamed.emit(oldName, newName)
         self.dirtyChanged.emit()
 
