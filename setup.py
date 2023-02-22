@@ -44,7 +44,7 @@ try:
         def get_tag(self):
             python, abi, plat = _bdist_wheel.get_tag(self)
             # uncomment for non-python extensions
-            if platform.system() == "Linux":
+            if platform.system() == "Linux" and  platform.machine() == "x86_64":
                 plat = "manylinux_2_28_x86_64"
             abi = "abi3"
             python = "cp37"
@@ -79,7 +79,7 @@ class BinaryDistribution(setuptools.Distribution):
     #    return res
     
 if platform.system() == "Linux":
-    p = "linux_x86_64"
+    p = "linux_" + platform.machine()
     presuf = [("lib", ".so")]
 else:
     p = "msvc_x86_64"
