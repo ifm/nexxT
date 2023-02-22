@@ -60,7 +60,10 @@ def setup():
         p = os.environ.get("NEXXT_CEXT_PATH", None)
         if p is None:
             variant = os.environ.get("NEXXT_VARIANT", "release")
-            cplatform = "linux_x86_64" if platform.system() == "Linux" else "msvc_x86_64"
+            if platform.system() == "Linux":
+                cplatform = "linux_" + platform.machine()
+            else:
+                cplatform = "msvc_x86_64"
             p = [p for p in [Path(__file__).parent / "binary" / cplatform / variant,
                              Path(__file__).parent / "binary" / cplatform / variant] if p.exists()]
             if len(p) > 0:
