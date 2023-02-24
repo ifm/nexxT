@@ -316,7 +316,7 @@ class PropertyCollectionImpl(PropertyCollection):
         if platform.system() == "Windows":
             default_environ["NEXXT_PLATFORM"] = f"msvc_x86{'_64' if platform.architecture()[0] == '64bit' else ''}"
         else:
-            default_environ["NEXXT_PLATFORM"] = f"linux_x86{'_64' if platform.architecture()[0] == '64bit' else ''}"
+            default_environ["NEXXT_PLATFORM"] = f"linux_{platform.machine()}"
         origpath = path
         path = string.Template(path).safe_substitute({**default_environ, **os.environ})
         logger.debug("interpolated path %s -> %s", origpath, path)
