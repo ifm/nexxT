@@ -18,9 +18,9 @@ if platform.system() == "Linux":
         with open("/etc/manylinux-release", "r") as f:
             target_platform = f.read().strip()
     else:
-        target_platform = "linux_x86_64"
+        target_platform = "linux_" + platform.machine()
     env = Environment(target_platform=target_platform,
-                      deploy_platform="linux_x86_64",
+                      deploy_platform="linux_" + platform.machine(),
                       toolpath=["#/sconstools3"],
                       ENV = os.environ,
                       variant="unknown")
