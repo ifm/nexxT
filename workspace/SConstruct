@@ -59,10 +59,7 @@ else:
                       target_platform="msvc_x86_64",
                       deploy_platform="msvc_x86_64",
                       variant="unknown")                     
-    if qtversion[0] == "5":
-        env["QT5VERSION"] = qtversion
-        env.Tool("qt5")
-    elif qtversion[0] == "6":
+    if qtversion[0] == "6":
         env["QT6VERSION"] = qtversion
         env.Tool("qt6")
     else:
@@ -70,10 +67,7 @@ else:
 
 # TODO: disable QtWidgets and QtGui after this has been fixed:
 #   https://bugreports.qt.io/browse/PYSIDE-1627
-if qtversion[0] == "5":
-    env.EnableQt5Modules(['QtCore', "QtWidgets", "QtGui"])
-else:
-    env.EnableQt6Modules(["QtCore", "QtWidgets", "QtGui"])
+env.EnableQt6Modules(["QtCore", "QtWidgets", "QtGui"])
 env.AddMethod(lambda env, args: args, "RegisterSources")
 env.AddMethod(lambda env, args: None, "RegisterTargets")
 env.Append(CPPDEFINES=["Py_LIMITED_API"])
