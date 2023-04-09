@@ -34,16 +34,7 @@ class FilterMockup(FilterEnvironment):
         self._propertyCollectionImpl = propertyCollection
         self._pluginClass = None
         self._createFilterAndUpdatePending = None
-        rootPc = propertyCollection
-        while rootPc.parent() is not None:
-            rootPc = rootPc.parent()
-        tmpRootPc = PropertyCollectionImpl("root", None)
-        try:
-            cfgfile = rootPc.getProperty("CFGFILE")
-            tmpRootPc.defineProperty("CFGFILE", cfgfile, "copy of original CFGFILE.", options=dict(enum=[cfgfile]))
-        except PropertyCollectionPropertyNotFound:
-            pass
-        tmpPc = PropertyCollectionImpl("temp", tmpRootPc)
+        tmpPc = PropertyCollectionImpl("__temp", propertyCollection)
         with FilterEnvironment(self._library, self._factoryFunction, tmpPc, self) as tmpEnv:
             self.updatePortInformation(tmpEnv)
         del tmpPc

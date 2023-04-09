@@ -8,13 +8,14 @@
 This module contains various small utility classes.
 """
 
-import io
-import re
-import sys
-import logging
 import datetime
+import io
+import logging
 import os.path
+import platform
+import re
 import sqlite3
+import sys
 import time
 from nexxT.Qt.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
                             QMutexLocker, QRecursiveMutex, QTimer, Qt, QPoint)
@@ -452,3 +453,13 @@ class ElidedLabel(QFrame):
                 painter.drawText(QPoint(0, y + fontMetrics.ascent()), elidedLastLine)
                 break
         textLayout.endLayout()
+
+def nexxtPlatform():
+    """
+    Return the nexxT platform identifier as a string.
+    """
+    if platform.system() == "Windows":
+        return f"msvc_x86{'_64' if platform.architecture()[0] == '64bit' else ''}"
+    elif platform.system() == "Linux":
+        return f"linux_{platform.machine()}"
+    raise RuntimeError("Unknown system: " + platform.system())

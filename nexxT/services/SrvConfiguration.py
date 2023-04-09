@@ -17,6 +17,7 @@ from nexxT.core.ConfigFiles import ConfigFileLoader
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
 from nexxT.core.CompositeFilter import CompositeFilter
+from nexxT.core.Variables import Variables
 from nexxT.core.Utils import assertMainThread, handleException, mainThread, MethodInvoker
 from nexxT.interface.Filters import FilterState
 from nexxT.interface import Services
@@ -74,6 +75,14 @@ class ConfigurationModel(QAbstractItemModel):
         def __init__(self, subConfig):
             self.subConfig = subConfig
 
+    class VariableContent:
+        """
+        A variable definition in a Variables instance, for usage within the model.
+        """
+        def __init__(self, name, variables):
+            self.name = name
+            self.variables = variables
+
     # Model implementation
 
     def __init__(self, configuration, parent):
@@ -81,10 +90,12 @@ class ConfigurationModel(QAbstractItemModel):
         self.root = self.Item(None, configuration)
         self.Item(self.root, "composite")
         self.Item(self.root, "apps")
+        vitem = self.Item(self.root, configuration.propertyCollection().getVariables())
         self.activeApp = None
         configuration.subConfigAdded.connect(self.subConfigAdded)
         configuration.subConfigRemoved.connect(self.subConfigRemoved)
         configuration.appActivated.connect(self.appActivated)
+        self._connectVariables(vitem)
 
     def isSubConfigParent(self, index):
         """
@@ -165,6 +176,21 @@ class ConfigurationModel(QAbstractItemModel):
             raise NexTRuntimeError("Unable to locate node.")
         return self.index(idx[0], 0, parent)
 
+    def indexOfVariable(self, vitem):
+        def _traverse(parent):
+            for r in range(self.rowCount(parent)):
+                index = self.index(r, 0, parent)
+                if index.internalPointer() is vitem:
+                    return index
+                ret = _traverse(index)
+                if ret is not None:
+                    return ret
+            return None
+        res = _traverse(QModelIndex())
+        if res is None:
+            raise NexTRuntimeError("Cannot locate variable item in model.")
+        return res
+
     def subConfigByNameAndType(self, name, sctype):
         """
         Returns a SubConfiguration instance, given its name and type
@@ -203,6 +229,48 @@ class ConfigurationModel(QAbstractItemModel):
         self.beginInsertRows(parent, len(parentItem.children), len(parentItem.children))
         self.Item(parentItem, self.SubConfigContent(subConfig))
         self.endInsertRows()
+
+    def _connectVariables(self, vitem):
+        variables = vitem.content
+        for vname in variables.keys():
+            self.variableAddedOrChanged(vitem, vname, variables)
+        variables.variableAddedOrChanged.connect(
+            lambda key, _value, self=self, vitem=vitem, variables=variables:
+                self.variableAddedOrChanged(vitem, key, variables))
+        variables.variableDeleted.connect(
+            lambda key, self=self, vitem=vitem:
+                self.variableDeleted(vitem, key))
+
+    def variableAddedOrChanged(self, parentItem, key, variables):
+        parent = self.indexOfVariable(parentItem)
+        assert parent.internalPointer() is parentItem
+        found = False
+        for r in range(self.rowCount(parent)):
+            vcontent_key = self.index(r, 0, parent)
+            vcontent_value = self.index(r, 1, parent)
+            vcontent = vcontent_key.internalPointer()
+            assert isinstance(vcontent, self.Item), repr(vcontent)
+            assert isinstance(vcontent.content, self.VariableContent)
+            if vcontent.content.name == key:
+                self.dataChanged.emit(vcontent_value, vcontent_value)
+                found = True
+        if not found:
+            # var was added
+            self.beginInsertRows(parent, len(parentItem.children), len(parentItem.children))
+            item = self.Item(parentItem, self.VariableContent(key, variables))
+            self.endInsertRows()
+
+    def variableDeleted(self, vitem, key):
+        assert isinstance(vitem, ConfigurationModel.Item)
+        parent = self.indexOfVariable(vitem)
+        for row, v in enumerate(vitem.children):
+            assert isinstance(v, ConfigurationModel.Item) and isinstance(v.content, ConfigurationModel.VariableContent)
+            if v.content.name == key:
+                self.beginRemoveRows(parent, row, row)
+                vitem.children = vitem.children[:row] + vitem.children[row+1:]
+                self.endRemoveRows()
+                return
+        raise RuntimeError("did not find matching variables object to be deleted.")
 
     @Slot(object)
     def subConfigRenamed(self, subConfig, oldName): # pylint: disable=unused-argument
@@ -284,6 +352,13 @@ class ConfigurationModel(QAbstractItemModel):
         logger.debug("register propColl: %s", propColl)
         for pname in propColl.getAllPropertyNames():
             self.propertyAdded(item, propColl, pname)
+        if issubclass(mockup.getPluginClass(), CompositeFilter.CompositeNode):
+            # add a variable editor
+            nodeIndex = self.index(len(parentItem.children)-1,0,parent)
+            self.beginInsertRows(nodeIndex, len(item.children), len(item.children))
+            vitem = self.Item(item, propColl.getVariables())
+            self.endInsertRows()
+            self._connectVariables(vitem)
         propColl.propertyAdded.connect(lambda pc, name: self.propertyAdded(item, pc, name))
         propColl.propertyRemoved.connect(lambda pc, name: self.propertyRemoved(item, pc, name))
         propColl.propertyChanged.connect(lambda pc, name: self.propertyChanged(item, pc, name))
@@ -437,6 +512,8 @@ class ConfigurationModel(QAbstractItemModel):
             parentItem = parent.internalPointer()
             if isinstance(parentItem.content, self.NodeContent):
                 return 2 # nodes children have the editable properties
+            if isinstance(parentItem.content, Variables):
+                return 2
             return 1
         return 2
 
@@ -471,6 +548,19 @@ class ConfigurationModel(QAbstractItemModel):
                     return item.name
                 p = item.property.getPropertyDetails(item.name)
                 return p.handler.toViewValue(item.property.getProperty(item.name))
+            if isinstance(item, Variables):
+                if index.column() == 0:
+                    return "variables"
+                return None
+            if isinstance(item, self.VariableContent):
+                if index.column() == 0:
+                    return item.name
+                try:
+                    value = item.variables.getraw(item.name)
+                    return value
+                except KeyError:
+                    # this might happen when a variable is already deleted and the model updates itself
+                    return ""
             logger.warning("Unknown item %s", repr(item))
         if role == Qt.DecorationRole:
             if index.column() != 0:
@@ -487,6 +577,10 @@ class ConfigurationModel(QAbstractItemModel):
                 return QIcon.fromTheme("unknown", QApplication.style().standardIcon(QStyle.SP_FileIcon))
             if isinstance(item, self.PropertyContent):
                 return None
+            if isinstance(item, Variables):
+                return QIcon.fromTheme("unknown", QApplication.style().standardIcon(QStyle.SP_DirIcon))
+            if isinstance(item, self.VariableContent):
+                return None
             logger.warning("Unknown item %s", repr(item))
         if role == Qt.FontRole:
             if index.column() != 0:
@@ -501,6 +595,8 @@ class ConfigurationModel(QAbstractItemModel):
             if isinstance(item, self.PropertyContent):
                 p = item.property.getPropertyDetails(item.name)
                 return p.helpstr
+            if isinstance(item, self.VariableContent):
+                return item.variables.subst(f"{item.name} = ${item.name}")
         if role == ITEM_ROLE:
             return item
         return None
@@ -527,6 +623,9 @@ class ConfigurationModel(QAbstractItemModel):
             if index.column() == 0:
                 return Qt.ItemIsEnabled
             return Qt.ItemIsEnabled | Qt.ItemIsEditable
+        if isinstance(item, self.VariableContent):
+            if not item.variables.isReadonly(item.name) and index.column() == 1:
+                return Qt.ItemIsEnabled | Qt.ItemIsEditable
         return Qt.ItemIsEnabled
 
     def setData(self, index, value, role):# pylint: disable=too-many-return-statements,too-many-branches,unused-argument
@@ -578,6 +677,13 @@ class ConfigurationModel(QAbstractItemModel):
         if isinstance(item, self.PropertyContent):
             try:
                 item.property.setProperty(item.name, value)
+            except NexTRuntimeError:
+                return False
+            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            return True
+        if isinstance(item, self.VariableContent):
+            try:
+                item.variables[item.name] = value
             except NexTRuntimeError:
                 return False
             self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])

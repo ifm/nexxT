@@ -13,10 +13,11 @@ import nexxT.Qt
 from nexxT.Qt.QtCore import (Qt, QSettings, QByteArray, QDataStream, QIODevice, QTimer)
 from nexxT.Qt.QtGui import QIcon, QKeySequence, QAction
 from nexxT.Qt.QtWidgets import (QTreeView, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
-                               QHeaderView, QMenu, QDockWidget)
+                               QHeaderView, QMenu, QDockWidget, QInputDialog)
 from nexxT.interface import Services, FilterState
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
+from nexxT.core.Variables import Variables
 from nexxT.core.Utils import assertMainThread, MethodInvoker, mainThread, handleException
 from nexxT.services.SrvConfiguration import MVCConfigurationBase, ConfigurationModel, ITEM_ROLE
 from nexxT.services.gui.PropertyDelegate import PropertyDelegate
@@ -312,6 +313,28 @@ class MVCConfigurationGUI(MVCConfigurationBase):
             a = nexxT.Qt.call_exec(m, self.treeView.mapToGlobal(point))
             if a is not None:
                 self._configuration.addNewCompositeFilter()
+            return
+        if isinstance(item, Variables):
+            m = QMenu()
+            a = QAction("Add variable ...")
+            m.addAction(a)
+            a = nexxT.Qt.call_exec(m, self.treeView.mapToGlobal(point))
+            if a is not None:
+                vname, ok = QInputDialog.getText(
+                    self.treeView, "Add Variable", "Variable Name", text="VARIABLE",
+                    inputMethodHints=Qt.InputMethodHint.ImhUppercaseOnly|Qt.InputMethodHint.ImhLatinOnly)
+                variables = item
+                if ok and vname is not None and vname != "" and vname not in variables.keys():
+                    variables[vname] = ""
+            return
+        if isinstance(item, ConfigurationModel.VariableContent):
+            if not item.variables.isReadonly(item.name):
+                m = QMenu()
+                a = QAction("Remove variable")
+                m.addAction(a)
+                a = nexxT.Qt.call_exec(m, self.treeView.mapToGlobal(point))
+                if a is not None:
+                    del item.variables[item.name]
             return
 
     def _configNameChanged(self, cfgfile):

@@ -22,7 +22,20 @@
       "type": "object",
       "propertyNames": { "$ref": "#/definitions/identifier" },
       "patternProperties": {
-        "^.*$": {"type":  ["string", "number", "boolean"]}
+        "^.*$": {
+          "anyOf": [
+            {"type": "string"}, {"type": "number"}, {"type": "boolean"},
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["value", "subst"],
+              "properties": {
+                "value": {"anyOf": [{"type": "string"}, {"type": "number"}, {"type": "boolean"}]},
+                "subst": {"type": "boolean"}
+              }
+            }
+          ]
+        }
       }
     },
     "sub_graph": {

@@ -43,8 +43,14 @@
           "staticOutputPorts": [],
           "thread": "main",
           "properties": {
-            "caption": "Processed",
-            "scale": 0.5
+            "caption": {
+              "subst": false,
+              "value": "Processed"
+            },
+            "scale": {
+              "subst": false,
+              "value": 0.5
+            }
           }
         },
         {
@@ -59,8 +65,14 @@
           "staticOutputPorts": [],
           "thread": "main",
           "properties": {
-            "caption": "Original",
-            "scale": 0.5
+            "caption": {
+              "subst": false,
+              "value": "Original"
+            },
+            "scale": {
+              "subst": false,
+              "value": 0.5
+            }
           }
         }
       ],
@@ -112,7 +124,12 @@
             "video_out"
           ],
           "thread": "grabber",
-          "properties": {}
+          "properties": {
+            "device": {
+              "subst": false,
+              "value": "HP HD Camera: HP HD Camera"
+            }
+          }
         },
         {
           "name": "ImageBlur",
@@ -128,7 +145,10 @@
           ],
           "thread": "compute",
           "properties": {
-            "kernelSize": 9
+            "kernelSize": {
+              "subst": false,
+              "value": 9
+            }
           }
         },
         {
@@ -143,12 +163,30 @@
           "staticOutputPorts": [],
           "thread": "writer",
           "properties": {
-            "buffer_period": 1.0,
-            "buffer_samples": 0,
-            "filename": "${DATE}_${TIME}_${FILTER_NAME}.h5",
-            "silent_overwrite": false,
-            "use_posix_fadvise_if_available": true,
-            "use_receive_timestamps": true
+            "buffer_period": {
+              "subst": false,
+              "value": 1.0
+            },
+            "buffer_samples": {
+              "subst": false,
+              "value": 0
+            },
+            "filename": {
+              "subst": false,
+              "value": "${DATE}_${TIME}_${FILTER_NAME}.h5"
+            },
+            "silent_overwrite": {
+              "subst": false,
+              "value": false
+            },
+            "use_posix_fadvise_if_available": {
+              "subst": false,
+              "value": true
+            },
+            "use_receive_timestamps": {
+              "subst": false,
+              "value": true
+            }
           }
         },
         {
@@ -200,7 +238,10 @@
           ],
           "thread": "compute",
           "properties": {
-            "kernelSize": 9
+            "kernelSize": {
+              "subst": false,
+              "value": 9
+            }
           }
         },
         {
@@ -228,7 +269,12 @@
           ],
           "staticOutputPorts": [],
           "thread": "reader",
-          "properties": {}
+          "properties": {
+            "defaultStepStream": {
+              "subst": false,
+              "value": "<all>"
+            }
+          }
         },
         {
           "name": "AviReader",

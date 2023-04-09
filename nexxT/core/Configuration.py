@@ -50,11 +50,25 @@ class Configuration(QObject):
             return Configuration.CONFIG_TYPE_COMPOSITE
         raise NexTRuntimeError("Unexpected instance type")
 
+    def _defaultRootPropColl(self):
+        variables = None if not hasattr(self, "_propertyCollection") else self._propertyCollection.getVariables()
+        res = PropertyCollectionImpl("root", None, variables=variables)
+        vars = res.getVariables()
+        vars.setReadonly({})
+        for v in list(vars.keys()):
+            del vars[v]
+        # setup the default variables available on all platforms
+        vars["CFG_DIR"] = "${!str(importlib.import_module('pathlib').Path(subst('$CFGFILE')).parent.absolute())}"
+        vars["NEXXT_PLATFORM"] = "${!importlib.import_module('nexxT.core.Utils').nexxtPlatform()}"
+        vars["NEXXT_VARIANT"] = "${!importlib.import_module('os').environ.get('NEXXT_VARIANT', 'release')}"
+        vars.setReadonly({"CFG_DIR", "NEXXT_PLATFORM", "NEXXT_VARIANT", "CFGFILE"})
+        return res
+
     def __init__(self):
         super().__init__()
         self._compositeFilters = []
         self._applications = []
-        self._propertyCollection = PropertyCollectionImpl("root", None)
+        self._propertyCollection = self._defaultRootPropColl()
         self._guiState = PropertyCollectionImpl("_guiState", self._propertyCollection)
         self._dirty = False
 
@@ -95,7 +109,7 @@ class Configuration(QObject):
             self.subConfigRemoved.emit(a.getName(), self.CONFIG_TYPE_APPLICATION)
         self._applications = []
         self._propertyCollection.deleteLater()
-        self._propertyCollection = PropertyCollectionImpl("root", None)
+        self._propertyCollection = self._defaultRootPropColl()
         self.configNameChanged.emit(None)
         self.appActivated.emit("", None)
         PluginManager.singleton().unloadAll()
@@ -112,9 +126,10 @@ class Configuration(QObject):
         try:
             if cfg["CFGFILE"] is not None:
                 # might happen during reload
-                self._propertyCollection.defineProperty("CFGFILE", cfg["CFGFILE"],
-                                                        "The absolute path to the configuration file.",
-                                                        options=dict(enum=[cfg["CFGFILE"]]))
+                vars = self._propertyCollection.getVariables()
+                origReadonly = vars.setReadonly([])
+                vars["CFGFILE"] = cfg["CFGFILE"]
+                vars.setReadonly(origReadonly)
             try:
                 self._propertyCollection.deleteChild("_guiState")
             except PropertyCollectionChildNotFound:
@@ -160,12 +175,13 @@ class Configuration(QObject):
         cfg = {}
         if file is not None:
             # TODO: we assume here that this is a new config; a "save to file" feature is not yet implemented.
-            self._propertyCollection.defineProperty("CFGFILE", str(file),
-                                                    "The absolute path to the configuration file.",
-                                                    options=dict(enum=[str(file)]))
+            vars = self._propertyCollection.getVariables()
+            origReadonly = vars.setReadonly([])
+            vars["CFGFILE"] = cfg["CFGFILE"]
+            vars.setReadonly(origReadonly)
         try:
-            cfg["CFGFILE"] = self._propertyCollection.getProperty("CFGFILE")
-        except PropertyCollectionPropertyNotFound:
+            cfg["CFGFILE"] = self._propertyCollection.getVariables()["CFGFILE"]
+        except KeyError:
             cfg["CFGFILE"] = None
         cfg["_guiState"] = self._guiState.saveDict()
         cfg["composite_filters"] = [cf.save() for cf in self._compositeFilters]
@@ -180,10 +196,9 @@ class Configuration(QObject):
         :return:
         """
         try:
-            return self._propertyCollection.getProperty("CFGFILE")
-        except PropertyCollectionPropertyNotFound:
+            return self._propertyCollection.getVariables()["CFGFILE"]
+        except KeyError:
             return None
-
 
     def propertyCollection(self):
         """
