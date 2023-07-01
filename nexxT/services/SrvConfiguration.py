@@ -177,6 +177,11 @@ class ConfigurationModel(QAbstractItemModel):
         return self.index(idx[0], 0, parent)
 
     def indexOfVariable(self, vitem):
+        """
+        Returns the index of the given variable by full-recursive searching.
+
+        :param vitem: the variable item to be search for.
+        """
         def _traverse(parent):
             for r in range(self.rowCount(parent)):
                 index = self.index(r, 0, parent)
@@ -242,6 +247,13 @@ class ConfigurationModel(QAbstractItemModel):
                 self.variableDeleted(vitem, key))
 
     def variableAddedOrChanged(self, parentItem, key, variables):
+        """
+        Slot which is called when variables of parentItem are added or changed.
+
+        :param parentItem: an instance of VariableContent
+        :param key: the key which is changed or added
+        :param variables: the Variables instances managing the variables of parentItem
+        """
         parent = self.indexOfVariable(parentItem)
         assert parent.internalPointer() is parentItem
         found = False
@@ -257,10 +269,17 @@ class ConfigurationModel(QAbstractItemModel):
         if not found:
             # var was added
             self.beginInsertRows(parent, len(parentItem.children), len(parentItem.children))
-            item = self.Item(parentItem, self.VariableContent(key, variables))
+            _item = self.Item(parentItem, self.VariableContent(key, variables))
             self.endInsertRows()
 
+
     def variableDeleted(self, vitem, key):
+        """
+        Slot which is called when variables of vitem are deleted.
+
+        :param vitem: an instance of VariableContent
+        :param key: the key which is deleted
+        """
         assert isinstance(vitem, ConfigurationModel.Item)
         parent = self.indexOfVariable(vitem)
         for row, v in enumerate(vitem.children):
@@ -511,18 +530,18 @@ class ConfigurationModel(QAbstractItemModel):
         if parent.isValid():
             parentItem = parent.internalPointer()
             if isinstance(parentItem.content, self.NodeContent):
-                return 2 # nodes children have the editable properties
+                return 3 # nodes children have the editable properties with name, value and indirect
             if isinstance(parentItem.content, Variables):
                 return 2
             return 1
-        return 2
+        return 3
 
     def headerData(self, section, orientation, role):
         """
         Overwritten from QAbstractItemModel. Provide header names for the columns.
         """
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return ["Name", "Property"][section]
+            return ["Name", "Property", "Indirect"][section]
         return super().headerData(section, orientation, role)
 
     def data(self, index, role): # pylint: disable=too-many-return-statements,too-many-branches
@@ -544,10 +563,14 @@ class ConfigurationModel(QAbstractItemModel):
             if isinstance(item, self.NodeContent):
                 return item.name  if index.column() == 0 else None
             if isinstance(item, self.PropertyContent):
+                p = item.property.getPropertyDetails(item.name)
                 if index.column() == 0:
                     return item.name
-                p = item.property.getPropertyDetails(item.name)
-                return p.handler.toViewValue(item.property.getProperty(item.name))
+                if index.column() == 1:
+                    if not p.useEnvironment:
+                        return p.handler.toViewValue(item.property.getProperty(item.name))
+                    return item.property.getProperty(item.name, subst=False)
+                return p.useEnvironment
             if isinstance(item, Variables):
                 if index.column() == 0:
                     return "variables"
@@ -594,7 +617,11 @@ class ConfigurationModel(QAbstractItemModel):
         if role == Qt.ToolTipRole:
             if isinstance(item, self.PropertyContent):
                 p = item.property.getPropertyDetails(item.name)
-                return p.helpstr
+                if index.column() == 0 or (index.column() == 1 and not p.useEnvironment):
+                    return p.helpstr
+                if index.column() == 1:
+                    return f"{item.property.getProperty(item.name, subst=False)}={item.property.getProperty(item.name)}"
+                return "If enabled, this property is evaluated using variable substitution."
             if isinstance(item, self.VariableContent):
                 return item.variables.subst(f"{item.name} = ${item.name}")
         if role == ITEM_ROLE:
@@ -624,7 +651,9 @@ class ConfigurationModel(QAbstractItemModel):
                 return Qt.ItemIsEnabled
             return Qt.ItemIsEnabled | Qt.ItemIsEditable
         if isinstance(item, self.VariableContent):
-            if not item.variables.isReadonly(item.name) and index.column() == 1:
+            if item.variables.isReadonly(item.name):
+                return Qt.ItemFlag.NoItemFlags
+            if index.column() == 1:
                 return Qt.ItemIsEnabled | Qt.ItemIsEditable
         return Qt.ItemIsEnabled
 
@@ -675,11 +704,25 @@ class ConfigurationModel(QAbstractItemModel):
             self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
             return True
         if isinstance(item, self.PropertyContent):
-            try:
-                item.property.setProperty(item.name, value)
-            except NexTRuntimeError:
-                return False
-            self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
+            if index.column() == 1:
+                if item.property.getPropertyDetails(item.name).useEnvironment:
+                    item.property.setVarProperty(item.name, value)
+                else:
+                    try:
+                        item.property.setProperty(item.name, value)
+                    except NexTRuntimeError:
+                        return False
+            elif index.column() == 2:
+                p = item.property.getPropertyDetails(item.name)
+                if value and not p.useEnvironment:
+                    item.property.setVarProperty(item.name, str(item.property.getProperty(item.name)))
+                elif not value and p.useEnvironment:
+                    item.property.setProperty(item.name, item.property.getProperty(item.name))
+                else:
+                    return False
+            i0 = self.index(index.row(), 1, index.parent())
+            i1 = self.index(index.row(), 2, index.parent())
+            self.dataChanged.emit(i0, i1, [Qt.DisplayRole, Qt.EditRole])
             return True
         if isinstance(item, self.VariableContent):
             try:
@@ -689,21 +732,6 @@ class ConfigurationModel(QAbstractItemModel):
             self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
             return True
         return False
-
-    def headerDate(self, section, orientation, role):
-        """
-        Returns the header data of this model
-
-        :param section: section number starting from 0
-        :param orientation: orientation
-        :param role: the role to be returned
-        :return:
-        """
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            if section == 0:
-                return "Name"
-            return "Value"
-        return None
 
     def mimeTypes(self):
         """

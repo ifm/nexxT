@@ -460,6 +460,6 @@ def nexxtPlatform():
     """
     if platform.system() == "Windows":
         return f"msvc_x86{'_64' if platform.architecture()[0] == '64bit' else ''}"
-    elif platform.system() == "Linux":
+    if platform.system() == "Linux":
         return f"linux_{platform.machine()}"
     raise RuntimeError("Unknown system: " + platform.system())

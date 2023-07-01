@@ -106,8 +106,10 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self.treeView.setDragDropMode(QAbstractItemView.DragOnly)
         self.mainWidget.setWidget(self.treeView)
         self.treeView.setModel(self.model)
-        self.treeView.header().setStretchLastSection(True)
+        self.treeView.header().setStretchLastSection(False)
         self.treeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.treeView.header().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.treeView.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.treeView.doubleClicked.connect(self._onItemDoubleClicked)
         self.treeView.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeView.customContextMenuRequested.connect(self._execTreeViewContextMenu)
@@ -234,10 +236,10 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         graphDw.visibleChanged.connect(self._removeGraphViewFromList)
 
     def _subConfigRemoved(self, subConfigName, configType):
-        self.__subConfigRemoved(subConfigName, configType)
+        self._subConfigRemovedImpl(subConfigName, configType)
 
     @handleException
-    def __subConfigRemoved(self, subConfigName, configType):
+    def _subConfigRemovedImpl(self, subConfigName, configType):
         g = self._configuration.subConfigByNameAndTye(subConfigName, configType).getGraph()
         if nexxT.shiboken.isValid(g):
             for gv in self._graphViews:

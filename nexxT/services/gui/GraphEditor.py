@@ -1255,18 +1255,27 @@ class GraphScene(BaseGraphScene):
                                     item.portTo.nodeItem.name, item.portTo.name)
 
     def onConnSetNonBlocking(self):
+        """
+        Set a connection as non blocking (i.e. width=0)
+        """
         item = self.itemOfContextMenu
         self.graph.setConnectionProperties(item.portFrom.nodeItem.name, item.portFrom.name,
                                            item.portTo.nodeItem.name, item.portTo.name, dict(width=0))
         item.sync()
 
     def onConnSetBlocking(self):
+        """
+        Set a connection as blocking (i.e. width=1)
+        """
         item = self.itemOfContextMenu
         self.graph.setConnectionProperties(item.portFrom.nodeItem.name, item.portFrom.name,
                                            item.portTo.nodeItem.name, item.portTo.name, dict(width=1))
         item.sync()
 
     def onConnSetCustom(self):
+        """
+        Set the width of a connection to a custom value.
+        """
         item = self.itemOfContextMenu
         c = item.portFrom.nodeItem.name, item.portFrom.name, item.portTo.nodeItem.name, item.portTo.name
         width = self.graph.getConnectionProperties(*c)["width"]

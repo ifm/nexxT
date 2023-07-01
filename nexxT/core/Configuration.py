@@ -13,7 +13,7 @@ from nexxT.Qt.QtCore import QObject, Slot, Signal
 from nexxT.core.Application import Application
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.Exceptions import (NexTRuntimeError, CompositeRecursion, NodeNotFoundError, NexTInternalError,
-                                   PropertyCollectionPropertyNotFound, PropertyCollectionChildNotFound)
+                                   PropertyCollectionChildNotFound)
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.PluginManager import PluginManager
 from nexxT.core.ConfigFiles import ConfigFileLoader
@@ -53,15 +53,15 @@ class Configuration(QObject):
     def _defaultRootPropColl(self):
         variables = None if not hasattr(self, "_propertyCollection") else self._propertyCollection.getVariables()
         res = PropertyCollectionImpl("root", None, variables=variables)
-        vars = res.getVariables()
-        vars.setReadonly({})
-        for v in list(vars.keys()):
-            del vars[v]
+        theVars = res.getVariables()
+        theVars.setReadonly({})
+        for v in list(theVars.keys()):
+            del theVars[v]
         # setup the default variables available on all platforms
-        vars["CFG_DIR"] = "${!str(importlib.import_module('pathlib').Path(subst('$CFGFILE')).parent.absolute())}"
-        vars["NEXXT_PLATFORM"] = "${!importlib.import_module('nexxT.core.Utils').nexxtPlatform()}"
-        vars["NEXXT_VARIANT"] = "${!importlib.import_module('os').environ.get('NEXXT_VARIANT', 'release')}"
-        vars.setReadonly({"CFG_DIR", "NEXXT_PLATFORM", "NEXXT_VARIANT", "CFGFILE"})
+        theVars["CFG_DIR"] = "${!str(importlib.import_module('pathlib').Path(subst('$CFGFILE')).parent.absolute())}"
+        theVars["NEXXT_PLATFORM"] = "${!importlib.import_module('nexxT.core.Utils').nexxtPlatform()}"
+        theVars["NEXXT_VARIANT"] = "${!importlib.import_module('os').environ.get('NEXXT_VARIANT', 'release')}"
+        theVars.setReadonly({"CFG_DIR", "NEXXT_PLATFORM", "NEXXT_VARIANT", "CFGFILE"})
         return res
 
     def __init__(self):
@@ -126,10 +126,10 @@ class Configuration(QObject):
         try:
             if cfg["CFGFILE"] is not None:
                 # might happen during reload
-                vars = self._propertyCollection.getVariables()
-                origReadonly = vars.setReadonly([])
-                vars["CFGFILE"] = cfg["CFGFILE"]
-                vars.setReadonly(origReadonly)
+                theVars = self._propertyCollection.getVariables()
+                origReadonly = theVars.setReadonly([])
+                theVars["CFGFILE"] = cfg["CFGFILE"]
+                theVars.setReadonly(origReadonly)
             try:
                 self._propertyCollection.deleteChild("_guiState")
             except PropertyCollectionChildNotFound:
@@ -175,10 +175,10 @@ class Configuration(QObject):
         cfg = {}
         if file is not None:
             # TODO: we assume here that this is a new config; a "save to file" feature is not yet implemented.
-            vars = self._propertyCollection.getVariables()
-            origReadonly = vars.setReadonly([])
-            vars["CFGFILE"] = cfg["CFGFILE"]
-            vars.setReadonly(origReadonly)
+            theVars = self._propertyCollection.getVariables()
+            origReadonly = theVars.setReadonly([])
+            theVars["CFGFILE"] = file
+            theVars.setReadonly(origReadonly)
         try:
             cfg["CFGFILE"] = self._propertyCollection.getVariables()["CFGFILE"]
         except KeyError:

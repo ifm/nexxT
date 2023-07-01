@@ -13,8 +13,7 @@ from nexxT.Qt.QtCore import QMutexLocker, Qt
 from nexxT.interface import InputPort, OutputPort, InputPortInterface, OutputPortInterface
 from nexxT.core.FilterEnvironment import FilterEnvironment
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
-from nexxT.core.Exceptions import (PortNotFoundError, PortExistsError, PropertyCollectionChildExists,
-                                   PropertyCollectionPropertyNotFound)
+from nexxT.core.Exceptions import PortNotFoundError, PortExistsError, PropertyCollectionChildExists
 from nexxT.core.Utils import assertMainThread, MethodInvoker
 import nexxT
 

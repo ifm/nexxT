@@ -11,9 +11,6 @@ This module defines the PropertyCollection interface class of the nexxT framewor
 from collections import OrderedDict
 from pathlib import Path
 import logging
-import platform
-import string
-import os
 import nexxT.shiboken
 from nexxT.Qt.QtCore import Signal, Slot, QRecursiveMutex, QMutexLocker
 from nexxT.core.Exceptions import (PropertyCollectionChildNotFound, PropertyCollectionChildExists,
@@ -55,7 +52,7 @@ class PropertyCollectionImpl(PropertyCollection):
         assertMainThread()
         self._properties = {}
         if variables is None:
-            self._vars = Variables(parent=parentPropColl._vars if parentPropColl is not None else None) # environment variables
+            self._vars = Variables(parent=parentPropColl._vars if parentPropColl is not None else None)
         else:
             self._vars = variables
             assert parentPropColl is None # this should be the root property
@@ -182,14 +179,14 @@ class PropertyCollectionImpl(PropertyCollection):
             return p.value
 
     @Slot(str)
-    def getProperty(self, name):
+    def getProperty(self, name, subst=True):
         self._accessed = True
         with QMutexLocker(self._propertyMutex):
             if name not in self._properties:
                 raise PropertyCollectionPropertyNotFound(name)
             p = self._properties[name]
             p.used = True
-            if p.useEnvironment:
+            if p.useEnvironment and subst:
                 return p.handler.validate(self._vars.subst(p.value))
             return p.value
 
@@ -216,6 +213,7 @@ class PropertyCollectionImpl(PropertyCollection):
     def setProperty(self, name, value):
         """
         Set the value of a named property.
+
         :param name: property name
         :param value: the value to be set
         :return: None
@@ -239,6 +237,7 @@ class PropertyCollectionImpl(PropertyCollection):
     def setVarProperty(self, name, value):
         """
         Set the value of a named property using an variable substitution.
+
         :param name: property name
         :param value: the value to be set
         :return: None
@@ -357,7 +356,7 @@ class PropertyCollectionImpl(PropertyCollection):
         if spath != path or not Path(spath).is_absolute():
             logger.warning("Deprecated: Implicit substitution or relative paths to the config file. Consider to use "
                            "explicit variable substitution with ${CFG_DIR} to reference the directory of the config "
-                           "file instead.")
+                           "file instead. Found while evaluating %s.", path)
         if not Path(spath).is_absolute():
-            spath = str((self._vars.subst("$CFG_DIR") / spath).absolute())
+            spath = str((Path(self._vars.subst("$CFG_DIR")) / spath).absolute())
         return spath
