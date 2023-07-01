@@ -585,6 +585,13 @@ class ConfigurationModel(QAbstractItemModel):
                     # this might happen when a variable is already deleted and the model updates itself
                     return ""
             logger.warning("Unknown item %s", repr(item))
+        if role == Qt.CheckStateRole:
+            if isinstance(item, self.PropertyContent) and index.column() == 2:
+                p = item.property.getPropertyDetails(item.name)
+                if p.useEnvironment:
+                    return Qt.Checked
+                else:
+                    return Qt.Unchecked
         if role == Qt.DecorationRole:
             if index.column() != 0:
                 return None
@@ -649,7 +656,10 @@ class ConfigurationModel(QAbstractItemModel):
         if isinstance(item, self.PropertyContent):
             if index.column() == 0:
                 return Qt.ItemIsEnabled
-            return Qt.ItemIsEnabled | Qt.ItemIsEditable
+            if index.column() == 1:
+                return Qt.ItemIsEnabled | Qt.ItemIsEditable
+            if index.column() == 2:
+                return Qt.ItemIsEnabled | Qt.ItemIsUserCheckable
         if isinstance(item, self.VariableContent):
             if item.variables.isReadonly(item.name):
                 return Qt.ItemFlag.NoItemFlags

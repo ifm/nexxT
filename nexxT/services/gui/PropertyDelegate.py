@@ -51,9 +51,6 @@ class PropertyDelegate(QStyledItemDelegate):
                 else:
                     res = QLineEdit(parent)
                     return res
-            if index.column() == 2:
-                res = QCheckBox(parent)
-                return res
         return super().createEditor(parent, option, index)
 
     def setEditorData(self, editor, index):
@@ -73,9 +70,6 @@ class PropertyDelegate(QStyledItemDelegate):
                     p.handler.setEditorData(editor, v)
                 else:
                     editor.setText(d.property.getProperty(d.name, subst=False))
-                return None
-            if index.column() == 2:
-                editor.setChecked(p.useEnvironment)
                 return None
         return super().setEditorData(editor, index)
 
@@ -100,12 +94,5 @@ class PropertyDelegate(QStyledItemDelegate):
                 else:
                     value = editor.text()
                     model.setData(index, value, Qt.EditRole)
-                return None
-            if index.column() == 2:
-                if editor.isChecked() and not p.useEnvironment:
-                    model.setData(index, True, Qt.EditRole)
-                    #model.setData(model.index(index.row(), index.column(), index.parent()), str(model))
-                elif not editor.isChecked() and p.useEnvironment:
-                    model.setData(index, False, Qt.EditRole)
                 return None
         return super().setModelData(editor, model, index)
