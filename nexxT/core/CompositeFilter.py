@@ -80,6 +80,7 @@ class CompositeFilter(SubConfiguration):
     def compositeNode(self, env):
         """
         Factory function for creating a dummy filter instance (this one will never get active).
+
         :param env: the FilterEnvironment instance
         :return: a Filter instance
         """

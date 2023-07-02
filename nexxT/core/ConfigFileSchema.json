@@ -38,6 +38,15 @@
         }
       }
     },
+    "variables": {
+      "type": "object",
+      "propertyNames": {"$ref":  "#/definitions/identifier"},
+      "patternProperties": {
+        "^.*$": {
+          "type": "string"
+        }
+      }
+    },
     "sub_graph": {
       "description": "sub-graph definition as used by applications and composite filters.",
       "type": "object",
@@ -93,6 +102,9 @@
               "properties": {
                 "$ref": "#/definitions/propertySection",
                 "default": {}
+              },
+              "variables": {
+                "$ref": "#/definitions/variables"
               }
             }
           }
@@ -122,6 +134,9 @@
       "items": {
         "$ref": "#/definitions/sub_graph"
       }
+    },
+    "variables": {
+      "$ref": "#/definitions/variables"
     },
     "_guiState": {
       "$ref": "#/definitions/propertySection",

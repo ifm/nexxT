@@ -15,6 +15,7 @@ from nexxT.core.Exceptions import FilterStateMachineError, NexTInternalError, Po
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.Utils import Barrier, assertMainThread, mainThread, MethodInvoker
 from nexxT.core.Thread import NexTThread
+from nexxT.core.PropertyCollectionImpl import PropertyCollectionProxy
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 
@@ -58,7 +59,7 @@ class ActiveApplication(QObject):
         """
         return self._graph.getSubConfig()
 
-    def _traverseAndSetup(self, graph, namePrefix=""):
+    def _traverseAndSetup(self, graph, namePrefix="", variables=None):
         """
         Recursively create threads and add the filter mockups to them
         """
@@ -68,19 +69,22 @@ class ActiveApplication(QObject):
             if issubclass(mockup.getPluginClass(), CompositeFilter.CompositeNode):
                 with mockup.createFilter() as cf:
                     self._composite2graphs[filtername] = cf.getPlugin().getGraph()
-                    self._traverseAndSetup(cf.getPlugin().getGraph(), filtername)
+                    compositeVars = mockup.getPropertyCollectionImpl().getVariables()
+                    self._traverseAndSetup(cf.getPlugin().getGraph(), filtername, compositeVars)
             elif issubclass(mockup.getPluginClass(), CompositeFilter.CompositeInputNode):
                 pass
             elif issubclass(mockup.getPluginClass(), CompositeFilter.CompositeOutputNode):
                 pass
             else:
                 props = mockup.getPropertyCollectionImpl()
+                if variables is not None:
+                    props = PropertyCollectionProxy(props, variables)
                 nexTprops = props.getChildCollection("_nexxT")
                 threadName = nexTprops.getProperty("thread")
                 if not threadName in self._threads:
                     # create threads as needed
                     self._threads[threadName] = NexTThread(threadName)
-                self._threads[threadName].addMockup(filtername, mockup)
+                self._threads[threadName].addMockup(filtername, mockup, props)
                 self._filters2threads[filtername] = threadName
 
     def __del__(self):

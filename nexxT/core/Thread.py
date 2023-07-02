@@ -119,7 +119,7 @@ class NexTThread(QObject):
         self._mockups.clear()
         logger.internal("Thread cleanup done")
 
-    def addMockup(self, name, mockup):
+    def addMockup(self, name, mockup, propColl):
         """
         Add a FilterMockup instance by name.
         :param name: name of the filter
@@ -128,7 +128,7 @@ class NexTThread(QObject):
         """
         if name in self._mockups:
             raise NodeExistsError(name)
-        self._mockups[name] = mockup
+        self._mockups[name] = (mockup, propColl)
 
     def getFilter(self, name):
         """
@@ -179,10 +179,10 @@ class NexTThread(QObject):
             # wait for all threads
             barrier.wait()
         # perform operation for all filters
-        for name, mockup in self._mockups.items():
+        for name, (mockup, propColl) in self._mockups.items():
             try:
                 if operation == "create":
-                    res = mockup.createFilter()
+                    res = mockup.createFilter(propColl)
                     res.setParent(self)
                     self._filters[name] = res
                     self._filter2name[res] = name

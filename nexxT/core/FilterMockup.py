@@ -98,14 +98,15 @@ class FilterMockup(FilterEnvironment):
                 if self._pluginClass is cnexxT.QSharedPointer_nexxT_Filter:
                     self._pluginClass = tempEnv.getPlugin().data().__class__
 
-    def createFilter(self):
+    def createFilter(self, propColl=None):
         """
         Creates the filter for real usage. State is CONSTRUCTED. This function is thread safe and can be called
         from multiple threads.
         :return: None
         """
         # called from threads
-        res = FilterEnvironment(self._library, self._factoryFunction, self._propertyCollectionImpl)
+        res = FilterEnvironment(self._library, self._factoryFunction,
+                                self._propertyCollectionImpl if propColl is None else propColl)
         with QMutexLocker(self._portMutex):
             for p in self._ports:
                 if p.dynamic():

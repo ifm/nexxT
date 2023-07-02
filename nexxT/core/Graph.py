@@ -97,6 +97,8 @@ class FilterGraph(BaseGraph):
         except PropertyCollectionChildNotFound:
             propColl = PropertyCollectionImpl(name, self._properties)
         propColl.propertyChanged.connect(self.setDirty)
+        propColl.getVariables().variableAddedOrChanged.connect(self.setDirty)
+        propColl.getVariables().variableDeleted.connect(self.setDirty)
         filterMockup = FilterMockup(library, factoryFunction, propColl, self)
         self._filters[name] = filterMockup
         for din in dynamicInputPorts:

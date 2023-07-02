@@ -81,7 +81,6 @@ class Variables(QObject):
             super().__delitem__(key)
             self._variables.variableDeleted.emit(key)
 
-
     variableAddedOrChanged = Signal(str, str)
     variableDeleted = Signal(str)
 
