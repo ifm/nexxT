@@ -724,6 +724,8 @@ class ConfigurationModel(QAbstractItemModel):
                         return False
             elif index.column() == 2:
                 p = item.property.getPropertyDetails(item.name)
+                if role == Qt.CheckStateRole:
+                    value = False if Qt.CheckState(value) == Qt.Unchecked else True
                 if value and not p.useEnvironment:
                     item.property.setVarProperty(item.name, str(item.property.getProperty(item.name)))
                 elif not value and p.useEnvironment:

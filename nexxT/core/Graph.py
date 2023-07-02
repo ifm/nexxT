@@ -16,6 +16,7 @@ from nexxT.core.BaseGraph import BaseGraph
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.Utils import assertMainThread, handleException
 from nexxT.core.Exceptions import NexTRuntimeError, PropertyCollectionChildNotFound, CompositeRecursion
+from nexxT.core.Variables import Variables
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,11 @@ class FilterGraph(BaseGraph):
             propColl = self._properties.getChildCollection(name)
         except PropertyCollectionChildNotFound:
             propColl = PropertyCollectionImpl(name, self._properties)
+        if factoryFunction == "compositeNode" and hasattr(library, "checkRecursion"):
+            propColl = PropertyCollectionImpl(name, propColl)
         propColl.propertyChanged.connect(self.setDirty)
+        propColl.getVariables().variableAddedOrChanged.connect(self.setDirty)
+        propColl.getVariables().variableDeleted.connect(self.setDirty)
         filterMockup = FilterMockup(library, factoryFunction, propColl, self)
         self._filters[name] = filterMockup
         for din in dynamicInputPorts:

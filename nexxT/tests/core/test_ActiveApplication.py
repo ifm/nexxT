@@ -29,11 +29,25 @@ def simple_setup(multithread, sourceFreq, sinkTime, activeTime_s, dynamicFilter)
 
     try:
         class DummySubConfig(object):
+            class DummyConfig:
+                def __init__(self):
+                    self.pc = PropertyCollectionImpl("root", None)
+
+                def propertyCollection(self):
+                    return self.pc
+
             def __init__(self):
+                self.dummyConfig = DummySubConfig.DummyConfig()
                 self.pc = PropertyCollectionImpl("root", None)
+
+            def getConfiguration(self):
+                return self.dummyConfig
 
             def getPropertyCollection(self):
                 return self.pc
+
+            def getName(self):
+                return "dummy_subconfig"
 
         fg = FilterGraph(DummySubConfig())
         n1 = fg.addNode("pyfile://" + os.path.dirname(__file__) + "/../interface/SimpleStaticFilter.py", "SimpleSource")

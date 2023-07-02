@@ -2,6 +2,9 @@
   "_guiState": {
     "PlaybackControl_showAllFiles": 0
   },
+  "variables": {
+    "SRC": "fail"
+  },
   "composite_filters": [
     {
       "name": "visualization",
@@ -44,7 +47,7 @@
           "thread": "main",
           "properties": {
             "caption": {
-              "subst": false,
+              "subst": true,
               "value": "Processed"
             },
             "scale": {
@@ -66,8 +69,8 @@
           "thread": "main",
           "properties": {
             "caption": {
-              "subst": false,
-              "value": "Original"
+              "subst": true,
+              "value": "Original - $SRC"
             },
             "scale": {
               "subst": false,
@@ -201,6 +204,9 @@
           "dynamicOutputPorts": [],
           "staticOutputPorts": [],
           "thread": "main",
+          "variables": {
+            "SRC": "live"
+          },
           "properties": {}
         }
       ],
@@ -256,6 +262,9 @@
           "dynamicOutputPorts": [],
           "staticOutputPorts": [],
           "thread": "main",
+          "variables": {
+            "SRC": "sim"
+          },
           "properties": {}
         },
         {

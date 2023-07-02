@@ -15,6 +15,8 @@ from nexxT.core.Exceptions import FilterStateMachineError, NexTInternalError, Po
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.Utils import Barrier, assertMainThread, mainThread, MethodInvoker
 from nexxT.core.Thread import NexTThread
+from nexxT.core.PropertyCollectionImpl import PropertyCollectionProxy
+from nexxT.core.Variables import Variables
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 
@@ -58,29 +60,40 @@ class ActiveApplication(QObject):
         """
         return self._graph.getSubConfig()
 
-    def _traverseAndSetup(self, graph, namePrefix=""):
+    def _traverseAndSetup(self, graph, namePrefix="", variables=None):
         """
         Recursively create threads and add the filter mockups to them
         """
+        if variables is None:
+            variables = graph.getSubConfig().getConfiguration().propertyCollection().getVariables()
         for basename in graph.allNodes():
             filtername = namePrefix + "/" + basename
             mockup = graph.getMockup(basename)
             if issubclass(mockup.getPluginClass(), CompositeFilter.CompositeNode):
                 with mockup.createFilter() as cf:
                     self._composite2graphs[filtername] = cf.getPlugin().getGraph()
-                    self._traverseAndSetup(cf.getPlugin().getGraph(), filtername)
+                    compositeVars = mockup.getPropertyCollectionImpl().getVariables().copyAndReparent(variables)
+                    self._traverseAndSetup(cf.getPlugin().getGraph(), filtername, compositeVars)
             elif issubclass(mockup.getPluginClass(), CompositeFilter.CompositeInputNode):
                 pass
             elif issubclass(mockup.getPluginClass(), CompositeFilter.CompositeOutputNode):
                 pass
             else:
                 props = mockup.getPropertyCollectionImpl()
+                filterVars = Variables(parent=variables if variables is not None else props.getVariables())
+                filterVars.setObjectName("proxy:" + filtername)
+                filterVars["COMPOSITENAME"] = namePrefix if namePrefix != "" else "<root>"
+                filterVars["FILTERNAME"] = basename
+                filterVars["FULLQUALIFIEDFILTERNAME"] = filtername
+                filterVars["APPNAME"] = self._graph.getSubConfig().getName()
+                filterVars.setReadonly(["COMPOSITENAME", "FILTERNAME", "FULLQUALIFIEDFILTERNAME", "APPNAME"])
+                props = PropertyCollectionProxy(props, filterVars)
                 nexTprops = props.getChildCollection("_nexxT")
                 threadName = nexTprops.getProperty("thread")
                 if not threadName in self._threads:
                     # create threads as needed
                     self._threads[threadName] = NexTThread(threadName)
-                self._threads[threadName].addMockup(filtername, mockup)
+                self._threads[threadName].addMockup(filtername, mockup, props)
                 self._filters2threads[filtername] = threadName
 
     def __del__(self):

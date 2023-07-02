@@ -62,6 +62,8 @@ class Configuration(QObject):
         theVars["NEXXT_PLATFORM"] = "${!importlib.import_module('nexxT.core.Utils').nexxtPlatform()}"
         theVars["NEXXT_VARIANT"] = "${!importlib.import_module('os').environ.get('NEXXT_VARIANT', 'release')}"
         theVars.setReadonly({"CFG_DIR", "NEXXT_PLATFORM", "NEXXT_VARIANT", "CFGFILE"})
+        theVars.variableAddedOrChanged.connect(lambda *args: self.setDirty())
+        theVars.variableDeleted.connect(lambda *args: self.setDirty())
         return res
 
     def __init__(self):
@@ -154,6 +156,13 @@ class Configuration(QObject):
                     finally:
                         recursiveset.remove(name)
 
+            variables = self._propertyCollection.getVariables()
+            for k in variables.keys():
+                if not variables.isReadonly(k):
+                    del variables[k]
+            if "variables" in cfg:
+                for k in cfg["variables"]:
+                    variables[k] = cfg["variables"][k]
             for cfg_cf in cfg["composite_filters"]:
                 compositeLookup(cfg_cf["name"])
             for cfg_app in cfg["applications"]:
@@ -184,6 +193,12 @@ class Configuration(QObject):
         except KeyError:
             cfg["CFGFILE"] = None
         cfg["_guiState"] = self._guiState.saveDict()
+        variables = self._propertyCollection.getVariables()
+        if any(not variables.isReadonly(k) for k in variables.keys()):
+            cfg["variables"] = {
+                k: variables.getraw(k)
+                for k in variables.keys() if not variables.isReadonly(k)
+            }
         cfg["composite_filters"] = [cf.save() for cf in self._compositeFilters]
         cfg["applications"] = [app.save() for app in self._applications]
         self.configNameChanged.emit(cfg["CFGFILE"])

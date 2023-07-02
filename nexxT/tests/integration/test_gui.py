@@ -62,6 +62,7 @@ CM_SUGGEST_DYNPORTS = ContextMenuEntry("Suggest dynamic ports ...")
 CM_SETTHREAD = ContextMenuEntry("Set thread ...")
 CM_RENAMEDYNPORT = ContextMenuEntry("Rename dynamic port ...")
 CM_REMOVEDYNPORT = ContextMenuEntry("Remove dynamic port ...")
+CM_ADDVARIABLE = ContextMenuEntry("Add variable ...")
 CONFIG_MENU_DEINITIALIZE = ContextMenuEntry("Deinitialize")
 CONFIG_MENU_INITIALIZE = ContextMenuEntry("Initialize")
 LM_WARNING = ContextMenuEntry("Warning")
@@ -280,7 +281,7 @@ class GuiTestBase:
         self.qtbot.mouseMove(graphEditView.viewport(), pos2, delay=self.delay)
         self.qtbot.mouseRelease(graphEditView.viewport(), Qt.LeftButton, pos=pos2, delay=self.delay)
 
-    def setFilterProperty(self, conf, subConfig, filterName, propName, propVal, expectedVal=None):
+    def setFilterProperty(self, conf, subConfig, filterName, propName, propVal, expectedVal=None, indirect=False):
         """
         Sets a filter property in the configuration gui service.
         :param conf: the configuration gui service
@@ -318,6 +319,14 @@ class GuiTestBase:
         assert row is not None
         # start the editor by pressing F2 on the property value
         idxPropVal = conf.model.index(row, 1, idxFilter)
+        idxPropIndirect = conf.model.index(row, 2, idxFilter)
+        cindirect = conf.model.data(idxPropIndirect, Qt.CheckStateRole) != Qt.Unchecked
+        logger.info("cindirect=%s ==? indirect=%s", repr(cindirect), repr(indirect))
+        if cindirect != indirect:
+            conf.model.setData(idxPropIndirect, True, Qt.EditRole)
+            self.qtbot.wait(self.delay)
+            cindirect = conf.model.data(idxPropIndirect, Qt.CheckStateRole) != Qt.Unchecked
+            assert cindirect == indirect
         conf.treeView.scrollTo(idxPropVal)
         region = conf.treeView.visualRegionForSelection(QItemSelection(idxPropVal, idxPropVal))
         self.qtbot.mouseMove(conf.treeView.viewport(), pos=region.boundingRect().center(), delay=self.delay)
@@ -407,6 +416,10 @@ class GuiTestBase:
                 found = True
         if not found:
             raise RuntimeError("expected message %s:%s not found in log", expectedLevel, expectedMsg)
+
+    @staticmethod
+    def clearLog(log):
+        log.logWidget.clear()
 
     @staticmethod
     def noWarningsInLog(log, ignore=[]):
@@ -1679,3 +1692,252 @@ class MyFilter(Filter): # almost same as SimpleView
 def test_reload(qtbot, xvfb, keep_open, delay, tmpdir):
     test = ReloadTest(qtbot, xvfb, keep_open, delay, tmpdir)
     test.test()
+
+
+class VariablesTest(GuiTestBase):
+    """
+    Concrete test class for the test_variables test case
+    """
+
+    def __init__(self, qtbot, xvfb, keep_open, delay, tmpdir):
+        super().__init__(qtbot, xvfb, keep_open, delay, tmpdir)
+
+    def _variables(self):
+        conf = None
+        mw = None
+        thefilter_py = (Path(self.tmpdir) / "thefilter.py")
+        thefilter_py.write_text("""\
+import logging
+from nexxT.interface import Filter
+
+logger = logging.getLogger(__name__)
+
+class TheFilter(Filter):
+    def __init__(self, env):
+        super().__init__(False, False, env)
+        pc = self.propertyCollection()
+        pc.defineProperty("bool_prop", False, "a boolean")
+        pc.defineProperty("unbound_float", 7., "an unbound float")
+        pc.defineProperty("low_bound_float", 7., "a low bound float", dict(min=-3))
+        pc.defineProperty("high_bound_float", 7., "a high bound float", dict(max=123))
+        pc.defineProperty("bound_float", 7., "a bound float", dict(min=6, max=1203))
+        pc.defineProperty("unbound_int", 7, "an unbound integer")
+        pc.defineProperty("low_bound_int", 7, "a low bound integer", dict(min=-3))
+        pc.defineProperty("high_bound_int", 7, "a high bound integer", dict(max=123))
+        pc.defineProperty("bound_int", 7, "a bound integer", dict(min=6, max=1203))
+        pc.defineProperty("string", "str", "an arbitrary string")
+        pc.defineProperty("enum", "v1", "an enum", dict(enum=["v1", "v2", "v3"]))
+        
+    def onOpen(self):
+        pc = self.propertyCollection()
+        for n in ["bool_prop", "unbound_float", "low_bound_float", "high_bound_float", "bound_float",
+                  "unbound_int", "low_bound_int", "high_bound_int", "bound_int", "string", "enum"]:
+            logger.info("getProperty(%s) = %s", n, repr(pc.getProperty(n)))
+"""
+        )
+        try:
+            # load last config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            log = Services.getService("Logging")
+            idxComposites = conf.model.index(0, 0)
+            idxApplications = conf.model.index(1, 0)
+            idxVariables = conf.model.index(2, 0)
+            # add application
+            conf.treeView.setMinimumSize(QSize(300, 300))
+            conf.treeView.scrollTo(idxApplications)
+            region = conf.treeView.visualRegionForSelection(QItemSelection(idxApplications, idxApplications))
+            self.qtbot.mouseMove(conf.treeView.viewport(), region.boundingRect().center(), delay=self.delay)
+            # mouse click does not trigger context menu :(
+            # qtbot.mouseClick(conf.treeView.viewport(), Qt.RightButton, pos=region.boundingRect().center())
+            QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_ADD_APPLICATION))
+            conf._execTreeViewContextMenu(region.boundingRect().center())
+            app = conf.configuration().applicationByName("application")
+            appidx = conf.model.indexOfSubConfig(app)
+            # start graph editor
+            gev = self.startGraphEditor(conf, mw, "application")
+            self.qtbot.wait(self.delay)
+            # create a node "TheFilter"
+            the_filter = self.addNodeToGraphEditor(gev, QPoint(20, 20),
+                                                   CM_FILTER_FROM_FILE, str(thefilter_py), "TheFilter")
+            self.qtbot.keyClick(self.aw(), Qt.Key_Return, delay=self.delay)
+            self.qtbot.keyClick(None, Qt.Key_Return, delay=self.delay)
+            logger.info("Filter: %s", repr(the_filter))
+            # add variables
+            self.aw()
+            for name, value in [("BFALSE", "False"), ("BTRUE", "True"),
+                                ("FHIGH", "3.4028235e+38"), ("FLOW", "-3.4028235e+38"),
+                                ("IHIGH", "2147483647"), ("ILOW", "-2147483648"),
+                                ("IM4", "-4"), ("I1", "1"),
+                                ("EV1", "v1"), ("EV2", "v2"), ("EV3", "v3")]:
+                conf.treeView.scrollTo(idxVariables)
+                region = conf.treeView.visualRegionForSelection(QItemSelection(idxVariables, idxVariables))
+                self.qtbot.mouseMove(conf.treeView.viewport(), region.boundingRect().center(), delay=self.delay)
+                QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_ADDVARIABLE))
+                QTimer.singleShot(self.delay * 2, lambda: self.enterText(name))
+                conf._execTreeViewContextMenu(region.boundingRect().center())
+                def find_var_index(parentIndex, varname):
+                    m = conf.model
+                    for r in range(m.rowCount(parentIndex)):
+                        idx = m.index(r, 0, parentIndex)
+                        t = m.data(idx, Qt.DisplayRole)
+                        if t == varname:
+                            return m.index(r, 1, parentIndex)
+                idx = find_var_index(idxVariables, name)
+                assert idx is not None
+                conf.treeView.scrollTo(idx)
+                region = conf.treeView.visualRegionForSelection(QItemSelection(idx, idx))
+                self.qtbot.mouseMove(conf.treeView.viewport(), region.boundingRect().center(), delay=self.delay)
+                self.qtbot.mouseClick(conf.treeView.viewport(), Qt.LeftButton, pos=region.boundingRect().center(),
+                                      delay=self.delay)
+                self.qtbot.keyClick(conf.treeView.viewport(), Qt.Key_F2, delay=self.delay)
+                self.aw()
+                mw = Services.getService("MainWindow")
+                QTimer.singleShot(self.delay*2, lambda: self.enterText(value))
+                self.qtbot.wait(self.delay*3)
+                assert conf.model.data(idx, Qt.DisplayRole) == value
+                logger.info("Added variable %s=%s", name, value)
+            tests = dict(
+                bool_prop=[("$BFALSE", repr(False)), ("$BTRUE", repr(True)), ("$NONEXIST", repr(False))],
+                unbound_float=[("$FHIGH", repr(3.4028235e+38)), ("$FLOW", repr(-3.4028235e+38)),
+                               ("$NONEXIST", repr(0.0))],
+                low_bound_float=[("$FHIGH", repr(3.4028235e+38)), ("$FLOW", repr(-3.0)), ("$IM4", repr(-3.0)),
+                                 ("$I1", repr(1.0)), ("$NONEXIST", repr(0.0))],
+                high_bound_float=[("$FHIGH", repr(123.0)), ("$FLOW", repr(-3.4028235e+38)), ("$IM4", repr(-4.0)),
+                                  ("$I1", repr(1.0)), ("$NONEXIST", repr(0.0))],
+                bound_float=[("$FHIGH", repr(1203.0)), ("$FLOW", repr(6.0)),
+                             ("$NONEXIST", repr(6.0))],
+                unbound_int=[("$IHIGH", repr(2147483647)), ("$ILOW", repr(-2147483648)), ("$IM4", repr(-4)),
+                             ("$I1", repr(1)), ("$NONEXIST", repr(0))],
+                low_bound_int=[("$IHIGH", repr(2147483647)), ("$ILOW", repr(-3)), ("$IM4", repr(-3)),
+                               ("$I1", repr(1)), ("$NONEXIST", repr(0))],
+                high_bound_int=[("$IHIGH", repr(123)), ("$ILOW", repr(-2147483648)), ("$IM4", repr(-4)),
+                                ("$I1", repr(1)), ("$NONEXIST", repr(0))],
+                bound_int=[("$IHIGH", repr(1203)), ("$ILOW", repr(6)), ("$IM4", repr(6)),
+                           ("$I1", repr(6)), ("$NONEXIST", repr(6))],
+                string=[("$IHIGH", repr("2147483647")), ("$FILTERNAME", repr("TheFilter")),
+                        ("$FULLQUALIFIEDFILTERNAME", repr("/TheFilter")), ("$COMPOSITENAME", repr("<root>")),
+                        ("$APPNAME", repr("application"))],
+                enum=[("$EV1", repr("v1")), ("$EV2", repr("v2")), ("$EV3", repr("v3")), ("$NONEXIST", repr("v1"))]
+            )
+            for tidx in range(max(len(tests[k]) for k in tests)):
+                expectedLogs = []
+                logger.info("test_gui:variables:start test cycle")
+                for k in tests:
+                    if tidx < len(tests[k]):
+                        t = tests[k][tidx]
+                        logger.info("test_gui:variables:set property %s->%s", k, t[0])
+                        self.setFilterProperty(conf, app, "TheFilter", k, t[0], t[0], indirect=True)
+                        expectedLogs.append("getProperty(%s) = %s" % (k, t[1]))
+                logger.info("test_gui:variables:Initializing app")
+                self.cmContextMenu(conf, appidx, CM_INIT_APP)
+                logger.info("test_gui:variables:wait")
+                self.qtbot.wait(1000)
+                for logMsg in expectedLogs:
+                    logger.info("test_gui:variables:checklog")
+                    self.assertLogItem(log, "INFO", logMsg)
+                logger.info("test_gui:variables:clearlog")
+                self.clearLog(log)
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    self.aw()
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def _composite(self):
+        conf = None
+        mw = None
+        thefilter_py = (Path(self.tmpdir) / "thefilter.py")
+        thefilter_py.write_text("""\
+import logging
+from nexxT.interface import Filter
+
+logger = logging.getLogger(__name__)
+
+class TheFilter(Filter):
+    def __init__(self, env):
+        super().__init__(False, False, env)
+        pc = self.propertyCollection()
+        pc.defineProperty("string", "str", "an arbitrary string")
+
+    def onOpen(self):
+        pc = self.propertyCollection()
+        logger.info("getProperty(string) = %s", repr(pc.getProperty("string")))
+""")
+        config_file = Path(self.tmpdir) / "composite.json"
+        config_file.write_text((Path(__file__).parent / "composite.json").read_text())
+        try:
+            # load config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            log = Services.getService("Logging")
+
+            conf.loadConfig(str(config_file))
+            logger.info("test_gui:variables:Initializing app")
+            app = conf.configuration().applicationByName("application")
+            appidx = conf.model.indexOfSubConfig(app)
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            logger.info("test_gui:variables:wait")
+            self.qtbot.wait(1000)
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/comp2/RootRef : root'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/comp2/Comp1Ref : b'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/comp2/Comp2Ref : c'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/comp2/Comp3Ref : $COMP3VAR'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/comp3/RootRef : root'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/comp3/Comp1Ref : b'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/comp3/Comp2Ref : $COMP2VAR'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/comp3/Comp3Ref : d'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/RootRef : root'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/Comp1Ref : b'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/Comp2Ref : $COMP2VAR'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_2/Comp3Ref : $COMP3VAR'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/comp2/RootRef : root'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/comp2/Comp1Ref : a'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/comp2/Comp2Ref : c'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/comp2/Comp3Ref : $COMP3VAR'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/comp3/RootRef : root'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/comp3/Comp1Ref : a'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/comp3/Comp2Ref : $COMP2VAR'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/comp3/Comp3Ref : d'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/RootRef : root'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/Comp1Ref : a'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/Comp2Ref : $COMP2VAR'")
+            self.assertLogItem(log, "INFO", "getProperty(string) = '/comp1_1/Comp3Ref : $COMP3VAR'")
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    self.aw()
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
+    def test(self):
+        """
+        test property editing in config editor
+        :return:
+        """
+        QTimer.singleShot(self.delay, self._variables)
+        startNexT(None, None, [], [], True)
+
+
+    def test_composite(self):
+        """
+        test property editing in config editor
+        :return:
+        """
+        QTimer.singleShot(self.delay, self._composite)
+        startNexT(None, None, [], [], True)
+
+
+@pytest.mark.gui
+@pytest.mark.parametrize("delay", [300])
+def test_variables(qtbot, xvfb, keep_open, delay, tmpdir):
+    test = VariablesTest(qtbot, xvfb, keep_open, delay, tmpdir)
+    test.test()
+
+@pytest.mark.gui
+@pytest.mark.parametrize("delay", [300])
+def test_variablesComposite(qtbot, xvfb, keep_open, delay, tmpdir):
+    test = VariablesTest(qtbot, xvfb, keep_open, delay, tmpdir)
+    test.test_composite()
+

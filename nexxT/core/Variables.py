@@ -81,15 +81,27 @@ class Variables(QObject):
             super().__delitem__(key)
             self._variables.variableDeleted.emit(key)
 
-
     variableAddedOrChanged = Signal(str, str)
     variableDeleted = Signal(str)
 
     def __init__(self, parent = None):
-        self._parent = parent
+        self._parent = None
+        self.setParent(parent)
         self._readonly = set()
         self._vars = Variables.VarDict(self)
         super().__init__()
+
+    def copyAndReparent(self, newParent):
+        """
+        Create a copy and reparent to the given parent.
+
+        :param newParent: a Variables instance or None
+        """
+        res = Variables(newParent)
+        for k in self.keys():
+            res[k] = self.getraw(k)
+        res._readonly = self._readonly.copy()
+        return res
 
     def setParent(self, parent):
         """
