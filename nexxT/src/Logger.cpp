@@ -23,7 +23,7 @@ namespace nexxT
         SharedQObjectPtr logger = Services::getService("Logging");
         if( !logger.isNull() )
         {
-            bool res = QMetaObject::invokeMethod(logger.get(), "log", Qt::DirectConnection, QGenericReturnArgument(), Q_ARG(int, level), Q_ARG(const QString &, message), Q_ARG(const QString &, file), Q_ARG(int, line));
+            bool res = QMetaObject::invokeMethod(logger.get(), "log", Qt::DirectConnection, Q_ARG(int, level), Q_ARG(const QString &, message), Q_ARG(const QString &, file), Q_ARG(int, line));
             if(!res)
             {
                 fprintf(stderr, "WARNING: invokeMetod returned false!\n");
