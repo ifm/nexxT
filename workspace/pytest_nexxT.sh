@@ -8,7 +8,7 @@ fi
 ADD_FLAGS=""
 
 # release variant
-                      "$PYTEST" -m     "gui" $ADD_FLAGS              --cov=../nexxT/core --cov=../nexxT/interface --cov=../nexxT/services --cov=../nexxT/filters --cov-report html --forked ../nexxT/tests
+                      "$PYTEST" -m     "gui" $ADD_FLAGS              --cov=../nexxT/core --cov=../nexxT/interface --cov=../nexxT/services --cov=../nexxT/filters --cov-report html -s ../nexxT/tests
                       "$PYTEST" -m "not gui" $ADD_FLAGS --cov-append --cov=../nexxT/core --cov=../nexxT/interface --cov=../nexxT/services --cov=../nexxT/filters --cov-report html ../nexxT/tests
 # other variants
 NEXXT_VARIANT=nonopt  "$PYTEST" -m "not gui" $ADD_FLAGS --cov-append --cov=../nexxT/core --cov=../nexxT/interface --cov=../nexxT/services --cov=../nexxT/filters --cov-report html ../nexxT/tests
