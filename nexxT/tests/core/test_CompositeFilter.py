@@ -305,7 +305,6 @@ def test_doubleNames():
 
         nexxT.Qt.call_exec(app)
 
-        return events
     finally:
         del t
         del t2
