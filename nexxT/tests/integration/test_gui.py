@@ -1601,6 +1601,7 @@ class MyFilter(Filter): # almost same as SimpleView
             appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
             self.cmContextMenu(conf, appidx, CM_INIT_APP)
             self.qtbot.wait(1000)
+            # note: the following depends on --forked isolation which is broken with PySide6
             self.assertLogItem(log, "INFO", "myfilter version 1")
             # move the window to non-standard position
             self.getMdiWindow().move(QPoint(37, 63))
