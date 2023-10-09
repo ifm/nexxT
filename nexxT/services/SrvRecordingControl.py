@@ -127,6 +127,7 @@ class MVCRecordingControlBase(QObject):
         :return:
         """
 
+    @Slot(str, float, "qlonglong")
     def _statusUpdate(self, file=None, lengthInSeconds=None, bytesWritten=None):
         """
         Emits the statusUpdate signal
