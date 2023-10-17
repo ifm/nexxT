@@ -252,10 +252,14 @@ class ProfilingService(QObject):
         self._mi = None
         t = QThread.currentThread()
         logger.debug("deregistering thread %s", t.objectName())
+        todel = []
         with self._lockThreadSpecific:
             if t in self._threadSpecificProfiling:
                 self._threadSpecificProfiling[t].timer.stop()
+                todel.append(self._threadSpecificProfiling[t])
                 del self._threadSpecificProfiling[t]
+        for tsp in todel:
+            del tsp
         self.threadDeregistered.emit(t.objectName())
 
     @Slot()
