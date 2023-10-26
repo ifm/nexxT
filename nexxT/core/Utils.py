@@ -61,7 +61,7 @@ class MethodInvoker(QObject):
             self.signal.connect(self.callbackWrapper, connectiontype)
             self.signal.emit()
 
-    @Slot(object)
+    @Slot()
     def callbackWrapper(self):
         """
         Slot which actuall performs the method call.
