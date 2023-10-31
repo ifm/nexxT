@@ -168,11 +168,8 @@ class NexTThread(QObject):
         # wait that all threads are in their event loop.
         inProcessEvents = self._qthread.property("processEventsRunning")
         if inProcessEvents:
-            logging.getLogger(__name__).debug(
+            logging.getLogger(__name__).warning(
                 "operation %s happening during receiveAsync's processEvents. This shouldn't be happening.", operation)
-            MethodInvoker(dict(object=self, method="performOperation", thread=self.thread()),
-                          Qt.QueuedConnection, operation, barrier)
-            return
 
         barrier.wait()
         if operation in self._operations:

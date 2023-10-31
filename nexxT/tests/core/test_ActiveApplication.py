@@ -10,7 +10,6 @@ from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.interface import FilterState
 import os
 import time
-import pprint
 import nexxT.Qt
 from nexxT.Qt.QtCore import QCoreApplication, QTimer
 
