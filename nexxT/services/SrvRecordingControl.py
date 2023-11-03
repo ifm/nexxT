@@ -127,6 +127,7 @@ class MVCRecordingControlBase(QObject):
         :return:
         """
 
+    @Slot(str, float, "qlonglong")
     def _statusUpdate(self, file=None, lengthInSeconds=None, bytesWritten=None):
         """
         Emits the statusUpdate signal
@@ -158,6 +159,7 @@ class MVCRecordingControlBase(QObject):
         Application.activeApplication.stateChanged.connect(self.stateChanged)
         self._startRecording.emit(directory)
 
+    @Slot(int)
     def stateChanged(self, state):
         """
         Stops the recording when application is stopped.

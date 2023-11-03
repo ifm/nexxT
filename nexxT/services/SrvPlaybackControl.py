@@ -270,16 +270,20 @@ class MVCPlaybackControlBase(QObject):
         :return: None
         """
         with QMutexLocker(self._mutex):
+            # note: avoid signal/slot connections/disconnections while holding the mutex since this might lead to
+            # deadlocks
             found = []
             for devid, dev in self._registeredDevices.items():
                 if dev["object"] is playbackDevice:
-                    found.append(devid)
+                    found.append((devid, dev))
             if len(found) > 0:
-                for devid in found:
+                for devid, _ in found:
                     del self._registeredDevices[devid]
-                logger.debug("disconnected connections of playback device. number of devices left: %d",
-                             len(self._registeredDevices))
-                MethodInvoker(dict(object=self, method="_updateFeatureSet", thread=mainThread()), Qt.QueuedConnection)
+        for devid, dev in found:
+            del dev
+        logger.debug("disconnected connections of playback device. number of devices left: %d",
+                     len(self._registeredDevices))
+        MethodInvoker(dict(object=self, method="_updateFeatureSet", thread=mainThread()), Qt.QueuedConnection)
 
     @handleException
     def _stopSetSequenceStart(self, filename):
