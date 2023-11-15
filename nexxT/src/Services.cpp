@@ -68,6 +68,10 @@ void Services::_addService(const QString &name, const SharedQObjectPtr &service)
     {
         NEXXT_LOG_INFO(QString("adding service %1").arg(name));
         d->map[name] = service;
+        if( name == "Logging" )
+        {
+            Logging::setLoggingService(service);
+        }
     }
 }
 
@@ -85,6 +89,10 @@ void Services::_removeService(const QString &name)
             QMetaObject::invokeMethod(d->map[name].data(), "detach", Qt::DirectConnection);
         }
         d->map.remove(name);
+        if( name == "Logging" )
+        {
+            Logging::setLoggingService(SharedQObjectPtr());
+        }
     }
 }
 
@@ -96,6 +104,7 @@ void Services::_removeAll()
     {
         _removeService(key);
     }
+    Logging::setLoggingService(SharedQObjectPtr());
 }
 
 Services *Services::singleton()
