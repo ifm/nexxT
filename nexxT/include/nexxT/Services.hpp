@@ -17,19 +17,11 @@
 #include <QtCore/QSharedPointer>
 
 #include "nexxT/NexxTLinkage.hpp"
+#include "nexxT/SharedPointerTypes.hpp"
 
 namespace nexxT
 {
     struct ServicesD;
-
-    /*!
-        A typedef for a QObject handled by a shared pointer.
-
-        In principle it is not really necessary to use a shared pointer to handle QObjects, because of the parent/child
-        ownership principle. However for consistency, the design decision has been made to also wrap the services in a
-        smart pointer just like datasamples, filters and ports.
-    */
-    typedef QSharedPointer<QObject> SharedQObjectPtr;
 
     /*!
         This class is the C++ variant of \verbatim embed:rst:inline :py:class:`nexxT.interface.Services.Services`

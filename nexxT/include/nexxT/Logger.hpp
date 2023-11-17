@@ -14,8 +14,8 @@
 #ifndef NEXXT_LOGGER_HPP
 #define NEXXT_LOGGER_HPP
 
-#include "nexxT/Services.hpp"
 #include "nexxT/NexxTLinkage.hpp"
+#include "SharedPointerTypes.hpp"
 #include <QtCore/QMetaObject>
 
 //! @cond Doxygen_Suppress
@@ -71,9 +71,13 @@ namespace nexxT
     class DLLEXPORT Logging
     {
         static unsigned int loglevel;
+        static SharedQObjectPtr loggingService;
         static void _log(unsigned int level, const QString &message, const QString &file, unsigned int line);
     public:
         static void setLogLevel(unsigned int level);
+        /* this function is introduced to avoid having to call getService(...) for every log call. getService(...)
+           acquires a mutex and therefore all functions using logging would be required to allow threads */
+        static void setLoggingService(const SharedQObjectPtr &loggingService);
         static inline void log(unsigned int level, const QString &message, const QString &file, unsigned int line)
         {
             if( level >= loglevel )
