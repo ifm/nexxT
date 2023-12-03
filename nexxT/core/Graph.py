@@ -16,7 +16,6 @@ from nexxT.core.BaseGraph import BaseGraph
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.Utils import assertMainThread, handleException
 from nexxT.core.Exceptions import NexTRuntimeError, PropertyCollectionChildNotFound, CompositeRecursion
-from nexxT.core.Variables import Variables
 
 logger = logging.getLogger(__name__)
 

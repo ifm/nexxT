@@ -30,7 +30,6 @@ from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.services.SrvConfiguration import MVCConfigurationBase
 from nexxT.services.SrvPlaybackControl import PlaybackControlConsole
 from nexxT.services.SrvRecordingControl import MVCRecordingControlBase
-from nexxT.services.SrvProfiling import ProfilingService
 from nexxT.services.gui.GuiLogger import GuiLogger
 from nexxT.services.gui.MainWindow import MainWindow
 from nexxT.services.gui.Configuration import MVCConfigurationGUI

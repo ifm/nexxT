@@ -17,7 +17,7 @@ import re
 import sqlite3
 import sys
 import time
-from nexxT.Qt.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
+from nexxT.Qt.QtCore import (QObject, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
                             QMutexLocker, QRecursiveMutex, QTimer, Qt, QPoint, QMetaObject)
 from nexxT.Qt.QtGui import QColor, QPainter, QTextLayout, QTextOption
 from nexxT.Qt.QtWidgets import QFrame, QSizePolicy

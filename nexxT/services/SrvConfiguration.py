@@ -590,8 +590,7 @@ class ConfigurationModel(QAbstractItemModel):
                 p = item.property.getPropertyDetails(item.name)
                 if p.useEnvironment:
                     return Qt.Checked
-                else:
-                    return Qt.Unchecked
+                return Qt.Unchecked
         if role == Qt.DecorationRole:
             if index.column() != 0:
                 return None
@@ -725,13 +724,12 @@ class ConfigurationModel(QAbstractItemModel):
             elif index.column() == 2:
                 p = item.property.getPropertyDetails(item.name)
                 if role == Qt.CheckStateRole:
-                    value = False if Qt.CheckState(value) == Qt.Unchecked else True
+                    value = not Qt.CheckState(value) == Qt.Unchecked
                 if value and not p.useEnvironment:
                     item.property.setVarProperty(item.name, str(item.property.getProperty(item.name)))
                 elif not value and p.useEnvironment:
                     item.property.setProperty(item.name, item.property.getProperty(item.name))
-                else:
-                    return False
+                return False
             i0 = self.index(index.row(), 1, index.parent())
             i1 = self.index(index.row(), 2, index.parent())
             self.dataChanged.emit(i0, i1, [Qt.DisplayRole, Qt.EditRole])

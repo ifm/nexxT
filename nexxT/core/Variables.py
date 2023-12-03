@@ -71,7 +71,7 @@ class Variables(QObject):
 
         def __setitem__(self, key, value):
             key = key.upper()
-            if key in self._variables._readonly and self.data[key] != value:
+            if self._variables.isReadonly(key) and self.data[key] != value:
                 raise RuntimeError(f"Trying to modify readonly variable {key}.")
             self.data[key] = value
             self._variables.variableAddedOrChanged.emit(key, value)
@@ -100,7 +100,7 @@ class Variables(QObject):
         res = Variables(newParent)
         for k in self.keys():
             res[k] = self.getraw(k)
-        res._readonly = self._readonly.copy()
+        res.setReadonly(self._readonly)
         return res
 
     def setParent(self, parent):

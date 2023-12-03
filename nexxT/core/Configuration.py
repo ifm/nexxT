@@ -374,10 +374,9 @@ class Configuration(QObject):
                 graph = sc.getGraph()
                 for n in graph.allNodes():
                     mockup = graph.getMockup(n)
-                    logger.info("class=%s lib=%s ff=%s name=%s", mockup.getPluginClass(), mockup.getLibrary(), mockup.getFactoryFunction(), n)
                     if issubclass(mockup.getPluginClass(), CompositeFilter.CompositeNode):
                         if mockup.getLibrary() is subConfig:
-                            raise RuntimeError("Composite filter is still in use (%s)." % (sc.getName()))
+                            raise RuntimeError(f"Composite filter is still in use by {sc.getName()}.")
             self.setDirty()
             self.subConfigRemoved.emit(subConfig.getName(), self.CONFIG_TYPE_COMPOSITE)
             self._compositeFilters.remove(subConfig)

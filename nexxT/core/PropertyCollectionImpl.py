@@ -383,7 +383,7 @@ class PropertyCollectionProxy(PropertyCollection):
         proxiedPropColl.propertyChanged.connect(self._propertyChanged)
         self.setObjectName(self._proxiedPropColl.objectName())
 
-    def _propertyChanged(self, propColl, name):
+    def _propertyChanged(self, _, name):
         self.propertyChanged.emit(self, name)
 
     def getChildCollection(self, name):

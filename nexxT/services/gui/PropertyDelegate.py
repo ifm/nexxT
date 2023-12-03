@@ -9,7 +9,7 @@ This module provides a delegate for use in the Configuration GUI service to edit
 """
 
 from nexxT.Qt.QtCore import Qt
-from nexxT.Qt.QtWidgets import QStyledItemDelegate, QCheckBox, QLineEdit
+from nexxT.Qt.QtWidgets import QStyledItemDelegate, QLineEdit
 
 class PropertyDelegate(QStyledItemDelegate):
     """
