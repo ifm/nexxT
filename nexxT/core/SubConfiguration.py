@@ -227,7 +227,7 @@ class SubConfiguration(QObject):
                 pass
             except PropertyCollectionPropertyNotFound:
                 pass
-            variables = p.getVariables()
+            variables = mockup.propertyCollection().getVariables()
             if len(variables.keys()) > 0:
                 ncfg["variables"] = {}
                 for k in variables.keys():
