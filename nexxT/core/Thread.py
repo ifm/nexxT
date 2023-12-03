@@ -172,7 +172,6 @@ class NexTThread(QObject):
                 "operation %s happening during receiveAsync's processEvents. This shouldn't be happening.", operation)
             MethodInvoker(dict(object=self, method="performOperation", thread=self.thread()),
                           Qt.QueuedConnection, operation, barrier)
-            return
 
         barrier.wait()
         if operation in self._operations:

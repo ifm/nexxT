@@ -233,10 +233,10 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         graphDw.visibleChanged.connect(self._removeGraphViewFromList)
 
     def _subConfigRemoved(self, subConfigName, configType):
-        self.__subConfigRemoved(subConfigName, configType)
+        self._subConfigRemovedImpl(subConfigName, configType)
 
     @handleException
-    def __subConfigRemoved(self, subConfigName, configType):
+    def _subConfigRemovedImpl(self, subConfigName, configType):
         g = self._configuration.subConfigByNameAndTye(subConfigName, configType).getGraph()
         if nexxT.shiboken.isValid(g):
             for gv in self._graphViews:

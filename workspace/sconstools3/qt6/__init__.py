@@ -239,10 +239,16 @@ class _Automoc:
         if cpp and self.qo_search.search(cpp_contents):
             # cpp file with Q_OBJECT macro found -> add moc
             # (to be included in cpp)
-            moc = env.Moc6(cpp)
-            env.Ignore(moc, moc)
-            if moc_options['debug']:
-                print("scons: qt6: found Q_OBJECT macro in '%s', moc'ing to '%s'" % (str(cpp), str(moc)))
+            # check if this has been built by a MOC builder
+            if (cpp.get_builder() == env['BUILDERS']['Moc6'].builder or
+                    cpp.get_builder() == env['BUILDERS']['XMoc6'].builder):
+                if moc_options["debug"]:
+                    print("scons: qt6: Ignoring source file %s since this has been built by moc" % str(cpp))
+            else:
+                moc = env.Moc6(cpp)
+                env.Ignore(moc, moc)
+                if moc_options['debug']:
+                    print("scons: qt6: found Q_OBJECT macro in '%s', moc'ing to '%s'" % (str(cpp), str(moc)))
 
     def __automoc_strategy_include_driven(self, env, moc_options,
                                           cpp, cpp_contents, out_sources):

@@ -98,7 +98,7 @@
         <object-type name="PropertyHandler">
         </object-type>
 
-        <object-type name="PropertyCollection">
+        <object-type name="PropertyCollection" qt-register-metatype="yes">
         </object-type>
         
         <object-type name="BaseFilterEnvironment">

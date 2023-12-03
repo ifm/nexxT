@@ -279,8 +279,7 @@ class MVCPlaybackControlBase(QObject):
             if len(found) > 0:
                 for devid, _ in found:
                     del self._registeredDevices[devid]
-        for devid, dev in found:
-            del dev
+        del found
         logger.debug("disconnected connections of playback device. number of devices left: %d",
                      len(self._registeredDevices))
         MethodInvoker(dict(object=self, method="_updateFeatureSet", thread=mainThread()), Qt.QueuedConnection)

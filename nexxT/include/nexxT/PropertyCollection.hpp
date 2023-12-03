@@ -143,7 +143,7 @@ namespace nexxT
             See \verbatim embed:rst:inline
             :py:attr:`nexxT.interface.PropertyCollections.PropertyCollection.propertyChanged` \endverbatim
         */
-        void propertyChanged(const PropertyCollection &sender, const QString &name);
+        void propertyChanged(nexxT::PropertyCollection *sender, const QString &name);
     };
 };
 

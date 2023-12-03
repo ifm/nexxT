@@ -258,8 +258,7 @@ class ProfilingService(QObject):
                 self._threadSpecificProfiling[t].timer.stop()
                 todel.append(self._threadSpecificProfiling[t])
                 del self._threadSpecificProfiling[t]
-        for tsp in todel:
-            del tsp
+        del todel
         self.threadDeregistered.emit(t.objectName())
 
     @Slot()

@@ -51,6 +51,7 @@ CM_FILTER_LIBRARY_HARDDISK = ContextMenuEntry("harddisk")
 CM_FILTER_LIBRARY_TESTS_NEXXT = ContextMenuEntry("nexxT")
 CM_FILTER_LIBRARY_CSIMPLESOURCE = ContextMenuEntry("CSimpleSource")
 CM_FILTER_LIBRARY_PYSIMPLESTATICFILTER = ContextMenuEntry("PySimpleStaticFilter")
+CM_FILTER_LIBRARY_CPROPERTY_RECEIVER = ContextMenuEntry("CPropertyReceiver")
 CM_FILTER_LIBRARY_PYSIMPLEVIEW = ContextMenuEntry("PySimpleView")
 CM_FILTER_LIBRARY_HDF5WRITER = ContextMenuEntry("HDF5Writer")
 CM_FILTER_LIBRARY_HDF5READER = ContextMenuEntry("HDF5Reader")
@@ -259,6 +260,12 @@ class GuiTestBase:
         pos = node.nodeGrItem.sceneBoundingRect().center()
         QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_REMOVE_NODE))
         QTimer.singleShot(2*self.delay, lambda: self.enterText(""))
+        self.gsContextMenu(graphEditView, pos)
+
+    def setThreadOfNode(self, graphEditView, node, thread):
+        pos = node.nodeGrItem.sceneBoundingRect().center()
+        QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_SETTHREAD))
+        QTimer.singleShot(2*self.delay, lambda: self.enterText(thread))
         self.gsContextMenu(graphEditView, pos)
 
     def addConnectionToGraphEditor(self, graphEditView, p1, p2):
@@ -1031,6 +1038,112 @@ class TheDynFilter(Filter):
                     QTimer.singleShot(self.delay, self.clickDiscardChanges)
                 mw.close()
 
+    def _prop_changed(self, variant):
+        conf = None
+        mw = None
+        try:
+            # load last config
+            mw = Services.getService("MainWindow")
+            conf = Services.getService("Configuration")
+            log = Services.getService("Logging")
+            idxComposites = conf.model.index(0, 0)
+            idxApplications = conf.model.index(1, 0)
+            # add application
+            conf.treeView.setMinimumSize(QSize(300, 300))
+            conf.treeView.scrollTo(idxApplications)
+            region = conf.treeView.visualRegionForSelection(QItemSelection(idxApplications, idxApplications))
+            self.qtbot.mouseMove(conf.treeView.viewport(), region.boundingRect().center(), delay=self.delay)
+            QTimer.singleShot(self.delay, lambda: self.activateContextMenu(CM_ADD_APPLICATION))
+            conf._execTreeViewContextMenu(region.boundingRect().center())
+            app = conf.configuration().applicationByName("application")
+            # start graph editor
+            gev = self.startGraphEditor(conf, mw, "application")
+            self.qtbot.wait(self.delay)
+            if variant == "c":
+                # create a node "TheFilter"
+                the_filter = self.addNodeToGraphEditor(gev, QPoint(20,20),
+                                                       CM_FILTER_LIBRARY, CM_FILTER_LIBRARY_TESTS,
+                                                       CM_FILTER_LIBRARY_TESTS_NEXXT, CM_FILTER_LIBRARY_CPROPERTY_RECEIVER)
+                self.setThreadOfNode(gev, the_filter, "non_main")
+                self.qtbot.wait(self.delay)
+                logger.info("Filter: %s", repr(the_filter))
+            elif variant == "py":
+                thefilter_py = (Path(self.tmpdir) / "thepropfilter.py")
+                thefilter_py.write_text(
+"""
+from nexxT.interface import Filter
+import logging
+
+class CPropertyReceiver(Filter):
+    def __init__(self, env):
+        super().__init__(False, False, env)
+
+    def onInit(self):
+        pc = self.propertyCollection()
+        pc.defineProperty("int", 1, "an integer property")
+        pc.defineProperty("float", 10.0, "a float property")
+        pc.defineProperty("str", "Hello World", "a string property")
+        pc.defineProperty("bool", False, "a bool property")
+        pc.defineProperty("enum", "v1", "an enum property", options=dict(enum=["v1", "v2", "v3"]))
+        pc.propertyChanged.connect(self.propertyChanged)
+    
+    def onDeinit(self):
+        pc = self.propertyCollection()
+        pc.propertyChanged.disconnect(self.propertyChanged)
+        
+    def propertyChanged(self, pc, name):
+        v = pc.getProperty(name)
+        logging.getLogger(__name__).info("propertyChanged %s is %s", name, v)        
+"""
+                )
+                # create a node "TheFilter"
+                the_filter = self.addNodeToGraphEditor(gev, QPoint(20, 20),
+                                                       CM_FILTER_FROM_FILE, str(thefilter_py), "CPropertyReceiver")
+                self.qtbot.keyClick(self.aw(), Qt.Key_Return, delay=self.delay)
+                self.qtbot.keyClick(None, Qt.Key_Return, delay=self.delay)
+            else:
+                assert False
+            # init application
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            self.cmContextMenu(conf, appidx, CM_INIT_APP)
+            self.qtbot.wait(1000)
+
+            self.setFilterProperty(conf, app, "CPropertyReceiver", "int",
+                                   ["7", Qt.Key_Return], "7")
+            self.setFilterProperty(conf, app, "CPropertyReceiver", "float",
+                                   "1.0", "1.0")
+            self.setFilterProperty(conf, app, "CPropertyReceiver", "str",
+                                   "changed", "changed")
+            self.setFilterProperty(conf, app, "CPropertyReceiver", "bool",
+                                   [Qt.Key_Down, Qt.Key_Return], "True")
+            self.setFilterProperty(conf, app, "CPropertyReceiver", "enum",
+                                   [Qt.Key_Down, Qt.Key_Return], "v2")
+
+            expectedLogItems = [
+                "propertyChanged int is 7",
+                "propertyChanged float is 1" if variant == "c" else "propertyChanged float is 1.0",
+                "propertyChanged str is changed",
+                "propertyChanged bool is true" if variant == "c" else "propertyChanged bool is True",
+                "propertyChanged enum is v2",
+            ]
+
+            self.qtbot.wait(1000)
+
+            model = log.logWidget.model()
+            numRows = model.rowCount(QModelIndex())
+            for row in range(numRows):
+                level = model.data(model.index(row, 1, QModelIndex()), Qt.DisplayRole)
+                msg = model.data(model.index(row, 2, QModelIndex()), Qt.DisplayRole)
+                if len(expectedLogItems) > 0 and level == "INFO" and msg in expectedLogItems[0]:
+                    expectedLogItems = expectedLogItems[1:]
+                assert level not in ["WARN", "WARNING", "ERROR"]
+            assert len(expectedLogItems) == 0
+        finally:
+            if not self.keep_open:
+                if conf.configuration().dirty():
+                    QTimer.singleShot(self.delay, self.clickDiscardChanges)
+                mw.close()
+
     def test(self):
         """
         test property editing in config editor
@@ -1047,6 +1160,20 @@ class TheDynFilter(Filter):
         QTimer.singleShot(self.delay, self._dynamic_properties)
         startNexT(None, None, [], [], True)
 
+    def test_propChangedC(self):
+        """
+        test connections to propertyChanged signals
+        """
+        QTimer.singleShot(self.delay, lambda: self._prop_changed("c"))
+        startNexT(None, None, [], [], True)
+
+    def test_propChangedPy(self):
+        """
+        test connections to propertyChanged signals
+        """
+        QTimer.singleShot(self.delay, lambda: self._prop_changed("py"))
+        startNexT(None, None, [], [], True)
+
 @pytest.mark.gui
 @pytest.mark.parametrize("delay", [300])
 def test_properties(qtbot, xvfb, keep_open, delay, tmpdir):
@@ -1058,6 +1185,18 @@ def test_properties(qtbot, xvfb, keep_open, delay, tmpdir):
 def test_dyn_properties(qtbot, xvfb, keep_open, delay, tmpdir):
     test = PropertyTest(qtbot, xvfb, keep_open, delay, tmpdir)
     test.test_dyn()
+
+@pytest.mark.gui
+@pytest.mark.parametrize("delay", [300])
+def test_prop_changed_c(qtbot, xvfb, keep_open, delay, tmpdir):
+    test = PropertyTest(qtbot, xvfb, keep_open, delay, tmpdir)
+    test.test_propChangedC()
+
+@pytest.mark.gui
+@pytest.mark.parametrize("delay", [300])
+def test_prop_changed_py(qtbot, xvfb, keep_open, delay, tmpdir):
+    test = PropertyTest(qtbot, xvfb, keep_open, delay, tmpdir)
+    test.test_propChangedPy()
 
 class GuiStateTest(GuiTestBase):
     """
