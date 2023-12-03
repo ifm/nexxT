@@ -91,6 +91,7 @@ class ActiveApplication(QObject):
                 props = PropertyCollectionProxy(props, filterVars)
                 nexTprops = props.getChildCollection("_nexxT")
                 threadName = nexTprops.getProperty("thread")
+                threadName = props.getVariables().subst(threadName)
                 if not threadName in self._threads:
                     # create threads as needed
                     self._threads[threadName] = NexTThread(threadName)

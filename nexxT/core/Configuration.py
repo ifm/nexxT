@@ -347,6 +347,7 @@ class Configuration(QObject):
     def addNewCompositeFilter(self):
         """
         Add a new composite filter to this configuration. The name will be chosen automaitcally to be unique.
+
         :return: the chosen name
         """
         name = "composite"
@@ -356,6 +357,35 @@ class Configuration(QObject):
             name = f"composite_{idx}"
         CompositeFilter(name, self)
         return name
+
+    def removeSubConfig(self, subConfig):
+        """
+        Remove the referenced sub configuration.
+
+        :param subConfig: a SubConfiguration instance
+        """
+        if subConfig in self._compositeFilters:
+            assert isinstance(subConfig, CompositeFilter)
+            # check whether this composite filter is referenced by any other subconfig
+            for sc in self._compositeFilters + self._applications:
+                if sc is subConfig:
+                    continue
+                assert isinstance(sc, (Application, CompositeFilter))
+                graph = sc.getGraph()
+                for n in graph.allNodes():
+                    mockup = graph.getMockup(n)
+                    logger.info("class=%s lib=%s ff=%s name=%s", mockup.getPluginClass(), mockup.getLibrary(), mockup.getFactoryFunction(), n)
+                    if issubclass(mockup.getPluginClass(), CompositeFilter.CompositeNode):
+                        if mockup.getLibrary() is subConfig:
+                            raise RuntimeError("Composite filter is still in use (%s)." % (sc.getName()))
+            self.setDirty()
+            self.subConfigRemoved.emit(subConfig.getName(), self.CONFIG_TYPE_COMPOSITE)
+            self._compositeFilters.remove(subConfig)
+        elif subConfig in self._applications:
+            self.setDirty()
+            self.subConfigRemoved.emit(subConfig.getName(), self.CONFIG_TYPE_APPLICATION)
+            self._applications.remove(subConfig)
+        raise RuntimeError("Cannot find sub config to remove")
 
     def getApplicationNames(self):
         """

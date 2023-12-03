@@ -80,7 +80,7 @@
                 "type": "string"
               },
               "thread": {
-                "$ref": "#/definitions/identifier",
+                "type":  "string",
                 "default": "main"
               },
               "dynamicInputPorts": {

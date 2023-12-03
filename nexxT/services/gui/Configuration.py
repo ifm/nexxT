@@ -270,6 +270,9 @@ class MVCConfigurationGUI(MVCConfigurationBase):
             a1 = QAction("Edit graph")
             m.addAction(a1)
             a1.triggered.connect(lambda: self._addGraphView(item.subConfig))
+            a1d5 = QAction("Remove %s ... " % ("app" if self.model.isApplication(index) else "composite"))
+            a1d5.triggered.connect(lambda: self._removeSubConfig(item.subConfig))
+            m.addAction(a1d5)
             if self.model.isApplication(index):
                 a2 = QAction("Select Application")
                 a2.triggered.connect(lambda: self.changeActiveApp(self.model.data(index, Qt.DisplayRole)))
@@ -338,6 +341,15 @@ class MVCConfigurationGUI(MVCConfigurationBase):
                 if a is not None:
                     del item.variables[item.name]
             return
+
+    def _removeSubConfig(self, subConfig):
+        ans = QMessageBox.question(self.mainWidget, "Confirm to remove",
+                                   "Do you really want to remove %s?" % subConfig.getName())
+        if ans is QMessageBox.StandardButton.Yes:
+            try:
+                self._configuration.removeSubConfig(subConfig)
+            except RuntimeError as e:
+                QMessageBox.warning(self.mainWidget, "Warning", "Deletion failed: %s" % e)
 
     def _configNameChanged(self, cfgfile):
         logger.debug("_configNameChanged: %s", cfgfile)
