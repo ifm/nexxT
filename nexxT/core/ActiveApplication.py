@@ -44,6 +44,7 @@ class ActiveApplication(QObject):
         self._graphConnected = False
         self._interThreadConns = []
         self._operationInProgress = False
+        self._shutdownInProgress = False
         # connect signals and slots
         for _, t in self._threads.items():
             t.operationFinished.connect(self._operationFinished)
@@ -132,23 +133,27 @@ class ActiveApplication(QObject):
         """
         assertMainThread()
         inProcessEvents = mainThread().property("processEventsRunning")
-        if inProcessEvents:
+        if inProcessEvents or self._shutdownInProgress:
             logging.getLogger(__name__).debug("shutdown waiting for inProcessEvents to be finished inProcessEvents=%s",
                                               inProcessEvents)
             MethodInvoker(dict(object=self, method="shutdown", thread=mainThread()), Qt.QueuedConnection)
             return
-        if self._state == FilterState.ACTIVE:
-            self.stop()
-        # while this is similar to code in FilterEnvironment, the lines here refer to applications
-        # and the lines in FilterEnvironment refer to filters.
-        if self._state == FilterState.OPENED:
-            self.close()
-        if self._state == FilterState.INITIALIZED:
-            self.deinit()
-        if self._state == FilterState.CONSTRUCTED:
-            self.destruct()
-        if not self._state == FilterState.DESTRUCTED:
-            raise NexTInternalError(f"Unexpected state '{FilterState.state2str(self._state)}' after shutdown.")
+        self._shutdownInProgress = True
+        try:
+            if self._state == FilterState.ACTIVE:
+                self.stop()
+            # while this is similar to code in FilterEnvironment, the lines here refer to applications
+            # and the lines in FilterEnvironment refer to filters.
+            if self._state == FilterState.OPENED:
+                self.close()
+            if self._state == FilterState.INITIALIZED:
+                self.deinit()
+            if self._state == FilterState.CONSTRUCTED:
+                self.destruct()
+            if self._state != FilterState.DESTRUCTED:
+                raise NexTInternalError(f"Unexpected state '{FilterState.state2str(self._state)}' after shutdown.")
+        finally:
+            self._shutdownInProgress = False
 
     def stopThreads(self):
         """
@@ -319,6 +324,8 @@ class ActiveApplication(QObject):
             elif self._state == FilterState.DESTRUCTING:
                 self._state = FilterState.DESTRUCTED
                 self.stopThreads()
+            else:
+                logger.warning("Unexpected filter state at _operationFinished: %s", FilterState.state2str(self._state))
             self.stateChanged.emit(self._state)
 
     @Slot()

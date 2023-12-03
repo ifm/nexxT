@@ -50,7 +50,6 @@ def setupConsoleServices(config):
     Services.addService("PlaybackControl", PlaybackControlConsole(config))
     Services.addService("RecordingControl", MVCRecordingControlBase(config))
     Services.addService("Configuration", MVCConfigurationBase(config))
-    Services.addService("Profiling", ProfilingService())
 
 def setupGuiServices(config):
     """

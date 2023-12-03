@@ -17,6 +17,7 @@ from collections import OrderedDict
 import importlib.util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 import pkg_resources
+import nexxT.shiboken
 from nexxT.Qt.QtCore import QObject
 from nexxT.core.Exceptions import UnknownPluginType, NexTRuntimeError, PluginException
 from nexxT.interface import Filter, FilterSurrogate
@@ -283,7 +284,7 @@ class PluginManager(QObject):
 
     @staticmethod
     def _loadPyfile(library, prop=None):
-        if prop is not None:
+        if prop is not None and nexxT.shiboken.isValid(prop):
             library = prop.getVariables().subst(library)
             library = prop.evalpath(library)
         return PythonLibrary(library, libtype=PythonLibrary.LIBTYPE_FILE)

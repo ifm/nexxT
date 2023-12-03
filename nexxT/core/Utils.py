@@ -18,7 +18,7 @@ import sqlite3
 import sys
 import time
 from nexxT.Qt.QtCore import (QObject, Signal, Slot, QMutex, QWaitCondition, QCoreApplication, QThread,
-                            QMutexLocker, QRecursiveMutex, QTimer, Qt, QPoint)
+                            QMutexLocker, QRecursiveMutex, QTimer, Qt, QPoint, QMetaObject)
 from nexxT.Qt.QtGui import QColor, QPainter, QTextLayout, QTextOption
 from nexxT.Qt.QtWidgets import QFrame, QSizePolicy
 from nexxT.core.Exceptions import NexTInternalError, InvalidIdentifierException
@@ -30,8 +30,6 @@ class MethodInvoker(QObject):
     a workaround for broken QMetaObject.invokeMethod wrapper. See also
     https://stackoverflow.com/questions/53296261/usage-of-qgenericargument-q-arg-when-using-invokemethod-in-pyside2
     """
-
-    signal = Signal() # 10 arguments
 
     methodscalled = set()
 
@@ -59,10 +57,9 @@ class MethodInvoker(QObject):
         if connectiontype is self.IDLE_TASK:
             QTimer.singleShot(0, self.callbackWrapper)
         else:
-            self.signal.connect(self.callbackWrapper, connectiontype)
-            self.signal.emit()
+            QMetaObject.invokeMethod(self, "callbackWrapper", connectiontype)
 
-    @Slot(object)
+    @Slot()
     def callbackWrapper(self):
         """
         Slot which actuall performs the method call.

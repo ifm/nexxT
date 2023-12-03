@@ -68,7 +68,7 @@
         },
         {
           "name": "RootRef",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
@@ -84,7 +84,7 @@
         },
         {
           "name": "Comp1Ref",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
@@ -100,7 +100,7 @@
         },
         {
           "name": "Comp2Ref",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
@@ -116,7 +116,7 @@
         },
         {
           "name": "Comp3Ref",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
@@ -161,7 +161,7 @@
         },
         {
           "name": "RootRef",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
@@ -177,7 +177,7 @@
         },
         {
           "name": "Comp1Ref",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
@@ -193,7 +193,7 @@
         },
         {
           "name": "Comp2Ref",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
@@ -209,7 +209,7 @@
         },
         {
           "name": "Comp3Ref",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
@@ -254,7 +254,7 @@
         },
         {
           "name": "RootRef",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
@@ -270,7 +270,7 @@
         },
         {
           "name": "Comp1Ref",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
@@ -286,7 +286,7 @@
         },
         {
           "name": "Comp2Ref",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
@@ -302,7 +302,7 @@
         },
         {
           "name": "Comp3Ref",
-          "library": "pyfile:///tmp/thefilter.py",
+          "library": "pyfile://./thefilter.py",
           "factoryFunction": "TheFilter",
           "dynamicInputPorts": [],
           "staticInputPorts": [],
