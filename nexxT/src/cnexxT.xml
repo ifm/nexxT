@@ -42,7 +42,7 @@
         <object-type name="InterThreadConnection" allow-thread="true">
         </object-type>
         
-        <object-type name="Services">
+        <object-type name="Services" allow-thread="true">
             <modify-function signature="addService(const QString &amp;,QObject*)">
                 <modify-argument index="2">
                     <define-ownership owner="c++"/>

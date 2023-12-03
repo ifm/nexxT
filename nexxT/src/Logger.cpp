@@ -12,15 +12,21 @@ using namespace nexxT;
 namespace nexxT
 {
     unsigned int Logging::loglevel;
+    SharedQObjectPtr Logging::loggingService;
 
     void Logging::setLogLevel(unsigned int level)
     {
         loglevel = level;
     }
 
+    void Logging::setLoggingService(const SharedQObjectPtr &service)
+    {
+        loggingService = service;
+    }
+
     void Logging::_log(unsigned int level, const QString &message, const QString &file, unsigned int line)
     { 
-        SharedQObjectPtr logger = Services::getService("Logging");
+        SharedQObjectPtr logger = loggingService;
         if( !logger.isNull() )
         {
             bool res = QMetaObject::invokeMethod(logger.get(), "log", Qt::DirectConnection, Q_ARG(int, level), Q_ARG(const QString &, message), Q_ARG(const QString &, file), Q_ARG(int, line));

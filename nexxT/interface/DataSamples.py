@@ -49,6 +49,10 @@ class DataSample:
         Get the contents of this sample as a QByteArray. Note that this is an efficient operation due to the copy on
         write semantics of QByteArray. It also asserts that the original contents cannot be modified.
 
+        In C++, make sure to keep an instance of the QByteArray until done with processing. Moreover, consider to use
+        `QByteArray::constData()` for a pointer-to-memory access rather than `QByteArray::data()`, since the latter
+        will eventually make an unnecessary deep copy of the encapsulated data.
+
         :return: QByteArray instance copy
         """
         return QByteArray(self._content)
