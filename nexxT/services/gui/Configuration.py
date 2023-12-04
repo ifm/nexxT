@@ -270,7 +270,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
             a1 = QAction("Edit graph")
             m.addAction(a1)
             a1.triggered.connect(lambda: self._addGraphView(item.subConfig))
-            a1d5 = QAction(f"Remove {'app' if self.model.isApplication(index) else 'composite'} ... ")
+            a1d5 = QAction(f"Remove {'app' if self.model.isApplication(index) else 'composite'} ...")
             a1d5.triggered.connect(lambda: self._removeSubConfig(item.subConfig))
             m.addAction(a1d5)
             if self.model.isApplication(index):

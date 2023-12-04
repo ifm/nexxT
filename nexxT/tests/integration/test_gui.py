@@ -37,6 +37,8 @@ class ContextMenuEntry(str):
     pass
 CM_ADD_APPLICATION = ContextMenuEntry("Add application")
 CM_EDIT_GRAPH = ContextMenuEntry("Edit graph")
+CM_REMOVE_APP = ContextMenuEntry("Remove app ...")
+CM_REMOVE_COMPOSITE = ContextMenuEntry("Remove composite ...")
 CM_INIT_APP = ContextMenuEntry("Init Application")
 CM_INIT_APP_AND_OPEN =ContextMenuEntry("Init and load sequence")
 CM_INIT_APP_AND_PLAY = ContextMenuEntry("Init, load and play")
@@ -774,9 +776,39 @@ class BasicTest(GuiTestBase):
             # de-initialize application
             self.qtbot.keyClick(self.aw(), Qt.Key_C, Qt.AltModifier, delay=self.delay)
             self.activateContextMenu(CONFIG_MENU_DEINITIALIZE)
-
             conf.actSave.trigger()
-            self.qtbot.wait(1000)
+            self.qtbot.wait(self.delay)
+            # test removal of subconfigs which are still in use
+            compidx = conf.model.indexOfSubConfig(conf.configuration().compositeFilterByName("composite"))
+            QTimer.singleShot(self.delay, lambda: self.cmContextMenu(conf, compidx, CM_REMOVE_COMPOSITE, "", ""))
+            self.qtbot.wait(self.delay * 5)
+            assert conf.model.indexOfSubConfig(conf.configuration().compositeFilterByName("composite")) != QModelIndex()
+            # test removal of applications
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application"))
+            QTimer.singleShot(self.delay, lambda: self.cmContextMenu(conf, appidx, CM_REMOVE_APP, ""))
+            self.qtbot.wait(self.delay * 4)
+            try:
+                conf.configuration().applicationByName("application")
+                assert False
+            except:
+                pass
+            appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application_2"))
+            QTimer.singleShot(self.delay, lambda: self.cmContextMenu(conf, appidx, CM_REMOVE_APP, ""))
+            self.qtbot.wait(self.delay * 4)
+            try:
+                conf.configuration().applicationByName("application_2")
+                assert False
+            except:
+                pass
+            compidx = conf.model.indexOfSubConfig(conf.configuration().compositeFilterByName("composite"))
+            QTimer.singleShot(self.delay, lambda: self.cmContextMenu(conf, compidx, CM_REMOVE_COMPOSITE, ""))
+            self.qtbot.wait(self.delay * 4)
+            try:
+                conf.configuration().compositeFilterByName("composite")
+                assert False
+            except:
+                pass
+
             self.noWarningsInLog(log)
         finally:
             if not self.keep_open:
@@ -798,16 +830,16 @@ class BasicTest(GuiTestBase):
             # this is the offline config
             appidx = conf.model.indexOfSubConfig(conf.configuration().applicationByName("application_2"))
             self.cmContextMenu(conf, appidx, CM_INIT_APP)
-            self.qtbot.wait(1000)
+            self.qtbot.wait(self.delay)
             assert not playback.actPause.isEnabled()
             self.cmContextMenu(conf, appidx, CM_INIT_APP_AND_OPEN, 0)
-            self.qtbot.wait(1000)
+            self.qtbot.wait(self.delay)
             assert not playback.actPause.isEnabled()
             playback.actStepFwd.trigger()
-            self.qtbot.wait(1000)
+            self.qtbot.wait(self.delay)
             firstFrame = self.getLastLogFrameIdx(log)
             self.cmContextMenu(conf, appidx, CM_INIT_APP_AND_PLAY, 0)
-            self.qtbot.wait(1000)
+            self.qtbot.wait(self.delay)
             self.qtbot.waitUntil(playback.actStart.isEnabled, timeout=10000)
             lastFrame = self.getLastLogFrameIdx(log)
             assert lastFrame >= firstFrame + 10

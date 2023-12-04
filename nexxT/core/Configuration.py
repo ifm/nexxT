@@ -384,7 +384,8 @@ class Configuration(QObject):
             self.setDirty()
             self.subConfigRemoved.emit(subConfig.getName(), self.CONFIG_TYPE_APPLICATION)
             self._applications.remove(subConfig)
-        raise RuntimeError("Cannot find sub config to remove")
+        else:
+            raise RuntimeError(f"Cannot find sub config {subConfig} to remove")
 
     def getApplicationNames(self):
         """
