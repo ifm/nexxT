@@ -28,6 +28,8 @@ class ActiveApplication(QObject):
     stateChanged = Signal(int)             # Signal is emitted after the state of the graph has been changed
     aboutToClose = Signal()                 # Signal is emitted before stop operation takes place
 
+    singleThreaded = False
+
     def __init__(self, graph):
         super().__init__()
         assertMainThread()
@@ -78,7 +80,9 @@ class ActiveApplication(QObject):
                 props = mockup.getPropertyCollectionImpl()
                 nexTprops = props.getChildCollection("_nexxT")
                 threadName = nexTprops.getProperty("thread")
-                if not threadName in self._threads:
+                if self.singleThreaded:
+                    threadName = "main"
+                if threadName not in self._threads:
                     # create threads as needed
                     self._threads[threadName] = NexTThread(threadName)
                 self._threads[threadName].addMockup(filtername, mockup)

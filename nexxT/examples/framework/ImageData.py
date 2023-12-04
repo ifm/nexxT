@@ -77,7 +77,7 @@ def byteArrayToNumpy(qByteArray):
     # create the target array
     res = np.frombuffer(mv, dtype=dtype, offset=ct.sizeof(hdr))
     # reshape to requested dimenstions
-    return np.reshape(res, (-1, hdr.lineInc//bpp, numChannels))
+    return np.reshape(res, (-1, max(1,hdr.lineInc//bpp), numChannels))
 
 def numpyToByteArray(img):
     """

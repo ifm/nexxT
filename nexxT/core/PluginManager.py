@@ -63,6 +63,8 @@ class PythonLibrary:
     LIBTYPE_MODULE = 1
     LIBTYPE_ENTRY_POINT = 2
 
+    disableUnloadHeuristic = False
+
     # blacklisted packages are not unloaded when closing an application.
     BLACKLISTED_PACKAGES = ["h5py", "numpy", "matplotlib", "nexxT.Qt", "PySide6",
                             "nexxT.shiboken", "shiboken2", "shiboken6", "torch", "tf"]
@@ -143,6 +145,8 @@ class PythonLibrary:
 
         :param moduleName: the name of the module as a key in sys.modules
         """
+        if PythonLibrary.disableUnloadHeuristic:
+            return True
         pkg = PythonLibrary.BLACKLISTED_PACKAGES[:]
         if "NEXXT_BLACKLISTED_PACKAGES" in os.environ:
             if os.environ["NEXXT_BLACKLISTED_PACKAGES"] in ["*", "__all__"]:
