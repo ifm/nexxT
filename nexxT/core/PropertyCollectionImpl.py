@@ -40,7 +40,6 @@ class PropertyCollectionImpl(PropertyCollection):
     This class represents a collection of properties. These collections are organized in a tree, such that there
     are parent/child relations.
     """
-    propertyChanged = Signal(object, str)
     propertyAdded = Signal(object, str)
     propertyRemoved = Signal(object, str)
     childAdded = Signal(object, str)

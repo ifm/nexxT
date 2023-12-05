@@ -1256,7 +1256,9 @@ class GraphScene(BaseGraphScene):
 
     def onConnSetNonBlocking(self):
         """
-        Set a connection as non blocking (i.e. width=0)
+        Sets the conmnection to non blocking mode.
+
+        :return:
         """
         item = self.itemOfContextMenu
         self.graph.setConnectionProperties(item.portFrom.nodeItem.name, item.portFrom.name,
@@ -1265,7 +1267,9 @@ class GraphScene(BaseGraphScene):
 
     def onConnSetBlocking(self):
         """
-        Set a connection as blocking (i.e. width=1)
+        Sets the conmnection to blocking mode.
+
+        :return:
         """
         item = self.itemOfContextMenu
         self.graph.setConnectionProperties(item.portFrom.nodeItem.name, item.portFrom.name,
@@ -1274,7 +1278,9 @@ class GraphScene(BaseGraphScene):
 
     def onConnSetCustom(self):
         """
-        Set the width of a connection to a custom value.
+        Sets the connection to a custom width.
+
+        :return:
         """
         item = self.itemOfContextMenu
         c = item.portFrom.nodeItem.name, item.portFrom.name, item.portTo.nodeItem.name, item.portTo.name
