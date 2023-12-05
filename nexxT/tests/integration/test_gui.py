@@ -1108,7 +1108,8 @@ class TheDynFilter(Filter):
                 # create a node "TheFilter"
                 the_filter = self.addNodeToGraphEditor(gev, QPoint(20,20),
                                                        CM_FILTER_LIBRARY, CM_FILTER_LIBRARY_TESTS,
-                                                       CM_FILTER_LIBRARY_TESTS_NEXXT, CM_FILTER_LIBRARY_CPROPERTY_RECEIVER)
+                                                       CM_FILTER_LIBRARY_TESTS_NEXXT,
+                                                       CM_FILTER_LIBRARY_CPROPERTY_RECEIVER)
                 self.setThreadOfNode(gev, the_filter, "non_main")
                 self.qtbot.wait(self.delay)
                 logger.info("Filter: %s", repr(the_filter))

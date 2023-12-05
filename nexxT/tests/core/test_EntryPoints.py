@@ -15,7 +15,8 @@ import nexxT
 cfilters = set(["examples.videoplayback.AviReader",
                 "examples.framework.CameraGrabber",
                 "tests.nexxT.CSimpleSource",
-                "tests.nexxT.CTestExceptionFilter"])
+                "tests.nexxT.CTestExceptionFilter",
+                "tests.nexxT.CPropertyReceiver"])
 
 blacklist = set([])
 

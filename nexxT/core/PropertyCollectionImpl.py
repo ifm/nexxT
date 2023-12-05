@@ -371,7 +371,6 @@ class PropertyCollectionProxy(PropertyCollection):
     """
     This class proxies to a PropertyCollection object but uses a different instance of variables
     """
-    propertyChanged = Signal(object, str)
 
     def __init__(self, proxiedPropColl, variables):
         PropertyCollection.__init__(self)
