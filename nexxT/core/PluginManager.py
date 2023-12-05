@@ -285,6 +285,7 @@ class PluginManager(QObject):
     @staticmethod
     def _loadPyfile(library, prop=None):
         if prop is not None and nexxT.shiboken.isValid(prop):
+            library = prop.getVariables().subst(library)
             library = prop.evalpath(library)
         return PythonLibrary(library, libtype=PythonLibrary.LIBTYPE_FILE)
 
@@ -301,6 +302,7 @@ class PluginManager(QObject):
         if PluginInterface is None:
             raise UnknownPluginType("binary plugins can only be loaded with c extension enabled.")
         if prop is not None:
+            library = prop.getVariables().subst(library)
             library = prop.evalpath(library)
         else:
             logger.warning("no property collection instance, string interpolation skipped.")

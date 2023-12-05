@@ -22,7 +22,29 @@
       "type": "object",
       "propertyNames": { "$ref": "#/definitions/identifier" },
       "patternProperties": {
-        "^.*$": {"type":  ["string", "number", "boolean"]}
+        "^.*$": {
+          "anyOf": [
+            {"type": "string"}, {"type": "number"}, {"type": "boolean"},
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["value", "subst"],
+              "properties": {
+                "value": {"anyOf": [{"type": "string"}, {"type": "number"}, {"type": "boolean"}]},
+                "subst": {"type": "boolean"}
+              }
+            }
+          ]
+        }
+      }
+    },
+    "variables": {
+      "type": "object",
+      "propertyNames": {"$ref":  "#/definitions/identifier"},
+      "patternProperties": {
+        "^.*$": {
+          "type": "string"
+        }
       }
     },
     "sub_graph": {
@@ -58,7 +80,7 @@
                 "type": "string"
               },
               "thread": {
-                "$ref": "#/definitions/identifier",
+                "type":  "string",
                 "default": "main"
               },
               "dynamicInputPorts": {
@@ -80,6 +102,9 @@
               "properties": {
                 "$ref": "#/definitions/propertySection",
                 "default": {}
+              },
+              "variables": {
+                "$ref": "#/definitions/variables"
               }
             }
           }
@@ -109,6 +134,9 @@
       "items": {
         "$ref": "#/definitions/sub_graph"
       }
+    },
+    "variables": {
+      "$ref": "#/definitions/variables"
     },
     "_guiState": {
       "$ref": "#/definitions/propertySection",

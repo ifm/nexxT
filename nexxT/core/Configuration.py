@@ -13,7 +13,7 @@ from nexxT.Qt.QtCore import QObject, Slot, Signal
 from nexxT.core.Application import Application
 from nexxT.core.CompositeFilter import CompositeFilter
 from nexxT.core.Exceptions import (NexTRuntimeError, CompositeRecursion, NodeNotFoundError, NexTInternalError,
-                                   PropertyCollectionPropertyNotFound, PropertyCollectionChildNotFound)
+                                   PropertyCollectionChildNotFound)
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.PluginManager import PluginManager
 from nexxT.core.ConfigFiles import ConfigFileLoader
@@ -50,11 +50,27 @@ class Configuration(QObject):
             return Configuration.CONFIG_TYPE_COMPOSITE
         raise NexTRuntimeError("Unexpected instance type")
 
+    def _defaultRootPropColl(self):
+        variables = None if not hasattr(self, "_propertyCollection") else self._propertyCollection.getVariables()
+        res = PropertyCollectionImpl("root", None, variables=variables)
+        theVars = res.getVariables()
+        theVars.setReadonly({})
+        for v in list(theVars.keys()):
+            del theVars[v]
+        # setup the default variables available on all platforms
+        theVars["CFG_DIR"] = "${!str(importlib.import_module('pathlib').Path(subst('$CFGFILE')).parent.absolute())}"
+        theVars["NEXXT_PLATFORM"] = "${!importlib.import_module('nexxT.core.Utils').nexxtPlatform()}"
+        theVars["NEXXT_VARIANT"] = "${!importlib.import_module('os').environ.get('NEXXT_VARIANT', 'release')}"
+        theVars.setReadonly({"CFG_DIR", "NEXXT_PLATFORM", "NEXXT_VARIANT", "CFGFILE"})
+        theVars.variableAddedOrChanged.connect(lambda *args: self.setDirty())
+        theVars.variableDeleted.connect(lambda *args: self.setDirty())
+        return res
+
     def __init__(self):
         super().__init__()
         self._compositeFilters = []
         self._applications = []
-        self._propertyCollection = PropertyCollectionImpl("root", None)
+        self._propertyCollection = self._defaultRootPropColl()
         self._guiState = PropertyCollectionImpl("_guiState", self._propertyCollection)
         self._dirty = False
 
@@ -95,7 +111,7 @@ class Configuration(QObject):
             self.subConfigRemoved.emit(a.getName(), self.CONFIG_TYPE_APPLICATION)
         self._applications = []
         self._propertyCollection.deleteLater()
-        self._propertyCollection = PropertyCollectionImpl("root", None)
+        self._propertyCollection = self._defaultRootPropColl()
         self.configNameChanged.emit(None)
         self.appActivated.emit("", None)
         PluginManager.singleton().unloadAll()
@@ -112,9 +128,10 @@ class Configuration(QObject):
         try:
             if cfg["CFGFILE"] is not None:
                 # might happen during reload
-                self._propertyCollection.defineProperty("CFGFILE", cfg["CFGFILE"],
-                                                        "The absolute path to the configuration file.",
-                                                        options=dict(enum=[cfg["CFGFILE"]]))
+                theVars = self._propertyCollection.getVariables()
+                origReadonly = theVars.setReadonly([])
+                theVars["CFGFILE"] = cfg["CFGFILE"]
+                theVars.setReadonly(origReadonly)
             try:
                 self._propertyCollection.deleteChild("_guiState")
             except PropertyCollectionChildNotFound:
@@ -139,6 +156,13 @@ class Configuration(QObject):
                     finally:
                         recursiveset.remove(name)
 
+            variables = self._propertyCollection.getVariables()
+            for k in variables.keys():
+                if not variables.isReadonly(k):
+                    del variables[k]
+            if "variables" in cfg:
+                for k in cfg["variables"]:
+                    variables[k] = cfg["variables"][k]
             for cfg_cf in cfg["composite_filters"]:
                 compositeLookup(cfg_cf["name"])
             for cfg_app in cfg["applications"]:
@@ -160,14 +184,21 @@ class Configuration(QObject):
         cfg = {}
         if file is not None:
             # TODO: we assume here that this is a new config; a "save to file" feature is not yet implemented.
-            self._propertyCollection.defineProperty("CFGFILE", str(file),
-                                                    "The absolute path to the configuration file.",
-                                                    options=dict(enum=[str(file)]))
+            theVars = self._propertyCollection.getVariables()
+            origReadonly = theVars.setReadonly([])
+            theVars["CFGFILE"] = file
+            theVars.setReadonly(origReadonly)
         try:
-            cfg["CFGFILE"] = self._propertyCollection.getProperty("CFGFILE")
-        except PropertyCollectionPropertyNotFound:
+            cfg["CFGFILE"] = self._propertyCollection.getVariables()["CFGFILE"]
+        except KeyError:
             cfg["CFGFILE"] = None
         cfg["_guiState"] = self._guiState.saveDict()
+        variables = self._propertyCollection.getVariables()
+        if any(not variables.isReadonly(k) for k in variables.keys()):
+            cfg["variables"] = {
+                k: variables.getraw(k)
+                for k in variables.keys() if not variables.isReadonly(k)
+            }
         cfg["composite_filters"] = [cf.save() for cf in self._compositeFilters]
         cfg["applications"] = [app.save() for app in self._applications]
         self.configNameChanged.emit(cfg["CFGFILE"])
@@ -180,10 +211,9 @@ class Configuration(QObject):
         :return:
         """
         try:
-            return self._propertyCollection.getProperty("CFGFILE")
-        except PropertyCollectionPropertyNotFound:
+            return self._propertyCollection.getVariables()["CFGFILE"]
+        except KeyError:
             return None
-
 
     def propertyCollection(self):
         """
@@ -317,6 +347,7 @@ class Configuration(QObject):
     def addNewCompositeFilter(self):
         """
         Add a new composite filter to this configuration. The name will be chosen automaitcally to be unique.
+
         :return: the chosen name
         """
         name = "composite"
@@ -326,6 +357,35 @@ class Configuration(QObject):
             name = f"composite_{idx}"
         CompositeFilter(name, self)
         return name
+
+    def removeSubConfig(self, subConfig):
+        """
+        Remove the referenced sub configuration.
+
+        :param subConfig: a SubConfiguration instance
+        """
+        if subConfig in self._compositeFilters:
+            assert isinstance(subConfig, CompositeFilter)
+            # check whether this composite filter is referenced by any other subconfig
+            for sc in self._compositeFilters + self._applications:
+                if sc is subConfig:
+                    continue
+                assert isinstance(sc, (Application, CompositeFilter))
+                graph = sc.getGraph()
+                for n in graph.allNodes():
+                    mockup = graph.getMockup(n)
+                    if issubclass(mockup.getPluginClass(), CompositeFilter.CompositeNode):
+                        if mockup.getLibrary() is subConfig:
+                            raise RuntimeError(f"Composite filter is still in use by {sc.getName()}.")
+            self.setDirty()
+            self.subConfigRemoved.emit(subConfig.getName(), self.CONFIG_TYPE_COMPOSITE)
+            self._compositeFilters.remove(subConfig)
+        elif subConfig in self._applications:
+            self.setDirty()
+            self.subConfigRemoved.emit(subConfig.getName(), self.CONFIG_TYPE_APPLICATION)
+            self._applications.remove(subConfig)
+        else:
+            raise RuntimeError(f"Cannot find sub config {subConfig} to remove")
 
     def getApplicationNames(self):
         """

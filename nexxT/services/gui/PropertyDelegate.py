@@ -9,7 +9,7 @@ This module provides a delegate for use in the Configuration GUI service to edit
 """
 
 from nexxT.Qt.QtCore import Qt
-from nexxT.Qt.QtWidgets import QStyledItemDelegate
+from nexxT.Qt.QtWidgets import QStyledItemDelegate, QLineEdit
 
 class PropertyDelegate(QStyledItemDelegate):
     """
@@ -41,11 +41,16 @@ class PropertyDelegate(QStyledItemDelegate):
         """
         d = self.model.data(index, self.role)
         if isinstance(d, self.PropertyContent):
-            p = d.property.getPropertyDetails(d.name)
-            res = p.handler.createEditor(parent)
-            if res is not None:
-                res.setObjectName("PropertyDelegateEditor")
-                return res
+            if index.column() == 1:
+                p = d.property.getPropertyDetails(d.name)
+                if not p.useEnvironment:
+                    res = p.handler.createEditor(parent)
+                    if res is not None:
+                        res.setObjectName("PropertyDelegateEditor")
+                        return res
+                else:
+                    res = QLineEdit(parent)
+                    return res
         return super().createEditor(parent, option, index)
 
     def setEditorData(self, editor, index):
@@ -59,9 +64,13 @@ class PropertyDelegate(QStyledItemDelegate):
         d = self.model.data(index, self.role)
         if isinstance(d, self.PropertyContent):
             p = d.property.getPropertyDetails(d.name)
-            v = d.property.getProperty(d.name)
-            p.handler.setEditorData(editor, v)
-            return None
+            if index.column() == 1:
+                if not p.useEnvironment:
+                    v = d.property.getProperty(d.name)
+                    p.handler.setEditorData(editor, v)
+                else:
+                    editor.setText(d.property.getProperty(d.name, subst=False))
+                return None
         return super().setEditorData(editor, index)
 
     def setModelData(self, editor, model, index):
@@ -77,7 +86,13 @@ class PropertyDelegate(QStyledItemDelegate):
         d = self.model.data(index, self.role)
         if isinstance(d, self.PropertyContent):
             p = d.property.getPropertyDetails(d.name)
-            value = p.handler.getEditorData(editor)
-            if value is not None:
-                model.setData(index, value, Qt.EditRole)
+            if index.column() == 1:
+                if not p.useEnvironment:
+                    value = p.handler.getEditorData(editor)
+                    if value is not None:
+                        model.setData(index, value, Qt.EditRole)
+                else:
+                    value = editor.text()
+                    model.setData(index, value, Qt.EditRole)
+                return None
         return super().setModelData(editor, model, index)

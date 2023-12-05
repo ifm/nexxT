@@ -13,8 +13,7 @@ from nexxT.Qt.QtCore import QMutexLocker, Qt
 from nexxT.interface import InputPort, OutputPort, InputPortInterface, OutputPortInterface
 from nexxT.core.FilterEnvironment import FilterEnvironment
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
-from nexxT.core.Exceptions import (PortNotFoundError, PortExistsError, PropertyCollectionChildExists,
-                                   PropertyCollectionPropertyNotFound)
+from nexxT.core.Exceptions import PortNotFoundError, PortExistsError, PropertyCollectionChildExists
 from nexxT.core.Utils import assertMainThread, MethodInvoker
 import nexxT
 
@@ -34,16 +33,7 @@ class FilterMockup(FilterEnvironment):
         self._propertyCollectionImpl = propertyCollection
         self._pluginClass = None
         self._createFilterAndUpdatePending = None
-        rootPc = propertyCollection
-        while rootPc.parent() is not None:
-            rootPc = rootPc.parent()
-        tmpRootPc = PropertyCollectionImpl("root", None)
-        try:
-            cfgfile = rootPc.getProperty("CFGFILE")
-            tmpRootPc.defineProperty("CFGFILE", cfgfile, "copy of original CFGFILE.", options=dict(enum=[cfgfile]))
-        except PropertyCollectionPropertyNotFound:
-            pass
-        tmpPc = PropertyCollectionImpl("temp", tmpRootPc)
+        tmpPc = PropertyCollectionImpl("__temp", propertyCollection)
         with FilterEnvironment(self._library, self._factoryFunction, tmpPc, self) as tmpEnv:
             self.updatePortInformation(tmpEnv)
         del tmpPc
@@ -108,14 +98,15 @@ class FilterMockup(FilterEnvironment):
                 if self._pluginClass is cnexxT.QSharedPointer_nexxT_Filter:
                     self._pluginClass = tempEnv.getPlugin().data().__class__
 
-    def createFilter(self):
+    def createFilter(self, propColl=None):
         """
         Creates the filter for real usage. State is CONSTRUCTED. This function is thread safe and can be called
         from multiple threads.
         :return: None
         """
         # called from threads
-        res = FilterEnvironment(self._library, self._factoryFunction, self._propertyCollectionImpl)
+        res = FilterEnvironment(self._library, self._factoryFunction,
+                                self._propertyCollectionImpl if propColl is None else propColl)
         with QMutexLocker(self._portMutex):
             for p in self._ports:
                 if p.dynamic():

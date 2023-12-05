@@ -160,6 +160,10 @@ class SubConfiguration(QObject):
                         raise NexTInternalError("addNode(...) has set unexpected name for node.")
             # make sure that the filter is instantiated and the port information is updated immediately
             self._graph.getMockup(n["name"]).createFilterAndUpdate()
+            if "variables" in n:
+                variables = self._graph.getMockup(n["name"]).getPropertyCollectionImpl().getVariables()
+                for k in n["variables"]:
+                    variables[k] = n["variables"][k]
         for c in cfg["connections"]:
             contuple = self.connectionStringToTuple(c)
             self._graph.addConnection(*contuple[:-1])
@@ -223,6 +227,11 @@ class SubConfiguration(QObject):
                 pass
             except PropertyCollectionPropertyNotFound:
                 pass
+            variables = mockup.propertyCollection().getVariables()
+            if len(variables.keys()) > 0:
+                ncfg["variables"] = {}
+                for k in variables.keys():
+                    ncfg["variables"][k] = variables.getraw(k)
             ncfg["properties"] = p.saveDict()
             cfg["nodes"].append(ncfg)
         cfg["connections"] = []

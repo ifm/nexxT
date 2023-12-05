@@ -96,7 +96,11 @@ class FilterGraph(BaseGraph):
             propColl = self._properties.getChildCollection(name)
         except PropertyCollectionChildNotFound:
             propColl = PropertyCollectionImpl(name, self._properties)
+        if factoryFunction == "compositeNode" and hasattr(library, "checkRecursion"):
+            propColl = PropertyCollectionImpl(name, propColl)
         propColl.propertyChanged.connect(self.setDirty)
+        propColl.getVariables().variableAddedOrChanged.connect(self.setDirty)
+        propColl.getVariables().variableDeleted.connect(self.setDirty)
         filterMockup = FilterMockup(library, factoryFunction, propColl, self)
         self._filters[name] = filterMockup
         for din in dynamicInputPorts:
