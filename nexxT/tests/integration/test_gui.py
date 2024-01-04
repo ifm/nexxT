@@ -342,8 +342,12 @@ class GuiTestBase:
         self.qtbot.mouseClick(conf.treeView.viewport(), Qt.LeftButton, pos=region.boundingRect().center(), delay=self.delay)
         self.qtbot.keyClick(conf.treeView.viewport(), Qt.Key_F2, delay=self.delay)
         self.aw()
+        # there are some QT warnings when directly specifying the entertext widget manually, so we try to do without...
+        self.qtbot.wait(self.delay*3)
         mw = Services.getService("MainWindow")
-        self.enterText(propVal, mw.findChild(QWidget, "PropertyDelegateEditor"))
+        #widgets = [w for w in mw.findChildren(QWidget, "PropertyDelegateEditor") if w.isVisible()]
+        #assert len(widgets) == 1
+        self.enterText(propVal) #, widgets[0])
         self.qtbot.wait(self.delay)
         if expectedVal is None:
             expectedVal = propVal
