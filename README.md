@@ -1,6 +1,6 @@
 # nexxT
 
-*nexxT* is a hybrid python/c++ framework targeted mainly at computer vision algorithm developers. Developers can build a graph of plugins interacting via data-driven ports. 
+*nexxT* is a hybrid python/c++ framework targeted mainly at computer vision algorithm developers. Developers can build a graph of plugins interacting via data-driven ports.
 
 ## Design Principles
 
