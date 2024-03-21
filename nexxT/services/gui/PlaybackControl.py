@@ -280,7 +280,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         if self.beginTime is None:
             self.currentLabel.setText("")
         else:
-            sliderVal = (currentTime - self.beginTime) // 1000000 # nanoseconds to milliseconds
+            sliderVal = max(0, currentTime - self.beginTime) // 1000000 # nanoseconds to milliseconds
             self.preventSeek = True
             self.positionSlider.setValue(sliderVal)
             self.preventSeek = False
