@@ -115,7 +115,7 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self.treeView.customContextMenuRequested.connect(self._execTreeViewContextMenu)
         # expand applications by default
         self.treeView.setExpanded(self.model.index(1, 0), True)
-        self.delegate = PropertyDelegate(self.model, ITEM_ROLE, ConfigurationModel.PropertyContent, self)
+        self.delegate = PropertyDelegate(self.model, ITEM_ROLE, ConfigurationModel.PropertyContent, self.treeView)
         self.treeView.setItemDelegate(self.delegate)
 
         self.restoreState()

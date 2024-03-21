@@ -32,6 +32,7 @@ from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.services.SrvConfiguration import MVCConfigurationBase
 from nexxT.services.SrvPlaybackControl import PlaybackControlConsole
 from nexxT.services.SrvRecordingControl import MVCRecordingControlBase
+from nexxT.services.SrvProfiling import ProfilingServiceDummy
 from nexxT.services.gui.GuiLogger import GuiLogger
 from nexxT.services.gui.MainWindow import MainWindow
 from nexxT.services.gui.Configuration import MVCConfigurationGUI
@@ -51,8 +52,9 @@ def setupConsoleServices(config):
     Services.addService("PlaybackControl", PlaybackControlConsole(config))
     Services.addService("RecordingControl", MVCRecordingControlBase(config))
     Services.addService("Configuration", MVCConfigurationBase(config))
+    Services.addService("Profiling", ProfilingServiceDummy())
 
-def setupGuiServices(config):
+def setupGuiServices(config, disable_profiling=False):
     """
     Adds services available in console mode.
     :param config: a nexxT.core.Configuration instance
@@ -64,9 +66,13 @@ def setupGuiServices(config):
     Services.addService("PlaybackControl", MVCPlaybackControlGUI(config))
     Services.addService("RecordingControl", MVCRecordingControlGUI(config))
     Services.addService("Configuration", MVCConfigurationGUI(config))
-    Services.addService("Profiling", Profiling())
+    if not disable_profiling:
+        Services.addService("Profiling", Profiling())
+    else:
+        Services.addService("Profiling", ProfilingServiceDummy())
 
-def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=False, disableUnloadHeuristic=False):
+def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=False, disableUnloadHeuristic=False,
+              disable_profiling=False):
     """
     Starts next with the given config file and activates the given application.
     :param cfgfile: path to config file
@@ -76,12 +82,13 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=Fa
     logger.debug("Starting nexxT...")
     config = Configuration()
     QLocale.setDefault(QLocale.c())
+
     if withGui:
         app = QApplication() if QApplication.instance() is None else QApplication.instance()
         app.setWindowIcon(QIcon(":icons/nexxT.svg"))
         app.setOrganizationName("nexxT")
         app.setApplicationName("nexxT")
-        setupGuiServices(config)
+        setupGuiServices(config, disable_profiling=disable_profiling)
     else:
         app = QCoreApplication() if QCoreApplication.instance() is None else QCoreApplication.instance()
         app.setOrganizationName("nexxT")
@@ -185,6 +192,9 @@ NEXXT_BLACKLISTED_PACKAGES:
                         help="force using only the main thread")
     parser.add_argument("-u", "--disable-unload-heuristic", action="store_true", default=False,
                         help="disable unload heuristic for python modules.")
+    parser.add_argument("-np", "--no-profiling", action="store_true",
+                        help="disable profiling support (only relevant for GUI).")
+
     def str2bool(value):
         if isinstance(value, bool):
             return value
@@ -214,7 +224,8 @@ NEXXT_BLACKLISTED_PACKAGES:
             handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
             nexT_logger.addHandler(handler)
     startNexT(args.cfg, args.active, args.execscript, args.execpython, withGui=args.gui,
-              singleThreaded=args.single_threaded, disableUnloadHeuristic=args.disable_unload_heuristic)
+              singleThreaded=args.single_threaded, disableUnloadHeuristic=args.disable_unload_heuristic,
+              disable_profiling=args.no_profiling)
 
 def mainConsole():
     """
