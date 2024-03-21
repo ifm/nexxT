@@ -19,3 +19,9 @@ CTestExceptionFilter = FilterSurrogate(
                        "binary" / "${NEXXT_PLATFORM}" / "${NEXXT_VARIANT}" / "test_plugins").absolute()),
     "TestExceptionFilter"
 )
+
+PropertyReceiver = FilterSurrogate(
+    "binary://" + str((Path(__file__).parent /
+                       "binary" / "${NEXXT_PLATFORM}" / "${NEXXT_VARIANT}" / "test_plugins").absolute()),
+    "PropertyReceiver"
+)

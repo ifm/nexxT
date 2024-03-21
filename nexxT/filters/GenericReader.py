@@ -382,14 +382,21 @@ class GenericReader(Filter):
 
     def _timeSpan(self):
         tmin = math.inf
+        tminNonZero = math.inf
         tmax = -math.inf
         for p in self._portToIdx:
-            t = self._file.getRcvTimestamp(p, 0)
-            tmin = min(t, tmin)
+            for i in range(self._file.getNumberOfSamples(p)):
+                t = self._file.getRcvTimestamp(p, i)
+                tmin = min(t, tmin)
+                if t != 0:
+                    tminNonZero = min(tminNonZero, t)
+                    break
             t = self._file.getRcvTimestamp(p, self._file.getNumberOfSamples(p)-1)
             tmax = max(t, tmax)
         if tmin > tmax:
             raise RuntimeError("It seems that the input file doesn't have any usable samples.")
+        if tmin == 0 and tminNonZero > 60*24*self._file.getTimestampResolution():
+            tmin = tminNonZero
         return (tmin*(1000000000//self._file.getTimestampResolution()),
                 tmax*(1000000000//self._file.getTimestampResolution()))
 
@@ -431,7 +438,8 @@ class GenericReader(Filter):
                     while time.perf_counter_ns() - nowTime < deltaT_ns:
                         pass
                 else:
-                    self._timer.start(deltaT_ns//1000000)
+                    if deltaT_ns < 10e9:
+                        self._timer.start(deltaT_ns//1000000)
                     break
             else:
                 self.pausePlayback()

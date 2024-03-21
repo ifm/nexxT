@@ -440,6 +440,8 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         if ("${COMPOSITENAME}" in title or
                 "${FILTERNAME}" in title or
                 "${FULLQUALIFIEDFILTERNAME}" in title):
+            logger.warning("Deprecated: implicit variable substitution for window titles - "
+                           "use explicit variable substitution instead.")
             if isinstance(theFilter, Filter):
                 name = theFilter.environment().getFullQualifiedName()
                 if "/" in name:

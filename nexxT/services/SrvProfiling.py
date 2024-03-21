@@ -167,6 +167,39 @@ class ThreadSpecificProfItem:
         self._portProfiling = {}
         self._portStack = []
 
+class ProfilingServiceDummy(QObject):
+    """
+    This class can be used as a replacement for the ProfilingService which provides the same interface.
+    """
+
+    @Slot()
+    def registerThread(self):
+        """
+        dummy implementation
+        """
+
+    @Slot()
+    def deregisterThread(self):
+        """
+        dummy implementation
+        """
+
+    @Slot(str)
+    def beforePortDataChanged(self, portname):
+        """
+        dummy implementation
+
+        :param portname: name of the port
+        """
+
+    @Slot(str)
+    def afterPortDataChanged(self, portname):
+        """
+        dummy implementation
+
+        :param portname: name of the port
+        """
+
 class ProfilingService(QObject):
     """
     This class provides a profiling service for the nexxT framework.
@@ -258,8 +291,7 @@ class ProfilingService(QObject):
                 self._threadSpecificProfiling[t].timer.stop()
                 todel.append(self._threadSpecificProfiling[t])
                 del self._threadSpecificProfiling[t]
-        for tsp in todel:
-            del tsp
+        del todel
         self.threadDeregistered.emit(t.objectName())
 
     @Slot()

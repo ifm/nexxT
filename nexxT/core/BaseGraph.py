@@ -117,7 +117,7 @@ class BaseGraph(QObject):
                 self._connections[i] = c
                 p = self._connectionProps[oldConn]
                 del self._connectionProps[oldConn]
-                self._connectionProps[c] = p            
+                self._connectionProps[c] = p
         self.nodeRenamed.emit(oldName, newName)
         self.dirtyChanged.emit()
 

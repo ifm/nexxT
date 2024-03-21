@@ -79,6 +79,12 @@ class IntHandler(PropertyHandler):
         :param value: the value to be tested (an integer)
         :return: the adapted, valid value
         """
+        if isinstance(value, str):
+            try:
+                value = int(value)
+            except ValueError:
+                logger.warning("Cannot interpret value '%s' as int. Using 0.", value)
+                value = 0
         if "min" in self._options:
             if value < self._options["min"]:
                 logger.warning("Adapted option value %d to minimum value %d.", value, self._options["min"])
@@ -189,7 +195,7 @@ class StringHandler(PropertyHandler):
         """
         if "enum" in self._options:
             if not value in self._options["enum"]:
-                logger.warning("Enum validation failed. Using first value in allowed list.")
+                logger.warning("Enum validation failed for '%s'. Using first value in allowed list.", value)
                 return self._options["enum"][0]
         return str(value)
 
@@ -284,6 +290,12 @@ class FloatHandler(PropertyHandler):
         :param value: the value to be tested (a float)
         :return: the adapted, valid value
         """
+        if isinstance(value, str):
+            try:
+                value = float(value)
+            except ValueError:
+                logger.warning("Cannot interpret value '%s' as float. Using 0.0.", value)
+                value = 0.0
         if "min" in self._options:
             if value < self._options["min"]:
                 logger.warning("Adapted option value %f to minimum value %f.", value, self._options["min"])
@@ -330,7 +342,7 @@ class BoolHandler(PropertyHandler):
 
     def __init__(self, options):
         for k in options:
-            raise PropertyParsingError(f"Unexpected option {k}; expected 'min' or 'max'.")
+            raise PropertyParsingError(f"Unexpected option {k}.")
         self._options = options
 
     def options(self):
@@ -374,7 +386,16 @@ class BoolHandler(PropertyHandler):
         :return: the adapted, valid value
         """
         if isinstance(value, str):
-            return value.lower() == "true"
+            if value.lower() == "true":
+                return True
+            if value.lower() == "false":
+                return False
+            try:
+                value = float(value)
+                return bool(value)
+            except ValueError:
+                logger.warning("Cannot interpret value '%s' as bool. Using false.", value)
+                return False
         return bool(value)
 
     def createEditor(self, parent):

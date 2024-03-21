@@ -11,9 +11,6 @@ This module defines the PropertyCollection interface class of the nexxT framewor
 from collections import OrderedDict
 from pathlib import Path
 import logging
-import platform
-import string
-import os
 import nexxT.shiboken
 from nexxT.Qt.QtCore import Signal, Slot, QRecursiveMutex, QMutexLocker
 from nexxT.core.Exceptions import (PropertyCollectionChildNotFound, PropertyCollectionChildExists,
@@ -21,6 +18,7 @@ from nexxT.core.Exceptions import (PropertyCollectionChildNotFound, PropertyColl
                                    PropertyInconsistentDefinition, PropertyCollectionPropertyNotFound)
 from nexxT.core.Utils import assertMainThread, checkIdentifier
 from nexxT.core.PropertyHandlers import defaultHandler
+from nexxT.core.Variables import Variables
 from nexxT.interface import PropertyCollection, PropertyHandler
 
 logger = logging.getLogger(__name__)
@@ -34,6 +32,7 @@ class Property:
         self.value = defaultVal
         self.helpstr = helpstr
         self.handler = handler
+        self.useEnvironment = False
         self.used = True
 
 class PropertyCollectionImpl(PropertyCollection):
@@ -41,17 +40,22 @@ class PropertyCollectionImpl(PropertyCollection):
     This class represents a collection of properties. These collections are organized in a tree, such that there
     are parent/child relations.
     """
-    propertyChanged = Signal(object, str)
     propertyAdded = Signal(object, str)
     propertyRemoved = Signal(object, str)
     childAdded = Signal(object, str)
     childRemoved = Signal(object, str)
     childRenamed = Signal(object, str, str)
 
-    def __init__(self, name, parentPropColl, loadedFromConfig=None):
+    def __init__(self, name, parentPropColl, loadedFromConfig=None, variables=None):
         PropertyCollection.__init__(self)
         assertMainThread()
         self._properties = {}
+        if variables is None:
+            self._vars = Variables(parent=parentPropColl._vars if parentPropColl is not None else None)
+            self._vars.setObjectName("propcoll:" + name)
+        else:
+            self._vars = variables
+            assert parentPropColl is None # this should be the root property
         self._accessed = False # if no access to properties has been made, we stick with configs from config file.
         self._loadedFromConfig = loadedFromConfig if loadedFromConfig is not None else {}
         self._propertyMutex = QRecursiveMutex()
@@ -98,7 +102,13 @@ class PropertyCollectionImpl(PropertyCollection):
             raise PropertyCollectionChildNotFound(name)
         return res[0]
 
-    def defineProperty(self, name, defaultVal, helpstr, options=None, propertyHandler=None):
+    def getVariables(self):
+        """
+        Return the associated variables instance.
+        """
+        return self._vars
+
+    def defineProperty(self, name, defaultVal, helpstr, options=None, propertyHandler=None, variables=None):
         """
         Return the value of the given property, creating a new property if it doesn't exist.
         :param name: the name of the property
@@ -138,11 +148,22 @@ class PropertyCollectionImpl(PropertyCollection):
                 p = self._properties[name]
                 if name in self._loadedFromConfig:
                     l = self._loadedFromConfig[name]
-                    try:
-                        p.value = p.handler.validate(p.handler.fromConfig(l))
-                    except Exception as e:
-                        raise PropertyParsingError(
-                            f"Error parsing property {name} from {repr(l)} (original exception: {str(e)})") from e
+                    if isinstance(l, dict) and "subst" in l and "value" in l:
+                        p.useEnvironment = l["subst"]
+                        p.value = l["value"]
+                    else:
+                        p.useEnvironment = False
+                        p.value = l
+                try:
+                    if not p.useEnvironment:
+                        p.value = p.handler.validate(p.handler.fromConfig(p.value))
+                    else:
+                        if variables is None:
+                            variables = self._vars
+                        p.handler.validate(variables.subst(p.value))
+                except Exception as e:
+                    raise PropertyParsingError(
+                        f"Error parsing property {name} from {repr(l)} (original exception: {str(e)})") from e
                 self.propertyAdded.emit(self, name)
             else:
                 # the arguments to getProperty shall be consistent among calls
@@ -160,13 +181,17 @@ class PropertyCollectionImpl(PropertyCollection):
             return p.value
 
     @Slot(str)
-    def getProperty(self, name):
+    def getProperty(self, name, subst=True, variables=None):
         self._accessed = True
         with QMutexLocker(self._propertyMutex):
             if name not in self._properties:
                 raise PropertyCollectionPropertyNotFound(name)
             p = self._properties[name]
             p.used = True
+            if p.useEnvironment and subst:
+                if variables is None:
+                    variables = self._vars
+                return p.handler.validate(variables.subst(p.value))
             return p.value
 
     def getPropertyDetails(self, name):
@@ -192,6 +217,7 @@ class PropertyCollectionImpl(PropertyCollection):
     def setProperty(self, name, value):
         """
         Set the value of a named property.
+
         :param name: property name
         :param value: the value to be set
         :return: None
@@ -206,8 +232,28 @@ class PropertyCollectionImpl(PropertyCollection):
             except Exception as e:
                 raise PropertyParsingError(
                     f"Error parsing property {name} from {repr(value)} (original exception: {str(e)})") from e
-            if value != p.value:
+            if value != p.value or p.useEnvironment:
                 p.value = value
+                p.useEnvironment = False
+                self.propertyChanged.emit(self, name)
+
+    @Slot(str, str)
+    def setVarProperty(self, name, value):
+        """
+        Set the value of a named property using an variable substitution.
+
+        :param name: property name
+        :param value: the value to be set
+        :return: None
+        """
+        self._accessed = True
+        with QMutexLocker(self._propertyMutex):
+            if name not in self._properties:
+                raise PropertyCollectionPropertyNotFound(name)
+            p = self._properties[name]
+            if value != p.value or not p.useEnvironment:
+                p.value = value
+                p.useEnvironment = True
                 self.propertyChanged.emit(self, name)
 
     def markAllUnused(self):
@@ -247,7 +293,10 @@ class PropertyCollectionImpl(PropertyCollection):
             with QMutexLocker(self._propertyMutex):
                 for n in sorted(self._properties):
                     p = self._properties[n]
-                    res[n] = p.handler.toConfig(p.value)
+                    if p.useEnvironment:
+                        res[n] = {"subst": True, "value": p.value}
+                    else:
+                        res[n] = {"subst": False, "value": p.handler.toConfig(p.value)}
             return res
         return self._loadedFromConfig
 
@@ -266,6 +315,7 @@ class PropertyCollectionImpl(PropertyCollection):
             pass
         propColl.setObjectName(name)
         propColl.setParent(self)
+        propColl.getVariables().setParent(self.getVariables())
         logger.internal("Propcoll %s: add child %s", self.objectName(), name)
 
     def renameChild(self, oldName, newName):
@@ -299,6 +349,113 @@ class PropertyCollectionImpl(PropertyCollection):
         if nexxT.shiboken.isValid(cc): # pylint: disable=no-member
             nexxT.shiboken.delete(cc) # pylint: disable=no-member
 
+    def evalpath(self, path, variables=None):
+        """
+        Evaluates the string path. If it is an absolute path it is unchanged, otherwise it is converted
+        to an absolute path relative to the config file path.
+        :param path: a string
+        :return: absolute path as string
+        """
+        if variables is None:
+            variables = self._vars
+        spath = variables.subst(path)
+        if spath != path or not Path(spath).is_absolute():
+            logger.warning("Deprecated: Implicit substitution or relative paths to the config file. Consider to use "
+                           "explicit variable substitution with ${CFG_DIR} to reference the directory of the config "
+                           "file instead. Found while evaluating %s.", path)
+        if not Path(spath).is_absolute():
+            spath = str((Path(variables.subst("$CFG_DIR")) / spath).absolute())
+        return spath
+
+class PropertyCollectionProxy(PropertyCollection):
+    """
+    This class proxies to a PropertyCollection object but uses a different instance of variables
+    """
+
+    def __init__(self, proxiedPropColl, variables):
+        PropertyCollection.__init__(self)
+        self._proxiedPropColl = proxiedPropColl
+        self._vars = variables
+        assertMainThread()
+        self._propertyMutex = QRecursiveMutex()
+        proxiedPropColl.propertyChanged.connect(self._propertyChanged)
+        self.setObjectName(self._proxiedPropColl.objectName())
+
+    def _propertyChanged(self, _, name):
+        self.propertyChanged.emit(self, name)
+
+    def getChildCollection(self, name):
+        """
+        Return child property collection with given name
+        :param name: the name of the child
+        :return: PropertyCollection instance
+        """
+        return self._proxiedPropColl.getChildCollection(name)
+
+    def getVariables(self):
+        """
+        Return the associated variables instance.
+        """
+        return self._vars
+
+    def defineProperty(self, name, defaultVal, helpstr, options=None, propertyHandler=None):
+        """
+        Return the value of the given property, creating a new property if it doesn't exist.
+        :param name: the name of the property
+        :param defaultVal: the default value of the property. Note that this value will be used to determine the
+                           property's type. Currently supported types are string, int and float
+        :param helpstr: a help string for the user
+        :param options: a dict mapping string to qvariant (common options: min, max, enum)
+        :param propertyHandler: a PropertyHandler instance, or None for automatic choice according to defaultVal
+        :return: the current value of this property
+        """
+        return self._proxiedPropColl.defineProperty(name, defaultVal, helpstr, options, propertyHandler,
+                                                    variables=self._vars)
+
+    @Slot(str)
+    def getProperty(self, name, subst=True):
+        """
+        See PropertyCollectionImpl.getProperty for details
+        """
+        return self._proxiedPropColl.getProperty(name, subst, variables=self._vars)
+
+    def getPropertyDetails(self, name):
+        """
+        returns the property details of the property identified by name.
+        :param name: the property name
+        :return: a Property instance
+        """
+        return self._proxiedPropColl.getPropertyDetails(self, name)
+
+    def getAllPropertyNames(self):
+        """
+        Query all property names handled in this collection
+        :return: list of strings
+        """
+        return self._proxiedPropColl.getAllPropertyNames()
+
+    @Slot(str, str)
+    def setProperty(self, name, value):
+        """
+        Set the value of a named property.
+
+        :param name: property name
+        :param value: the value to be set
+        :return: None
+        """
+        self._proxiedPropColl.setProperty(name, value)
+
+    @Slot(str, str)
+    def setVarProperty(self, name, value):
+        """
+        Set the value of a named property using an variable substitution.
+
+        :param name: property name
+        :param value: the value to be set
+        :return: None
+        """
+        self._proxiedPropColl.setVarProperty(name, value)
+
     def evalpath(self, path):
         """
         Evaluates the string path. If it is an absolute path it is unchanged, otherwise it is converted
@@ -306,23 +463,4 @@ class PropertyCollectionImpl(PropertyCollection):
         :param path: a string
         :return: absolute path as string
         """
-        root_prop = self
-        while root_prop.parent() is not None:
-            root_prop = root_prop.parent()
-        # substitute ${VAR} with environment variables
-        default_environ = dict(
-            NEXXT_VARIANT="release"
-        )
-        if platform.system() == "Windows":
-            default_environ["NEXXT_PLATFORM"] = f"msvc_x86{'_64' if platform.architecture()[0] == '64bit' else ''}"
-        else:
-            default_environ["NEXXT_PLATFORM"] = f"linux_{platform.machine()}"
-        origpath = path
-        path = string.Template(path).safe_substitute({**default_environ, **os.environ})
-        logger.debug("interpolated path %s -> %s", origpath, path)
-        if Path(path).is_absolute():
-            return path
-        try:
-            return str((Path(root_prop.getProperty("CFGFILE")).parent / path).absolute())
-        except PropertyCollectionPropertyNotFound:
-            return path
+        return self._proxiedPropColl.evalpath(path, variables=self._vars)

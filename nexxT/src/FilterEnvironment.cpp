@@ -94,6 +94,7 @@ void BaseFilterEnvironment::portDataChanged(const InputPortInterface &port)
         switch( state() )
         {
             case FilterState::OPENED:
+            case FilterState::STOPPING:
                 NEXXT_LOG_INFO("DataSample discarded because application has been stopped already.");
                 break;
             case FilterState::CONSTRUCTED:

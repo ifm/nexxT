@@ -22,6 +22,8 @@ from nexxT.core.Utils import SQLiteHandler, MethodInvoker, waitForSignal
 from nexxT.core.ConfigFiles import ConfigFileLoader
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
+from nexxT.core.ActiveApplication import ActiveApplication
+from nexxT.core.PluginManager import PythonLibrary
 # this import is needed for initializing the nexxT qt resources
 import nexxT.core.qrc_resources # pylint: disable=unused-import
 from nexxT.interface import Services, FilterState
@@ -30,7 +32,7 @@ from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.services.SrvConfiguration import MVCConfigurationBase
 from nexxT.services.SrvPlaybackControl import PlaybackControlConsole
 from nexxT.services.SrvRecordingControl import MVCRecordingControlBase
-from nexxT.services.SrvProfiling import ProfilingService
+from nexxT.services.SrvProfiling import ProfilingServiceDummy
 from nexxT.services.gui.GuiLogger import GuiLogger
 from nexxT.services.gui.MainWindow import MainWindow
 from nexxT.services.gui.Configuration import MVCConfigurationGUI
@@ -50,8 +52,9 @@ def setupConsoleServices(config):
     Services.addService("PlaybackControl", PlaybackControlConsole(config))
     Services.addService("RecordingControl", MVCRecordingControlBase(config))
     Services.addService("Configuration", MVCConfigurationBase(config))
+    Services.addService("Profiling", ProfilingServiceDummy())
 
-def setupGuiServices(config):
+def setupGuiServices(config, disableProfiling=False):
     """
     Adds services available in console mode.
     :param config: a nexxT.core.Configuration instance
@@ -63,9 +66,13 @@ def setupGuiServices(config):
     Services.addService("PlaybackControl", MVCPlaybackControlGUI(config))
     Services.addService("RecordingControl", MVCRecordingControlGUI(config))
     Services.addService("Configuration", MVCConfigurationGUI(config))
-    Services.addService("Profiling", Profiling())
+    if not disableProfiling:
+        Services.addService("Profiling", Profiling())
+    else:
+        Services.addService("Profiling", ProfilingServiceDummy())
 
-def startNexT(cfgfile, active, execScripts, execCode, withGui):
+def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=False, disableUnloadHeuristic=False,
+              disableProfiling=False):
     """
     Starts next with the given config file and activates the given application.
     :param cfgfile: path to config file
@@ -75,17 +82,22 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui):
     logger.debug("Starting nexxT...")
     config = Configuration()
     QLocale.setDefault(QLocale.c())
+
     if withGui:
         app = QApplication() if QApplication.instance() is None else QApplication.instance()
         app.setWindowIcon(QIcon(":icons/nexxT.svg"))
         app.setOrganizationName("nexxT")
         app.setApplicationName("nexxT")
-        setupGuiServices(config)
+        setupGuiServices(config, disableProfiling=disableProfiling)
     else:
         app = QCoreApplication() if QCoreApplication.instance() is None else QCoreApplication.instance()
         app.setOrganizationName("nexxT")
         app.setApplicationName("nexxT")
         setupConsoleServices(config)
+
+    ActiveApplication.singleThreaded = singleThreaded
+    PythonLibrary.disableUnloadHeuristic = disableUnloadHeuristic
+
 
     if cfgfile is not None:
         ConfigFileLoader.load(config, cfgfile)
@@ -164,18 +176,25 @@ NEXXT_BLACKLISTED_PACKAGES:
 """)
     parser.add_argument("cfg", nargs='?', help=".json configuration file of the project to be loaded.")
     parser.add_argument("-a", "--active", default=None, type=str,
-                        help="active application; default: first application in config file")
+                        help="active application; default: first application in config file.")
     parser.add_argument("-l", "--logfile", default=None, type=str,
                         help="log file location (.db extension will use sqlite).")
     parser.add_argument("-v", "--verbosity", default="INFO",
                         choices=["INTERNAL", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "CRITICAL"],
                         help="sets the log verbosity")
-    parser.add_argument("-q", "--quiet", action="store_true", default=False, help="disble logging to stderr")
+    parser.add_argument("-q", "--quiet", action="store_true", default=False, help="disble logging to stderr.")
     parser.add_argument("-e", "--execpython", action="append", default=[],
                         help="execute arbitrary python code given in a string before actually starting the "
                              "application.")
     parser.add_argument("-s", "--execscript", action="append", default=[],
                         help="execute arbitrary python code given in a file before actually starting the application.")
+    parser.add_argument("-t", "--single-threaded", action="store_true", default=False,
+                        help="force using only the main thread")
+    parser.add_argument("-u", "--disable-unload-heuristic", action="store_true", default=False,
+                        help="disable unload heuristic for python modules.")
+    parser.add_argument("-np", "--no-profiling", action="store_true",
+                        help="disable profiling support (only relevant for GUI).")
+
     def str2bool(value):
         if isinstance(value, bool):
             return value
@@ -204,7 +223,9 @@ NEXXT_BLACKLISTED_PACKAGES:
             handler = logging.FileHandler(args.logfile)
             handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
             nexT_logger.addHandler(handler)
-    startNexT(args.cfg, args.active, args.execscript, args.execpython, withGui=args.gui)
+    startNexT(args.cfg, args.active, args.execscript, args.execpython, withGui=args.gui,
+              singleThreaded=args.single_threaded, disableUnloadHeuristic=args.disable_unload_heuristic,
+              disableProfiling=args.no_profiling)
 
 def mainConsole():
     """

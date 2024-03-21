@@ -1,0 +1,367 @@
+{
+  "_guiState": {
+    "MainWindow_framerate": {
+      "subst": false,
+      "value": 25
+    },
+    "PlaybackControl_showAllFiles": {
+      "subst": false,
+      "value": 0
+    }
+  },
+  "variables": {
+    "ROOTVAR": "root"
+  },
+  "composite_filters": [
+    {
+      "name": "comp1",
+      "nodes": [
+        {
+          "name": "CompositeInput",
+          "library": "composite://port",
+          "factoryFunction": "CompositeInput",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {}
+        },
+        {
+          "name": "CompositeOutput",
+          "library": "composite://port",
+          "factoryFunction": "CompositeOutput",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {}
+        },
+        {
+          "name": "comp2",
+          "library": "composite://ref",
+          "factoryFunction": "comp2",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "variables": {
+            "COMP2VAR": "c"
+          },
+          "properties": {}
+        },
+        {
+          "name": "comp3",
+          "library": "composite://ref",
+          "factoryFunction": "comp3",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "variables": {
+            "COMP3VAR": "d"
+          },
+          "properties": {}
+        },
+        {
+          "name": "RootRef",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $ROOTVAR"
+            }
+          }
+        },
+        {
+          "name": "Comp1Ref",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $COMP1VAR"
+            }
+          }
+        },
+        {
+          "name": "Comp2Ref",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $COMP2VAR"
+            }
+          }
+        },
+        {
+          "name": "Comp3Ref",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $COMP3VAR"
+            }
+          }
+        }
+      ],
+      "connections": [],
+      "_guiState": {}
+    },
+    {
+      "name": "comp2",
+      "nodes": [
+        {
+          "name": "CompositeInput",
+          "library": "composite://port",
+          "factoryFunction": "CompositeInput",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {}
+        },
+        {
+          "name": "CompositeOutput",
+          "library": "composite://port",
+          "factoryFunction": "CompositeOutput",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {}
+        },
+        {
+          "name": "RootRef",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $ROOTVAR"
+            }
+          }
+        },
+        {
+          "name": "Comp1Ref",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $COMP1VAR"
+            }
+          }
+        },
+        {
+          "name": "Comp2Ref",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $COMP2VAR"
+            }
+          }
+        },
+        {
+          "name": "Comp3Ref",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $COMP3VAR"
+            }
+          }
+        }
+      ],
+      "connections": [],
+      "_guiState": {}
+    },
+    {
+      "name": "comp3",
+      "nodes": [
+        {
+          "name": "CompositeInput",
+          "library": "composite://port",
+          "factoryFunction": "CompositeInput",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {}
+        },
+        {
+          "name": "CompositeOutput",
+          "library": "composite://port",
+          "factoryFunction": "CompositeOutput",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {}
+        },
+        {
+          "name": "RootRef",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $ROOTVAR"
+            }
+          }
+        },
+        {
+          "name": "Comp1Ref",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $COMP1VAR"
+            }
+          }
+        },
+        {
+          "name": "Comp2Ref",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $COMP2VAR"
+            }
+          }
+        },
+        {
+          "name": "Comp3Ref",
+          "library": "pyfile://./thefilter.py",
+          "factoryFunction": "TheFilter",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "properties": {
+            "string": {
+              "subst": true,
+              "value": "$FULLQUALIFIEDFILTERNAME : $COMP3VAR"
+            }
+          }
+        }
+      ],
+      "connections": [],
+      "_guiState": {}
+    }
+  ],
+  "applications": [
+    {
+      "name": "application",
+      "_guiState": {},
+      "nodes": [
+        {
+          "name": "comp1_2",
+          "library": "composite://ref",
+          "factoryFunction": "comp1",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "variables": {
+            "COMP1VAR": "b"
+          },
+          "properties": {}
+        },
+        {
+          "name": "comp1_1",
+          "library": "composite://ref",
+          "factoryFunction": "comp1",
+          "dynamicInputPorts": [],
+          "staticInputPorts": [],
+          "dynamicOutputPorts": [],
+          "staticOutputPorts": [],
+          "thread": "main",
+          "variables": {
+            "COMP1VAR": "a"
+          },
+          "properties": {}
+        }
+      ],
+      "connections": []
+    },
+    {
+      "name": "application_2",
+      "_guiState": {},
+      "nodes": [],
+      "connections": []
+    }
+  ]
+}

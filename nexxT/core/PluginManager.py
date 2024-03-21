@@ -63,6 +63,8 @@ class PythonLibrary:
     LIBTYPE_MODULE = 1
     LIBTYPE_ENTRY_POINT = 2
 
+    disableUnloadHeuristic = False
+
     # blacklisted packages are not unloaded when closing an application.
     BLACKLISTED_PACKAGES = ["h5py", "numpy", "matplotlib", "nexxT.Qt", "PySide6",
                             "nexxT.shiboken", "shiboken2", "shiboken6", "torch", "tf"]
@@ -143,6 +145,8 @@ class PythonLibrary:
 
         :param moduleName: the name of the module as a key in sys.modules
         """
+        if PythonLibrary.disableUnloadHeuristic:
+            return True
         pkg = PythonLibrary.BLACKLISTED_PACKAGES[:]
         if "NEXXT_BLACKLISTED_PACKAGES" in os.environ:
             if os.environ["NEXXT_BLACKLISTED_PACKAGES"] in ["*", "__all__"]:
@@ -285,6 +289,7 @@ class PluginManager(QObject):
     @staticmethod
     def _loadPyfile(library, prop=None):
         if prop is not None and nexxT.shiboken.isValid(prop):
+            library = prop.getVariables().subst(library)
             library = prop.evalpath(library)
         return PythonLibrary(library, libtype=PythonLibrary.LIBTYPE_FILE)
 
@@ -301,6 +306,7 @@ class PluginManager(QObject):
         if PluginInterface is None:
             raise UnknownPluginType("binary plugins can only be loaded with c extension enabled.")
         if prop is not None:
+            library = prop.getVariables().subst(library)
             library = prop.evalpath(library)
         else:
             logger.warning("no property collection instance, string interpolation skipped.")

@@ -13,10 +13,11 @@ import nexxT.Qt
 from nexxT.Qt.QtCore import (Qt, QSettings, QByteArray, QDataStream, QIODevice, QTimer)
 from nexxT.Qt.QtGui import QIcon, QKeySequence, QAction
 from nexxT.Qt.QtWidgets import (QTreeView, QStyle, QApplication, QFileDialog, QAbstractItemView, QMessageBox,
-                               QHeaderView, QMenu, QDockWidget)
+                               QHeaderView, QMenu, QDockWidget, QInputDialog)
 from nexxT.interface import Services, FilterState
 from nexxT.core.Configuration import Configuration
 from nexxT.core.Application import Application
+from nexxT.core.Variables import Variables
 from nexxT.core.Utils import assertMainThread, MethodInvoker, mainThread, handleException
 from nexxT.services.SrvConfiguration import MVCConfigurationBase, ConfigurationModel, ITEM_ROLE
 from nexxT.services.gui.PropertyDelegate import PropertyDelegate
@@ -105,14 +106,16 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         self.treeView.setDragDropMode(QAbstractItemView.DragOnly)
         self.mainWidget.setWidget(self.treeView)
         self.treeView.setModel(self.model)
-        self.treeView.header().setStretchLastSection(True)
+        self.treeView.header().setStretchLastSection(False)
         self.treeView.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.treeView.header().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.treeView.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.treeView.doubleClicked.connect(self._onItemDoubleClicked)
         self.treeView.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeView.customContextMenuRequested.connect(self._execTreeViewContextMenu)
         # expand applications by default
         self.treeView.setExpanded(self.model.index(1, 0), True)
-        self.delegate = PropertyDelegate(self.model, ITEM_ROLE, ConfigurationModel.PropertyContent, self)
+        self.delegate = PropertyDelegate(self.model, ITEM_ROLE, ConfigurationModel.PropertyContent, self.treeView)
         self.treeView.setItemDelegate(self.delegate)
 
         self.restoreState()
@@ -233,10 +236,10 @@ class MVCConfigurationGUI(MVCConfigurationBase):
         graphDw.visibleChanged.connect(self._removeGraphViewFromList)
 
     def _subConfigRemoved(self, subConfigName, configType):
-        self.__subConfigRemoved(subConfigName, configType)
+        self._subConfigRemovedImpl(subConfigName, configType)
 
     @handleException
-    def __subConfigRemoved(self, subConfigName, configType):
+    def _subConfigRemovedImpl(self, subConfigName, configType):
         g = self._configuration.subConfigByNameAndTye(subConfigName, configType).getGraph()
         if nexxT.shiboken.isValid(g):
             for gv in self._graphViews:
@@ -267,6 +270,9 @@ class MVCConfigurationGUI(MVCConfigurationBase):
             a1 = QAction("Edit graph")
             m.addAction(a1)
             a1.triggered.connect(lambda: self._addGraphView(item.subConfig))
+            a1d5 = QAction(f"Remove {'app' if self.model.isApplication(index) else 'composite'} ...")
+            a1d5.triggered.connect(lambda: self._removeSubConfig(item.subConfig))
+            m.addAction(a1d5)
             if self.model.isApplication(index):
                 a2 = QAction("Select Application")
                 a2.triggered.connect(lambda: self.changeActiveApp(self.model.data(index, Qt.DisplayRole)))
@@ -313,6 +319,37 @@ class MVCConfigurationGUI(MVCConfigurationBase):
             if a is not None:
                 self._configuration.addNewCompositeFilter()
             return
+        if isinstance(item, Variables):
+            m = QMenu()
+            a = QAction("Add variable ...")
+            m.addAction(a)
+            a = nexxT.Qt.call_exec(m, self.treeView.mapToGlobal(point))
+            if a is not None:
+                vname, ok = QInputDialog.getText(
+                    self.treeView, "Add Variable", "Variable Name", text="VARIABLE",
+                    inputMethodHints=Qt.InputMethodHint.ImhUppercaseOnly|Qt.InputMethodHint.ImhLatinOnly)
+                variables = item
+                if ok and vname is not None and vname != "" and vname not in variables.keys():
+                    variables[vname] = ""
+            return
+        if isinstance(item, ConfigurationModel.VariableContent):
+            if not item.variables.isReadonly(item.name):
+                m = QMenu()
+                a = QAction("Remove variable")
+                m.addAction(a)
+                a = nexxT.Qt.call_exec(m, self.treeView.mapToGlobal(point))
+                if a is not None:
+                    del item.variables[item.name]
+            return
+
+    def _removeSubConfig(self, subConfig):
+        ans = QMessageBox.question(self.mainWidget, "Confirm to remove",
+                                   f"Do you really want to remove {subConfig.getName()}?")
+        if ans is QMessageBox.StandardButton.Yes:
+            try:
+                self._configuration.removeSubConfig(subConfig)
+            except RuntimeError as e:
+                QMessageBox.warning(self.mainWidget, "Warning", f"Deletion failed: {e}")
 
     def _configNameChanged(self, cfgfile):
         logger.debug("_configNameChanged: %s", cfgfile)
