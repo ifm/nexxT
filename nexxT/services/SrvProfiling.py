@@ -171,24 +171,34 @@ class ProfilingServiceDummy(QObject):
     """
     This class can be used as a replacement for the ProfilingService which provides the same interface.
     """
-    def __init__(self):
-        super().__init__()
 
     @Slot()
     def registerThread(self):
-        pass
+        """
+        dummy implementation
+        """
 
     @Slot()
     def deregisterThread(self):
-        pass
+        """
+        dummy implementation
+        """
 
     @Slot(str)
     def beforePortDataChanged(self, portname):
-        pass
+        """
+        dummy implementation
+
+        :param portname: name of the port
+        """
 
     @Slot(str)
     def afterPortDataChanged(self, portname):
-        pass
+        """
+        dummy implementation
+
+        :param portname: name of the port
+        """
 
 class ProfilingService(QObject):
     """

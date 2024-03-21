@@ -54,7 +54,7 @@ def setupConsoleServices(config):
     Services.addService("Configuration", MVCConfigurationBase(config))
     Services.addService("Profiling", ProfilingServiceDummy())
 
-def setupGuiServices(config, disable_profiling=False):
+def setupGuiServices(config, disableProfiling=False):
     """
     Adds services available in console mode.
     :param config: a nexxT.core.Configuration instance
@@ -66,13 +66,13 @@ def setupGuiServices(config, disable_profiling=False):
     Services.addService("PlaybackControl", MVCPlaybackControlGUI(config))
     Services.addService("RecordingControl", MVCRecordingControlGUI(config))
     Services.addService("Configuration", MVCConfigurationGUI(config))
-    if not disable_profiling:
+    if not disableProfiling:
         Services.addService("Profiling", Profiling())
     else:
         Services.addService("Profiling", ProfilingServiceDummy())
 
 def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=False, disableUnloadHeuristic=False,
-              disable_profiling=False):
+              disableProfiling=False):
     """
     Starts next with the given config file and activates the given application.
     :param cfgfile: path to config file
@@ -88,7 +88,7 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=Fa
         app.setWindowIcon(QIcon(":icons/nexxT.svg"))
         app.setOrganizationName("nexxT")
         app.setApplicationName("nexxT")
-        setupGuiServices(config, disable_profiling=disable_profiling)
+        setupGuiServices(config, disableProfiling=disableProfiling)
     else:
         app = QCoreApplication() if QCoreApplication.instance() is None else QCoreApplication.instance()
         app.setOrganizationName("nexxT")
@@ -225,7 +225,7 @@ NEXXT_BLACKLISTED_PACKAGES:
             nexT_logger.addHandler(handler)
     startNexT(args.cfg, args.active, args.execscript, args.execpython, withGui=args.gui,
               singleThreaded=args.single_threaded, disableUnloadHeuristic=args.disable_unload_heuristic,
-              disable_profiling=args.no_profiling)
+              disableProfiling=args.no_profiling)
 
 def mainConsole():
     """
