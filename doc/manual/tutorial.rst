@@ -149,6 +149,26 @@ Now it's time to save the configuration in the tool bar and test it. Initialize 
 
 .. image:: example-first-app-running.png
 
+Properties and Variables
+++++++++++++++++++++++++
+
+Filters may publish configuration options with the property subsystem. Properties have an associated type (float, int, string, bool) and filter developers might add constraints like minimum or maximum value, string enums, etc. The properties can be set in the GUI in the **Configuration** dock window under the respective filter instance.
+
+Starting with version *1.1.0*, optional variable substitution was introduced into nexxT. Variables can be defined in the **Configuration** dock window either globally for the whole configuration or at instances of composite filters. For example, if a sensor is connected via ethernet, it might be useful to define a global variable ``IP`` and reference the IP address in filters indirectly via the variable. When the IP address changes, it only needs to be changed once in the configuration and the change propagates to all filters where the ``$IP`` is used. Another use case is the definition of composite filters which are configured by variables defined at the instances of the filter.
+
+Variable substitution in filter properties must be turned on explicitely by setting the ``indirect`` flag in the configuration window.
+
+Variable substitution behaves similar to shell variable substitution. In addition, variables may be set to the special syntax ``${!<python expression>}`` to expand to the value of the given python expression. Note that these expressions cannot be embedded in longer substitutions, but need to be assigned to standalone variables. Expressions have access to the importlib module, so they can use installed python packages and the standard library. The ``subst(...)`` function can be used to substitute strings with other variables.
+
+Here are some examples:
+
+* ``VAR=hello $WORLD``, ``WORLD=world``; both ``$VAR`` and ``${VAR}`` will expand recursively to the string ``"hello world"``.
+* if a variable is defined in multiple levels (e.g. globally and in a composite filter instance), the definition of the innermost level will be used.
+* ``FIVE_PLUS_NINE_RES=${!5+9}`` will expand to ``"14"``.
+* ``FIVE_PLUS_NINE=five plus nine is $FIVE_PLUS_NINE_RES`` will expand to ``"five plus nine is 14"``
+* ``FIVE_PLUS_NINE_FAIL=five plus nine is ${!5+9}`` will expand to ``"five plus nine is ${!5+9}"``, since the python expression substitution works only for standalone variables.
+* ``USE_MATH=${!importlib.import_module('math').sqrt(int(subst('$FIVE_PLUS_NINE'))}`` will expand to ``"3.7416573867739413"``. Note that recursive variable substitution needs to performed explicitely using the ``subst(...)`` function.
+
 Thread cycles and Deadlocks
 +++++++++++++++++++++++++++
 
