@@ -71,6 +71,10 @@ class PropertyDelegate(QStyledItemDelegate):
                 else:
                     editor.setText(d.property.getProperty(d.name, subst=False))
                 return None
+        if isinstance(editor, QLineEdit):
+            # this is happening for variables ...
+            editor.setText(self.model.data(index, Qt.DisplayRole))
+            return None
         return super().setEditorData(editor, index)
 
     def setModelData(self, editor, model, index):
