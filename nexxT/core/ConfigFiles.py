@@ -24,7 +24,7 @@ class ConfigFileLoader:
     _validatorGuiState = None
 
     @staticmethod
-    def load(config, file):
+    def load(config, file, focusOnApplication=None):
         """
         Load configuration from file.
         :param file: string or Path instance
@@ -37,6 +37,8 @@ class ConfigFileLoader:
             file = Path(file)
         with file.open("r", encoding='utf-8') as fp:
             cfg = json.load(fp)
+        if focusOnApplication is not None:
+            cfg = ConfigFileLoader._focus(cfg, focusOnApplication)
         validator.validate(cfg)
         guistateFile = file.parent / (file.name + ".guistate")
         if guistateFile.exists():
@@ -109,6 +111,34 @@ class ConfigFileLoader:
                 json.dump(guistate, fp, indent=2, ensure_ascii=False)
                 logger.internal("saved gui state to %s -> %s", guistateFile,
                                 json.dumps(guistate, indent=2, ensure_ascii=False))
+
+    @staticmethod
+    def _focus(cfg, appname):
+        """
+        return an adapted version of cfg with all applications and composite filters
+        removed which do not belong to the given application.
+        """
+        cfg = cfg.copy()
+
+        app = [a for a in cfg["applications"] if a["name"] == appname]
+        if len(app) == 0:
+            raise RuntimeError(f"Couldn't find app {appname} in config!")
+        app = app[0]
+
+        compositeFactoryFunctions = {n["factoryFunction"] for n in app["nodes"] if n["library"] == "composite://ref"}
+        while True:
+            oldLen = len(compositeFactoryFunctions)
+            comp = [f for f in cfg["composite_filters"] if f["name"] in compositeFactoryFunctions]
+            for cf in comp:
+                ff = {n["factoryFunction"] for n in cf["nodes"] if n["library"] == "composite://ref"}
+                compositeFactoryFunctions = compositeFactoryFunctions | ff
+            if len(compositeFactoryFunctions) == oldLen:
+                break
+
+        cfg["applications"] = [app]
+        cfg["composite_filters"] = [cf for cf in cfg["composite_filters"] if cf["name"] in compositeFactoryFunctions]
+
+        return cfg
 
     @staticmethod
     def saveGuiState(config):
