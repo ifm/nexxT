@@ -16,7 +16,7 @@ import nexxT
 import nexxT.Qt
 from nexxT.Qt.QtCore import QCoreApplication, QLocale
 from nexxT.Qt.QtGui import QIcon
-from nexxT.Qt.QtWidgets import QApplication
+from nexxT.Qt.QtWidgets import QApplication, QStyleFactory
 
 from nexxT.core.Utils import SQLiteHandler, MethodInvoker, waitForSignal
 from nexxT.core.ConfigFiles import ConfigFileLoader
@@ -85,6 +85,7 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=Fa
 
     if withGui:
         app = QApplication() if QApplication.instance() is None else QApplication.instance()
+        QApplication.setStyle(QStyleFactory.create("Fusion"))
         app.setWindowIcon(QIcon(":icons/nexxT.svg"))
         app.setOrganizationName("nexxT")
         app.setApplicationName("nexxT")
