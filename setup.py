@@ -147,8 +147,8 @@ if build_required:
     
 setup(name='nexxT',
       install_requires=[
-        "PySide6==6.7.2",
-        "shiboken6==6.7.2",
+        "PySide6==6.8.2",
+        "shiboken6==6.8.2",
         "jsonschema>=3.2.0",
         "h5py>=2.10.0",
         "setuptools>=41.0.0",
