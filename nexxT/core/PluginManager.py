@@ -9,13 +9,14 @@ This module defines the class PluginManager
 """
 
 import sys
-import inspect
 import os
 import os.path
 import logging
 from collections import OrderedDict
 import importlib.util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
+import inspect
+from types import ModuleType
 import pkg_resources
 import nexxT.shiboken
 from nexxT.Qt.QtCore import QObject
@@ -145,7 +146,12 @@ class PythonLibrary:
 
         :param moduleName: the name of the module as a key in sys.modules
         """
-        if PythonLibrary.disableUnloadHeuristic:
+        if not hasattr(PythonLibrary.blacklisted, "cache"):
+            PythonLibrary.blacklisted.cache = set()
+            PythonLibrary.blacklisted.modulestate = [set(), set()]
+        cache = PythonLibrary.blacklisted.cache
+        modulestate = PythonLibrary.blacklisted.modulestate
+        if PythonLibrary.disableUnloadHeuristic or moduleName in cache:
             return True
         pkg = PythonLibrary.BLACKLISTED_PACKAGES[:]
         if "NEXXT_BLACKLISTED_PACKAGES" in os.environ:
@@ -154,7 +160,28 @@ class PythonLibrary:
             pkg.extend(os.environ["NEXXT_BLACKLISTED_PACKAGES"].split(";"))
         for p in pkg:
             if moduleName.startswith(p + ".") or moduleName == p:
+                cache.add(moduleName)
                 return True
+        modules = set(sys.modules.keys())
+        if len(modules - modulestate[0]) > 0:
+            modulestate[0] = modules
+            modulestate[1] = set()
+            for currName,module in sys.modules.items():
+                p, *_ = currName.split(".")
+                if not p in modulestate[1] and isinstance(module, ModuleType):
+                    try:
+                        # see https://stackoverflow.com/a/39304199
+                        module_filetype = os.path.splitext(inspect.getfile(module))[1]
+                        if (isinstance(getattr(module, '__loader__', None), ExtensionFileLoader)
+                                or module_filetype in EXTENSION_SUFFIXES):
+                            modulestate[1].add(p)
+                    except Exception: # pylint: disable=broad-except
+                        pass
+        package,*_ = moduleName.split(".")
+        if package in modulestate[1]:
+            cache.add(package)
+            cache.add(moduleName)
+            return True
         return False
 
     def unload(self):
@@ -176,10 +203,10 @@ class PythonLibrary:
                 if not (fn is None or isinstance(loader, ExtensionFileLoader) or
                         os.path.splitext(fn)[1] in EXTENSION_SUFFIXES):
                     if not self.blacklisted(m):
-                        logger.internal("Unloading pure python module '%s' (%s)", m, fn)
+                        logger.debug("Unloading pure python module '%s' (%s)", m, fn)
                         del sys.modules[m]
                     else:
-                        logger.internal("Module '%s' (%s) is blacklisted and will not be unloaded", m, fn)
+                        logger.debug("Module '%s' (%s) is blacklisted and will not be unloaded", m, fn)
 
 class PluginManager(QObject):
     """
