@@ -473,7 +473,7 @@ class GuiTestBase:
         else:
             app = conf.configuration().applicationByName(appName)
         # start graph editor
-        self.cmContextMenu(conf, conf.model.indexOfSubConfig(app), 0)
+        self.cmContextMenu(conf, conf.model.indexOfSubConfig(app), CM_EDIT_GRAPH)
         newChildren = mw.findChildren(GraphEditorView, None)
         gev = None
         for w in newChildren:
