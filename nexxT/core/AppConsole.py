@@ -16,7 +16,7 @@ import nexxT
 import nexxT.Qt
 from nexxT.Qt.QtCore import QCoreApplication, QLocale
 from nexxT.Qt.QtGui import QIcon
-from nexxT.Qt.QtWidgets import QApplication
+from nexxT.Qt.QtWidgets import QApplication, QStyleFactory
 
 from nexxT.core.Utils import SQLiteHandler, MethodInvoker, waitForSignal
 from nexxT.core.ConfigFiles import ConfigFileLoader
@@ -72,7 +72,7 @@ def setupGuiServices(config, disableProfiling=False):
         Services.addService("Profiling", ProfilingServiceDummy())
 
 def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=False, disableUnloadHeuristic=False,
-              disableProfiling=False):
+              disableProfiling=False, saveMemory=False):
     """
     Starts next with the given config file and activates the given application.
     :param cfgfile: path to config file
@@ -85,6 +85,7 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=Fa
 
     if withGui:
         app = QApplication() if QApplication.instance() is None else QApplication.instance()
+        QApplication.setStyle(QStyleFactory.create("Fusion"))
         app.setWindowIcon(QIcon(":icons/nexxT.svg"))
         app.setOrganizationName("nexxT")
         app.setApplicationName("nexxT")
@@ -98,9 +99,11 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=Fa
     ActiveApplication.singleThreaded = singleThreaded
     PythonLibrary.disableUnloadHeuristic = disableUnloadHeuristic
 
-
     if cfgfile is not None:
-        ConfigFileLoader.load(config, cfgfile)
+        if saveMemory:
+            ConfigFileLoader.load(config, cfgfile, focusOnApplication=active)
+        else:
+            ConfigFileLoader.load(config, cfgfile)
     if withGui:
         mainWindow = Services.getService("MainWindow")
         mainWindow.restoreState()
@@ -194,6 +197,9 @@ NEXXT_BLACKLISTED_PACKAGES:
                         help="disable unload heuristic for python modules.")
     parser.add_argument("-np", "--no-profiling", action="store_true",
                         help="disable profiling support (only relevant for GUI).")
+    parser.add_argument("-sm", "--save-memory", action="store_true",
+                        help="only meaningful with a given .json configuration and an selected application (--active): "
+                             "discard all other applications from the configuration and load only the given one.")
 
     def str2bool(value):
         if isinstance(value, bool):
@@ -223,9 +229,13 @@ NEXXT_BLACKLISTED_PACKAGES:
             handler = logging.FileHandler(args.logfile)
             handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
             nexT_logger.addHandler(handler)
+
+    if args.save_memory and (args.cfg is None or args.active is None):
+        raise RuntimeError("saveMemory needs a configuration file and an active application given on command line.")
+
     startNexT(args.cfg, args.active, args.execscript, args.execpython, withGui=args.gui,
               singleThreaded=args.single_threaded, disableUnloadHeuristic=args.disable_unload_heuristic,
-              disableProfiling=args.no_profiling)
+              disableProfiling=args.no_profiling, saveMemory=args.save_memory)
 
 def mainConsole():
     """

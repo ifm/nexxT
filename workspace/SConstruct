@@ -53,7 +53,7 @@ if platform.system() == "Linux":
     
 else:
     # windows environment
-    env = Environment(MSVC_VERSION="14.2", 
+    env = Environment(MSVC_VERSION="14.2",
                       tools=["default"], 
                       toolpath=["#/sconstools3"],
                       target_platform="msvc_x86_64",
@@ -70,7 +70,7 @@ else:
 env.EnableQt6Modules(["QtCore", "QtWidgets", "QtGui"])
 env.AddMethod(lambda env, args: args, "RegisterSources")
 env.AddMethod(lambda env, args: None, "RegisterTargets")
-env.Append(CPPDEFINES=["Py_LIMITED_API"])
+env.Append(CPPDEFINES=[("Py_LIMITED_API", "0x03060000")])
 
 if platform.system() == "Linux":
     dbg_env = env.Clone(CCFLAGS=Split("-Wall -g -std=%s -O0" % standard), #-fvisibility=hidden 

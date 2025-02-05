@@ -123,7 +123,7 @@ if os.environ.get("PYSIDEVERSION", "6") == "6":
 else:
     raise RuntimeError("invalid env variable PYSIDEVERSION=%s" % os.environ["PYSIDEVERSION"])
 
-if "manylinux" in env["target_platform"]:
+if "manylinux" in env["target_platform"] and not "LLVM_INSTALL_DIR" in os.environ:
     # we are on a manylinux* platform which doesn't have llvm in required versions
     dummy = []
     env.Append(CPPPATH=Dir("#/build/linux_x86_64_release/nexxT/src/cnexxT-shiboken/cnexxT"))
