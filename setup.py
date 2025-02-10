@@ -89,7 +89,7 @@ else:
 
 cv = sysconfig.get_config_vars()
 if platform.system() == "Windows":
-    cnexT = cv.get("EXT_PREFIX", "") + "cnexxT" + cv.get("EXT_SUFFIX", "")
+    cnexT = cv.get("EXT_PREFIX", "") + "cnexxT.pyd"
 elif platform.system() == "Linux":
     cnexT = cv.get("EXT_PREFIX", "") + "cnexxT.abi3.so"
 
