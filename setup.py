@@ -21,14 +21,15 @@ from setuptools.command.build_ext import build_ext
 from distutils.core import setup
 from distutils.command.install import INSTALL_SCHEMES
 
-# remove build results
-for p in ["nexxT/binary", "nexxT/tests/binary"]:
-    if os.path.exists(p):
-        shutil.rmtree(p, ignore_errors=True)
-    if os.path.exists(p):
-        shutil.rmtree(p, ignore_errors=True)
-    if os.path.exists(p):
-        shutil.rmtree(p, ignore_errors=True)
+if not int(os.environ.get("DO_NOT_REMOVE_BINARIES", "0")):
+    # remove build results
+    for p in ["nexxT/binary", "nexxT/tests/binary"]:
+        if os.path.exists(p):
+            shutil.rmtree(p, ignore_errors=True)
+        if os.path.exists(p):
+            shutil.rmtree(p, ignore_errors=True)
+        if os.path.exists(p):
+            shutil.rmtree(p, ignore_errors=True)
 # create platform specific wheel
 try:
     from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
