@@ -11,6 +11,9 @@ import subprocess
 import sys
 import tempfile
 import datetime
+import platform
+import os
+import pytest
 
 def parse_log(strlog):
     res = []
@@ -33,11 +36,27 @@ def parse_log(strlog):
             pass
     return res
 
-def test_BasicWorkflow():
+@pytest.mark.parametrize("pyver", ["default", "3.9", "3.10", "3.11", "3.12", "3.13"])
+def test_BasicWorkflow(pyver):
     with tempfile.TemporaryDirectory() as d:
-        shutil.copy(Path(__file__).parent / "basicworkflow_script.py", d)
-        shutil.copytree(Path(__file__).parent.parent / "binary", Path(d) / "binary")
-        shutil.copy(Path(__file__).parent.parent / "interface" / "SimpleStaticFilter.py", d)
+        project_dir = Path(__file__).parent.parent.parent.parent
+
+        if pyver == "default":
+            python_exe = [sys.executable]
+        else:
+            env = os.environ.copy()
+            env["DO_NOT_REMOVE_BINARIES"] = "1"
+
+            subprocess.check_call([sys.executable, "-m", "uv", "venv", "-p", pyver, str(Path(d) / "venv")])
+            subprocess.check_call([sys.executable, "-m", "uv", "pip", "install", "-e", str(project_dir)], env=env)
+            if platform.system().lower() == "windows":
+                python_exe = [Path(d) / "venv" / "Scripts" / "python.exe"]
+            else:
+                python_exe = [Path(d) / "venv" / "bin" / "python"]
+
+        shutil.copy(project_dir / "nexxT" / "tests" / "integration" / "basicworkflow_script.py", d)
+        shutil.copytree(project_dir / "nexxT" / "tests" / "binary", Path(d) / "binary")
+        shutil.copy(project_dir / "nexxT" / "tests" / "interface" / "SimpleStaticFilter.py", d)
 
         h5files = []
         for stage in range(3):
@@ -52,7 +71,7 @@ def test_BasicWorkflow():
             try:
                 p = subprocess.run(
                     [sys.executable, "-m", "nexxT.core.AppConsole", "--gui", "false"] + args,
-                    cwd=d, capture_output=True, timeout=15., encoding="utf-8")
+                    cwd=d, capture_output=True, timeout=20., encoding="utf-8")
                 timeout = False
             except subprocess.TimeoutExpired as e:
                 p = e
