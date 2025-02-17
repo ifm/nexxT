@@ -62,7 +62,7 @@ class NexTThread(QObject):
         deinit=FilterState.DEINITIALIZING,
     )
 
-    def __init__(self, name):
+    def __init__(self, name, index):
         """
         Creates a NexTThread instance with a name. If this is not the main thread, create a corresponding
         QThread and start it (i.e., the event loop).
@@ -73,6 +73,7 @@ class NexTThread(QObject):
         self._filter2name = {}
         self._mockups = {}
         self._name = name
+        self._threadIndex = index
         try:
             self._profsrv = Services.getService("Profiling")
             if hasattr(self._profsrv, "data") and self._profsrv.data() is None:
@@ -157,29 +158,7 @@ class NexTThread(QObject):
         """
         return self._qthread
 
-    @Slot(str, object)
-    def performOperation(self, operation, barrier):
-        """
-        Perform the given operation on all filters.
-        :param operation: one of "create", "destruct", "init", "open", "start", "stop", "close", "deinit"
-        :param barrier: a barrier object to synchronize threads
-        :return: None
-        """
-        # wait that all threads are in their event loop.
-        inProcessEvents = self._qthread.property("processEventsRunning")
-        if inProcessEvents:
-            logging.getLogger(__name__).debug(
-                "operation %s happening during receiveAsync's processEvents. This shouldn't be happening.", operation)
-
-        barrier.wait()
-        if operation in self._operations:
-            # pre-adaptation of states (e.g. from CONSTRUCTED to INITIALIZING)
-            # before one of the actual operations is called, all filters are in the adapted state
-            for name in self._mockups:
-                self._filters[name].preStateTransition(self._operations[operation])
-            # wait for all threads
-            barrier.wait()
-        # perform operation for all filters
+    def _execute(self, operation):
         for name, (mockup, propColl) in self._mockups.items():
             try:
                 if operation == "create":
@@ -202,10 +181,48 @@ class NexTThread(QObject):
                 elif operation == "stop":
                     if self._profsrv is not None:
                         self._profsrv.deregisterThread()
-            except Exception: # pylint: disable=broad-except
+            except Exception:  # pylint: disable=broad-except
                 # catching a general exception is exactly what is wanted here
                 logging.getLogger(__name__).exception("Exception while performing operation '%s' on %s",
                                                       operation, name)
+
+    @Slot(str, object)
+    def performOperation(self, operation, barrier):
+        """
+        Perform the given operation on all filters.
+        :param operation: one of "create", "destruct", "init", "open", "start", "stop", "close", "deinit"
+        :param barrier: a barrier object to synchronize threads
+        :return: None
+        """
+        # wait that all threads are in their event loop.
+        inProcessEvents = self._qthread.property("processEventsRunning")
+        if inProcessEvents:
+            logging.getLogger(__name__).debug(
+                "operation %s happening during receiveAsync's processEvents. This shouldn't be happening.", operation)
+
+        barrier.wait()
+        if operation in self._operations:
+            # pre-adaptation of states (e.g. from CONSTRUCTED to INITIALIZING)
+            # before one of the actual operations is called, all filters are in the adapted state
+            for name in self._mockups:
+                self._filters[name].preStateTransition(self._operations[operation])
+            # wait for all threads
+            barrier.wait()
+
+        if operation in ["close", "deinit", "destruct"]:
+            # even though operations are performed in individual threads, we do them one after another
+            # the reason is that we see sporadic deadlocks in the deinit/destruct phases due to some
+            # PySide interactions with the GIL
+            assert self._threadIndex < barrier.count()
+            for tidx in range(barrier.count()):
+                if tidx == self._threadIndex:
+                    # perform operation for all filters
+                    self._execute(operation)
+                barrier.wait()
+        else:
+            self._execute(operation)
+            barrier.wait()
+
         # notify ActiveApplication
         logging.getLogger(__name__).internal("emitting finished")
         self.operationFinished.emit()
