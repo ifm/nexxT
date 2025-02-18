@@ -140,26 +140,34 @@ class Barrier:
     The barrier can be used multiple times (it is reinitialized after the threads passed).
 
     See https://stackoverflow.com/questions/9637374/qt-synchronization-barrier/9639624#9639624
+    See https://www.boost.org/doc/libs/1_40_0/boost/thread/barrier.hpp
     """
     def __init__(self, count):
-        self.count = count
-        self.origCount = count
-        self.mutex = QMutex()
-        self.condition = QWaitCondition()
+        self._count = count
+        self._origCount = count
+        self._generation = 0
+        self._mutex = QMutex()
+        self._condition = QWaitCondition()
 
     def wait(self):
         """
         Wait until all monitored threads called wait.
         :return: None
         """
-        self.mutex.lock()
-        self.count -= 1
-        if self.count > 0:
-            self.condition.wait(self.mutex)
+        self._mutex.lock()
+        gen = self._generation
+        self._count -= 1
+        if self._count == 0:
+            self._generation += 1
+            self._count = self._origCount
+            self._condition.wakeAll()
         else:
-            self.count = self.origCount
-            self.condition.wakeAll()
-        self.mutex.unlock()
+            while gen == self._generation:
+                self._condition.wait(self._mutex)
+        self._mutex.unlock()
+
+    def count(self):
+        return self._origCount
 
 def mainThread():
     """
