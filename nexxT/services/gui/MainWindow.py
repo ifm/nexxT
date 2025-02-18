@@ -194,6 +194,19 @@ class MainWindow(QMainWindow):
             self.framerateMenu.addAction(a)
         self.config.configLoaded.connect(self.restoreConfigSpecifics)
         self.config.configAboutToSave.connect(self.saveConfigSpecifics)
+        closeAllPlotsAction = QAction("Close all plots", self)
+        closeAllPlotsAction.triggered.connect(self._closeAllPlots)
+        self.menu.addAction(closeAllPlotsAction)
+        showAllPlotsAction = QAction("Show all plots", self)
+        showAllPlotsAction.triggered.connect(self._showAllPlots)
+        self.menu.addAction(showAllPlotsAction)
+        cascadeAction = QAction("Cascade plots", self)
+        cascadeAction.triggered.connect(self.mdi.cascadeSubWindows)
+        self.menu.addAction(cascadeAction)
+        tileAction = QAction("Tile plots", self)
+        tileAction.triggered.connect(self.mdi.tileSubWindows)
+        self.menu.addAction(tileAction)
+        self.dockWindowsMenu = self.menu.addMenu("Dock Windows")
         self.menu.addSeparator()
         self.aboutMenu = QMenuBar(self.menuBar())
         self.menuBar().setCornerWidget(self.aboutMenu)
@@ -367,6 +380,24 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
             logger.debug("%s is visible: %d", prefix, int(visible))
             propColl.setProperty(prefix + "_visible", int(visible))
         self.managedMdiWindows = []
+
+    @Slot()
+    def _closeAllPlots(self):
+        """
+        Slot to close all MDI windows
+        """
+        for i in self.managedMdiWindows:
+            w = i["window"]
+            w.hide()
+            self.windows[nexxT.shiboken.getCppPointer(w)[0]].setChecked(False)
+
+    @Slot()
+    def _showAllPlots(self):
+        """
+        Slot to close all MDI windows
+        """
+        for i in self.managedMdiWindows:
+            i["window"].show()
 
     def __del__(self):
         logging.getLogger(__name__).debug("deleting MainWindow")
@@ -594,6 +625,9 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
     def _registerWindow(self, window, nameChangedSignal):
         act = QAction("<unnamed>", self)
         def ensureVisible():
+            # see issue https://github.com/ifm/nexxT/issues/64
+            if window.isFloating():
+                window.setFloating(False)
             window.setVisible(True)
             act.setChecked(True)
             window.raise_()
@@ -614,7 +648,10 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         window.visibleChanged.connect(act.setChecked)
         nameChangedSignal.connect(act.setText)
         self.windows[nexxT.shiboken.getCppPointer(window)[0]] = act # pylint: disable=no-member
-        self.menu.addAction(act)
+        if not isinstance(window, QDockWidget):
+            self.menu.addAction(act)
+        else:
+            self.dockWindowsMenu.addAction(act)
         logger.debug("Registering window %s, new len=%d",
                      nexxT.shiboken.getCppPointer(window), len(self.windows)) # pylint: disable=no-member
         window.destroyed.connect(self._windowDestroyed)
