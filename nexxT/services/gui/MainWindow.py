@@ -626,7 +626,7 @@ with the <a href='https://github.com/ifm/nexxT/blob/master/NOTICE'>notice</a>.
         act = QAction("<unnamed>", self)
         def ensureVisible():
             # see issue https://github.com/ifm/nexxT/issues/64
-            if window.isFloating():
+            if isinstance(window, QDockWidget) and window.isFloating():
                 window.setFloating(False)
             window.setVisible(True)
             act.setChecked(True)
