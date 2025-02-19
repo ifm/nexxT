@@ -98,7 +98,7 @@ class ActiveApplication(QObject):
                     threadName = "main"
                 if threadName not in self._threads:
                     # create threads as needed
-                    self._threads[threadName] = NexTThread(threadName)
+                    self._threads[threadName] = NexTThread(threadName, len(self._threads))
                 self._threads[threadName].addMockup(filtername, mockup, props)
                 self._filters2threads[filtername] = threadName
 
