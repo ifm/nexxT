@@ -79,6 +79,9 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=Fa
     :param active: active application (if None, the first application in the config will be used)
     :return: None
     """
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers()
+
     logger.debug("Starting nexxT...")
     config = Configuration()
     QLocale.setDefault(QLocale.c())

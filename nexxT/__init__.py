@@ -25,28 +25,10 @@ def setup():
     except ImportError:
         # Running on pre-3.8 Python; use importlib-metadata package
         import importlib_metadata as metadata
-    import logging
     from pathlib import Path
     import os
     import sys
     import platform
-
-    logger = logging.getLogger()
-    # setup log level for internal messages
-    INTERNAL = 5 # pylint: disable=invalid-name
-    logging.addLevelName(INTERNAL, "INTERNAL")
-    logging.INTERNAL = INTERNAL
-    def internal(self, message, *args, **kws):
-        if self.isEnabledFor(INTERNAL):
-            # Yes, logger takes its '*args' as 'args'.
-            self._log(INTERNAL, message, args, **kws)
-    logging.Logger.internal = internal
-
-    console = logging.StreamHandler()
-    console.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-    logger.addHandler(console)
-    logger.info("configured logger")
-    logger.setLevel(logging.INFO)
 
     global __version__  # pylint: disable=invalid-name
     __version__ = metadata.version("nexxT")
@@ -72,7 +54,6 @@ def setup():
                 p = None
         if p is not None:
             p = str(Path(p).absolute())
-            logger.info("c extension module search path: %s", p)
             sys.path.append(p)
         # TODO: following two lines can be removed after this bug has been
         #       fixed: https://bugreports.qt.io/browse/PYSIDE-1627
@@ -81,12 +62,42 @@ def setup():
         import cnexxT as imp_cnexxT
         global cnexxT # pylint: disable=invalid-name
         cnexxT = imp_cnexxT
-        def setLevel(level):
-            ret = setLevel.origFunc(level)
-            cnexxT.nexxT.Logging.setLogLevel(logger.level)
-            return ret
-        setLevel.origFunc = logger.setLevel
-        logger.setLevel = setLevel
+
+def changeLoggers():
+    """
+    Before starting nexxT, the logging system needs to be initialized:
+    - add an internal logger method in addition to debug, info, warning, error
+    - set default log level to INFO
+    - monkey-patch root logger's setLevel() for notifying the c implementation about changes
+    """
+    if not getattr(changeLoggers, "executed", False):
+        changeLoggers.executed = True
+        # pylint: disable=import-outside-toplevel
+        import logging
+
+        logger = logging.getLogger()
+        # setup log level for internal messages
+        INTERNAL = 5 # pylint: disable=invalid-name
+        logging.addLevelName(INTERNAL, "INTERNAL")
+        logging.INTERNAL = INTERNAL
+        def internal(self, message, *args, **kws):
+            if self.isEnabledFor(INTERNAL):
+                # Yes, logger takes its '*args' as 'args'.
+                self._log(INTERNAL, message, args, **kws)
+        logging.Logger.internal = internal
+
+        console = logging.StreamHandler()
+        console.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        logger.addHandler(console)
+        logger.info("configured logger")
         logger.setLevel(logging.INFO)
+        if cnexxT is not None:
+             def setLevel(level):
+                ret = setLevel.origFunc(level)
+                cnexxT.nexxT.Logging.setLogLevel(logger.level)
+                return ret
+            setLevel.origFunc = logger.setLevel
+            logger.setLevel = setLevel
+            logger.setLevel(logging.INFO)
 
 setup()

@@ -69,5 +69,14 @@ class ConsoleLogger(QObject):
         logger.log(typeMap[qtMsgType], msg, extra=(qMessageLogContext.file if qMessageLogContext.file is not None
                                                    else "<qt>", qMessageLogContext.line))
 
-qInstallMessageHandler(ConsoleLogger.qtMessageHandler)
-sys.excepthook = excepthook
+    @staticmethod
+    def installCrashHandlers():
+        """
+        Install crash handlers:
+        - QT message handler
+        - sys.excepthook
+        """
+        if not getattr(installCrashHandlers, "executed", False):
+            installCrashHandlers.executed = True
+            qInstallMessageHandler(ConsoleLogger.qtMessageHandler)
+            sys.excepthook = excepthook
