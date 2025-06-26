@@ -4,10 +4,21 @@
 # THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
 #
 
+from nexxT.Qt.QtCore import QCoreApplication
 from nexxT.interface import InputPortInterface, Services
 from nexxT.core.FilterMockup import FilterMockup
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 import os
+
+def setup():
+    import nexxT
+    from nexxT.services.ConsoleLogger import ConsoleLogger
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers(force=True)
+    global app
+    app = QCoreApplication.instance()
+    if app is None:
+        app = QCoreApplication()
 
 def test_smoke():
     # most of this is already tested in testGraph

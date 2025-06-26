@@ -19,6 +19,10 @@ def expect_exception(f, *args, **kw):
     assert ok
 
 def setup():
+    import nexxT
+    from nexxT.services.ConsoleLogger import ConsoleLogger
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers(force=True)
     global app
     app = QCoreApplication.instance()
     if app is None:

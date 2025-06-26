@@ -6,6 +6,7 @@
 
 import pkg_resources
 import pytest
+from nexxT.Qt.QtCore import QCoreApplication
 from nexxT.core.FilterEnvironment import FilterEnvironment
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.Configuration import Configuration
@@ -19,6 +20,16 @@ cfilters = set(["examples.videoplayback.AviReader",
                 "tests.nexxT.CPropertyReceiver"])
 
 blacklist = set([])
+
+def setup():
+    import nexxT
+    from nexxT.services.ConsoleLogger import ConsoleLogger
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers(force=True)
+    global app
+    app = QCoreApplication.instance()
+    if app is None:
+        app = QCoreApplication()
 
 @pytest.mark.parametrize("ep",
     [pytest.param(e.name,

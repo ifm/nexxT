@@ -18,10 +18,16 @@ from nexxT.core.Configuration import Configuration
 import nexxT
 
 def setup():
+    import nexxT
+    from nexxT.services.ConsoleLogger import ConsoleLogger
+    logging.getLogger().setLevel(logging.INFO)
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers(force=True)
     global app
     app = QCoreApplication.instance()
     if app is None:
         app = QCoreApplication()
+    print("setup called successfully")
 
 def exception_setup(python, thread, where, activeTime_s):
     logging.getLogger(__name__).info("------------------------------------------------------")

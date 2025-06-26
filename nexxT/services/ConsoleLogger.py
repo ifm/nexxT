@@ -70,13 +70,15 @@ class ConsoleLogger(QObject):
                                                    else "<qt>", qMessageLogContext.line))
 
     @staticmethod
-    def installCrashHandlers():
+    def installCrashHandlers(force=False):
         """
         Install crash handlers:
         - QT message handler
         - sys.excepthook
+
+        :param force: if set to true, overwrite the crash handlers even if we have installed them already.
         """
-        if not getattr(ConsoleLogger.installCrashHandlers, "executed", False):
+        if not getattr(ConsoleLogger.installCrashHandlers, "executed", False) or force:
             ConsoleLogger.installCrashHandlers.executed = True
             qInstallMessageHandler(ConsoleLogger.qtMessageHandler)
             sys.excepthook = excepthook
