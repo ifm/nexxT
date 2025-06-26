@@ -76,7 +76,7 @@ class ConsoleLogger(QObject):
         - QT message handler
         - sys.excepthook
         """
-        if not getattr(installCrashHandlers, "executed", False):
-            installCrashHandlers.executed = True
+        if not getattr(ConsoleLogger.installCrashHandlers, "executed", False):
+            ConsoleLogger.installCrashHandlers.executed = True
             qInstallMessageHandler(ConsoleLogger.qtMessageHandler)
             sys.excepthook = excepthook

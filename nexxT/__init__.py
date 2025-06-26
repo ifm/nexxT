@@ -89,10 +89,9 @@ def changeLoggers():
         console = logging.StreamHandler()
         console.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
         logger.addHandler(console)
-        logger.info("configured logger")
         logger.setLevel(logging.INFO)
         if cnexxT is not None:
-             def setLevel(level):
+            def setLevel(level):
                 ret = setLevel.origFunc(level)
                 cnexxT.nexxT.Logging.setLogLevel(logger.level)
                 return ret
