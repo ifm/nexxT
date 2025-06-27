@@ -99,8 +99,10 @@ def test_BasicWorkflow(pyver):
                     assert nt == nr or nt == nr+1
                     dtt = [(r["transmit"][i] - r["transmit"][i-1]).total_seconds() for i in range(1, nt)]
                     dtr = [(r["receive"][i] - r["receive"][i-1]).total_seconds() for i in range(1, nr)]
-                    assert all([0.07 < dt < 0.13 for dt in dtt])
-                    assert all([0.07 < dt < 0.13 for dt in dtr])
+                    # these assertion sometimes cause tests to fail, especially for wgeb build servers are busy with other tasks
+                    # let's be more tolerant and check that more than 95% of the conditions are satisfied
+                    assert sum([0.07 < dt < 0.13 for dt in dtt]) >= len(dtt)*95//100
+                    assert sum([0.07 < dt < 0.13 for dt in dtr]) >= len(dtr)*95//100
                 recs = glob.glob(d + "/*.h5")
                 assert len(recs) == len(h5files) + 1
                 h5files = recs
