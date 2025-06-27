@@ -14,6 +14,10 @@ import nexxT.Qt
 from nexxT.Qt.QtCore import QCoreApplication, QTimer
 
 def setup():
+    import nexxT
+    from nexxT.services.ConsoleLogger import ConsoleLogger
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers(force=True)
     global app
     app = QCoreApplication.instance()
     if app is None:

@@ -1,5 +1,16 @@
 import math
+from nexxT.Qt.QtCore import QCoreApplication
 from nexxT.core.Variables import Variables
+
+def setup():
+    import nexxT
+    from nexxT.services.ConsoleLogger import ConsoleLogger
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers(force=True)
+    global app
+    app = QCoreApplication.instance()
+    if app is None:
+        app = QCoreApplication()
 
 def test_standardSubstitution():
     v = Variables()

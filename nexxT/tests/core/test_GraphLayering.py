@@ -1,6 +1,17 @@
 import random
 import time
+from nexxT.Qt.QtCore import QCoreApplication
 from nexxT.services.gui.GraphLayering import GraphRep
+
+def setup():
+    import nexxT
+    from nexxT.services.ConsoleLogger import ConsoleLogger
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers(force=True)
+    global app
+    app = QCoreApplication.instance()
+    if app is None:
+        app = QCoreApplication()
 
 def test_smoke():
     t0 = time.time()

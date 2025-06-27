@@ -32,6 +32,9 @@ logger = logging.getLogger(__name__)
 def keep_open(request):
     return request.config.getoption("--keep-open")
 
+def setup():
+    logging.getLogger().setLevel(logging.INFO)
+
 # context menu actions
 class ContextMenuEntry(str):
     pass

@@ -4,11 +4,22 @@
 # THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
 #
 
+from nexxT.Qt.QtCore import QCoreApplication
 from nexxT.core.FilterEnvironment import FilterEnvironment
 from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.interface import Port, InputPort, OutputPort, FilterState, DataSample
 from nexxT import useCImpl
 import os
+
+def setup():
+    import nexxT
+    from nexxT.services.ConsoleLogger import ConsoleLogger
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers(force=True)
+    global app
+    app = QCoreApplication.instance()
+    if app is None:
+        app = QCoreApplication()
 
 def expect_exception(f, *args, **kw):
     ok = False

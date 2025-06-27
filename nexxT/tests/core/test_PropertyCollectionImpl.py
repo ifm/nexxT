@@ -32,8 +32,11 @@ def expect_exception(f, etype, *args, **kw):
     assert ok
 
 def setup():
+    import nexxT
+    from nexxT.services.ConsoleLogger import ConsoleLogger
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers(force=True)
     global app
-    # we need a QCoreApplication for the child events
     app = QCoreApplication.instance()
     if app is None:
         app = QCoreApplication()
