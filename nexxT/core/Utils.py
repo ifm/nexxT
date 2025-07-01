@@ -342,7 +342,11 @@ def excepthook(*args):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(*args)
         return
-    logger.error("Uncaught exception", exc_info=args)
+    try:
+        logger.error("Uncaught exception", exc_info=args)
+    except Exception: # pylint: disable=broad-except
+        # in rare cases, the logger might raise an exception (see https://github.com/ifm/nexxT/issues/70)
+        print(f"Uncaught exception exc_info={args}")
 
 def handleException(func):
     """

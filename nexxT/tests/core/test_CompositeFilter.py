@@ -17,6 +17,10 @@ from nexxT.core.Exceptions import CompositeRecursion
 from nexxT.core.Configuration import Configuration
 
 def setup():
+    import nexxT
+    from nexxT.services.ConsoleLogger import ConsoleLogger
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers(force=True)
     global app
     app = QCoreApplication.instance()
     if app is None:

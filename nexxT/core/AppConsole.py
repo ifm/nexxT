@@ -14,7 +14,7 @@ import signal
 import sys
 import nexxT
 import nexxT.Qt
-from nexxT.Qt.QtCore import QCoreApplication, QLocale
+from nexxT.Qt.QtCore import QCoreApplication, QLocale, Qt
 from nexxT.Qt.QtGui import QIcon
 from nexxT.Qt.QtWidgets import QApplication, QStyleFactory
 
@@ -72,26 +72,32 @@ def setupGuiServices(config, disableProfiling=False):
         Services.addService("Profiling", ProfilingServiceDummy())
 
 def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=False, disableUnloadHeuristic=False,
-              disableProfiling=False, saveMemory=False):
+              disableProfiling=False, saveMemory=False, cmdLineArgs=[]):
     """
     Starts next with the given config file and activates the given application.
     :param cfgfile: path to config file
     :param active: active application (if None, the first application in the config will be used)
     :return: None
     """
+    nexxT.changeLoggers()
+    ConsoleLogger.installCrashHandlers()
+
     logger.debug("Starting nexxT...")
     config = Configuration()
     QLocale.setDefault(QLocale.c())
-
+    qtargs = sys.argv[:1] + cmdLineArgs
     if withGui:
-        app = QApplication() if QApplication.instance() is None else QApplication.instance()
+        app = QApplication(qtargs) if QApplication.instance() is None else QApplication.instance()
         QApplication.setStyle(QStyleFactory.create("Fusion"))
         app.setWindowIcon(QIcon(":icons/nexxT.svg"))
         app.setOrganizationName("nexxT")
         app.setApplicationName("nexxT")
         setupGuiServices(config, disableProfiling=disableProfiling)
+        if any("vnc" in arg for arg in cmdLineArgs):
+            # for the vnc server, we want the window to occupy the whole vnc size
+            Services.getService("MainWindow").setWindowState(Qt.WindowMaximized)
     else:
-        app = QCoreApplication() if QCoreApplication.instance() is None else QCoreApplication.instance()
+        app = QCoreApplication(qtargs) if QCoreApplication.instance() is None else QCoreApplication.instance()
         app.setOrganizationName("nexxT")
         app.setApplicationName("nexxT")
         setupConsoleServices(config)
@@ -200,6 +206,12 @@ NEXXT_BLACKLISTED_PACKAGES:
     parser.add_argument("-sm", "--save-memory", action="store_true",
                         help="only meaningful with a given .json configuration and an selected application (--active): "
                              "discard all other applications from the configuration and load only the given one.")
+    parser.add_argument("--qt", action="append", default=[], 
+                        help="Arguments passed to qt. Can be given multiple times. For example, using the built-in vnc "
+                             "capability of qt can be achieved by passing `--qt=-platform --qt=vnc:5900:size=1024x768`")
+    parser.add_argument("-oi", "--original-keyboard-interrupt-behaviour", action="store_true",
+                        help="Use this flag to restore the original keyboard interrupt behaviour. By default, nexxT "
+                             "overrides a signal handler instead using the KeybaordInterrupt exception from python.")
 
     def str2bool(value):
         if isinstance(value, bool):
@@ -229,20 +241,21 @@ NEXXT_BLACKLISTED_PACKAGES:
             handler = logging.FileHandler(args.logfile)
             handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
             nexT_logger.addHandler(handler)
+    if not args.original_keyboard_interrupt_behaviour:
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     if args.save_memory and (args.cfg is None or args.active is None):
         raise RuntimeError("saveMemory needs a configuration file and an active application given on command line.")
 
     startNexT(args.cfg, args.active, args.execscript, args.execpython, withGui=args.gui,
               singleThreaded=args.single_threaded, disableUnloadHeuristic=args.disable_unload_heuristic,
-              disableProfiling=args.no_profiling, saveMemory=args.save_memory)
+              disableProfiling=args.no_profiling, saveMemory=args.save_memory, cmdLineArgs=args.qt)
 
 def mainConsole():
     """
     entry point for console application
     :return:
     """
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
     main(withGui=False)
 
 def mainGui():
