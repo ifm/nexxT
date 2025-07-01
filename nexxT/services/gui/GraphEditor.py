@@ -11,7 +11,11 @@ This module provides the graph editor GUI service of the nexxT service.
 import logging
 import platform
 import os.path
-import pkg_resources
+import sys
+if sys.version_info < (3,10):
+    import importlib_metadata
+else:
+    import importlib.metadata as importlib_metadata
 import nexxT.Qt
 from nexxT.Qt.QtWidgets import (QGraphicsScene, QGraphicsItemGroup, QGraphicsSimpleTextItem,
                                QGraphicsPathItem, QGraphicsItem, QMenu, QInputDialog, QMessageBox,
@@ -1045,7 +1049,7 @@ class GraphScene(BaseGraphScene):
             self.actAddOutputPort = QAction("Add dynamic output port ...", self)
             self.actSuggestDynamicPorts = QAction("Suggest dynamic ports ...", self)
             self.entryPointActions = {}
-            for ep in pkg_resources.iter_entry_points("nexxT.filters"):
+            for ep in importlib_metadata.entry_points(group="nexxT.filters"):
                 d = self.entryPointActions
                 groups = ep.name.split(".")
                 name = groups[-1]

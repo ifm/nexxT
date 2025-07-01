@@ -4,11 +4,14 @@
 # THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
 #
 
-import pkg_resources
+import sys
+if sys.version_info < (3,10):
+    import importlib_metadata
+else:
+    import importlib.metadata as importlib_metadata
 import pytest
 from nexxT.Qt.QtCore import QCoreApplication
 from nexxT.core.FilterEnvironment import FilterEnvironment
-from nexxT.core.PropertyCollectionImpl import PropertyCollectionImpl
 from nexxT.core.Configuration import Configuration
 from nexxT.core.PluginManager import PluginManager
 import nexxT
@@ -36,7 +39,7 @@ def setup():
      marks=[pytest.mark.skipif(not nexxT.useCImpl and e.name in cfilters, reason="testing a pure python variant"),
             pytest.mark.skipif(e.name in blacklist, reason="testing blacklisted filter")
            ]
-    ) for e in pkg_resources.iter_entry_points("nexxT.filters")])
+    ) for e in importlib_metadata.entry_points(group="nexxT.filters")])
 def test_EntryPoint(ep):
     cfg = Configuration()
     env = FilterEnvironment("entry_point://" + ep, "entry_point", cfg._defaultRootPropColl())
