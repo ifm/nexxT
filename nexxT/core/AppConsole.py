@@ -72,7 +72,7 @@ def setupGuiServices(config, disableProfiling=False):
         Services.addService("Profiling", ProfilingServiceDummy())
 
 def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=False, disableUnloadHeuristic=False,
-              disableProfiling=False, saveMemory=False, cmdLineArgs=[]):
+              disableProfiling=False, saveMemory=False, cmdLineArgs=None):
     """
     Starts next with the given config file and activates the given application.
     :param cfgfile: path to config file
@@ -85,7 +85,7 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=Fa
     logger.debug("Starting nexxT...")
     config = Configuration()
     QLocale.setDefault(QLocale.c())
-    qtargs = sys.argv[:1] + cmdLineArgs
+    qtargs = sys.argv[:1] + (cmdLineArgs if cmdLineArgs is not None else [])
     if withGui:
         app = QApplication(qtargs) if QApplication.instance() is None else QApplication.instance()
         QApplication.setStyle(QStyleFactory.create("Fusion"))
@@ -206,7 +206,7 @@ NEXXT_BLACKLISTED_PACKAGES:
     parser.add_argument("-sm", "--save-memory", action="store_true",
                         help="only meaningful with a given .json configuration and an selected application (--active): "
                              "discard all other applications from the configuration and load only the given one.")
-    parser.add_argument("--qt", action="append", default=[], 
+    parser.add_argument("--qt", action="append", default=[],
                         help="Arguments passed to qt. Can be given multiple times. For example, using the built-in vnc "
                              "capability of qt can be achieved by passing `--qt=-platform --qt=vnc:5900:size=1024x768`")
     parser.add_argument("-oi", "--original-keyboard-interrupt-behaviour", action="store_true",

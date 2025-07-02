@@ -14,10 +14,6 @@ import os.path
 import logging
 from collections import OrderedDict
 import importlib.util
-if sys.version_info < (3,10):
-    import importlib_metadata
-else:
-    import importlib.metadata as importlib_metadata
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 import inspect
 from types import ModuleType
@@ -27,6 +23,10 @@ from nexxT.core.Exceptions import UnknownPluginType, NexTRuntimeError, PluginExc
 from nexxT.interface import Filter, FilterSurrogate
 from nexxT.core import PluginInterface
 import nexxT
+if sys.version_info < (3,10):
+    import importlib_metadata
+else:
+    import importlib.metadata as importlib_metadata
 
 logger = logging.getLogger(__name__)
 

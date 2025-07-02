@@ -12,10 +12,6 @@ import logging
 import platform
 import os.path
 import sys
-if sys.version_info < (3,10):
-    import importlib_metadata
-else:
-    import importlib.metadata as importlib_metadata
 import nexxT.Qt
 from nexxT.Qt.QtWidgets import (QGraphicsScene, QGraphicsItemGroup, QGraphicsSimpleTextItem,
                                QGraphicsPathItem, QGraphicsItem, QMenu, QInputDialog, QMessageBox,
@@ -32,6 +28,10 @@ from nexxT.core.Utils import checkIdentifier, handleException, ThreadToColor, as
 from nexxT.core.Exceptions import InvalidIdentifierException
 from nexxT.interface import InputPortInterface, OutputPortInterface
 from nexxT.services.gui import GraphLayering
+if sys.version_info < (3,10):
+    import importlib_metadata
+else:
+    import importlib.metadata as importlib_metadata
 
 logger = logging.getLogger(__name__)
 
