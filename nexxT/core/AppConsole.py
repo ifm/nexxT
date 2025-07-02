@@ -85,7 +85,9 @@ def startNexT(cfgfile, active, execScripts, execCode, withGui, singleThreaded=Fa
     logger.debug("Starting nexxT...")
     config = Configuration()
     QLocale.setDefault(QLocale.c())
-    qtargs = sys.argv[:1] + (cmdLineArgs if cmdLineArgs is not None else [])
+    if cmdLineArgs is None:
+        cmdLineArgs = []
+    qtargs = sys.argv[:1] + cmdLineArgs
     if withGui:
         app = QApplication(qtargs) if QApplication.instance() is None else QApplication.instance()
         QApplication.setStyle(QStyleFactory.create("Fusion"))
