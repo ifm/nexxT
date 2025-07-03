@@ -17,13 +17,16 @@ import importlib.util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 import inspect
 from types import ModuleType
-import pkg_resources
 import nexxT.shiboken
 from nexxT.Qt.QtCore import QObject
 from nexxT.core.Exceptions import UnknownPluginType, NexTRuntimeError, PluginException
 from nexxT.interface import Filter, FilterSurrogate
 from nexxT.core import PluginInterface
 import nexxT
+if sys.version_info < (3,10):
+    import importlib_metadata
+else:
+    import importlib.metadata as importlib_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +90,7 @@ class PythonLibrary:
         elif self._libtype == self.LIBTYPE_ENTRY_POINT:
             logging.getLogger(__name__).debug("loading entry point '%s'", library)
             found = []
-            for ep in pkg_resources.iter_entry_points("nexxT.filters"):
+            for ep in importlib_metadata.entry_points(group="nexxT.filters"):
                 if ep.name == library:
                     found.append(ep)
             if len(found) > 1:

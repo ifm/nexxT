@@ -75,14 +75,14 @@ Building from source requires a QT6 installation suited to the PySide6 version u
 
 On linux, you will also need llvm and clang installed (because of the shiboken6 dependency). You might need to set the environment variable LLVM_INSTALL_DIR.
 
-The following commands build nexxT from source using the non-recommended pip package of shiboken6-generator.
+The following commands build nexxT from source:
 
     git clone https://github.com/ifm/nexxT.git
     cd nexxT/workspace
     python3 -m venv venv
     source venv/bin/activate
     python3 -m pip install pip -U
-    pip install -r requirements.txt --find-links https://download.qt.io/official_releases/QtForPython/shiboken6-generator/
+    pip install -r requirements.txt
     export QTDIR=<path>/<to>/<qt>
     export LLVM_INSTALL_DIR=<path>/<to>/<llvm>
     scons -j 8 ..
