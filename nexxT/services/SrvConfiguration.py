@@ -630,6 +630,11 @@ class ConfigurationModel(QAbstractItemModel):
                 return "If enabled, this property is evaluated using variable substitution."
             if isinstance(item, self.VariableContent):
                 return item.variables.subst(f"{item.name} = ${item.name}")
+            if isinstance(item, self.NodeContent):
+                mockup = item.subConfig.getGraph().getMockup(item.name)
+                lib = mockup.getLibrary()
+                ffunc = mockup.getFactoryFunction()
+                return f"{lib}::{ffunc}"
         if role == ITEM_ROLE:
             return item
         return None

@@ -127,6 +127,11 @@ void Services::addService(const QString &name, QObject *service)
     singleton()->_addService(name, srv);
 }
 
+void Services::addService(const QString &name, const SharedQObjectPtr &service)
+{
+    singleton()->_addService(name, service);
+}
+
 void Services::removeService(const QString &name)
 {
     singleton()->_removeService(name);

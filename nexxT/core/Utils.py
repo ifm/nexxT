@@ -167,6 +167,9 @@ class Barrier:
         self._mutex.unlock()
 
     def count(self):
+        """
+        Return the original count of the barrier
+        """
         return self._origCount
 
 def mainThread():
