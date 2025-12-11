@@ -55,8 +55,18 @@ namespace nexxT
         static SharedQObjectPtr getService(const QString &name);
         /*!
             See \verbatim embed:rst:inline :py:meth:`nexxT.interface.Services.Services.addService` \endverbatim
+            
+            This function takes ownership of the given QObject instance.
         */
         static void addService(const QString &name, QObject *service);
+        /*!
+            See \verbatim embed:rst:inline :py:meth:`nexxT.interface.Services.Services.addService` \endverbatim
+            
+            This function uses a shared pointer to the object and therefore doesn't suffer from ownership issues.
+            A common use case for this is to add a filter as a service, the shared pointer to the filter is
+            available with environment()->getPlugin() from within the filter.
+        */
+        static void addService(const QString &name, const SharedQObjectPtr &service);
         /*!
             See \verbatim embed:rst:inline :py:meth:`nexxT.interface.Services.Services.removeService` \endverbatim
         */

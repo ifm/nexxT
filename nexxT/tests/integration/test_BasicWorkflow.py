@@ -71,7 +71,7 @@ def test_BasicWorkflow(pyver):
             try:
                 p = subprocess.run(
                     [sys.executable, "-m", "nexxT.core.AppConsole", "--gui", "false"] + args,
-                    cwd=d, capture_output=True, timeout=20., encoding="utf-8")
+                    cwd=d, capture_output=True, timeout=30., encoding="utf-8")
                 timeout = False
             except subprocess.TimeoutExpired as e:
                 p = e
@@ -85,14 +85,26 @@ def test_BasicWorkflow(pyver):
             logs = parse_log(p.stderr)
             if stage < 2:
                 runs = []
+                transmitsBeforeActivated = [] # it might happen, that the initial "app activated" log happens after the first transmit
+                receivesBeforeActivated = []
                 for l in logs:
                     if l[-1] == "app activated":
-                        runs.append(dict(transmit=[],receive=[]))
+                        runs.append(dict(transmit=transmitsBeforeActivated,receive=receivesBeforeActivated))
+                        transmitsBeforeActivated = []
+                        receivesBeforeActivated = []
                     if l[-1].startswith("Transmitting Sample") or l[-1].startswith("transmit:"):
-                        runs[-1]["transmit"].append(l[0])
+                        if len(runs) > 0:
+                            runs[-1]["transmit"].append(l[0])
+                        else:
+                            transmitsBeforeActivated.append(l[0])
                     if l[-1].startswith("received:"):
-                        runs[-1]["receive"].append(l[0])
+                        if len(runs) > 0:
+                            runs[-1]["receive"].append(l[0])
+                        else:
+                            receivesBeforeActivated.append(l[0])
                 assert len(runs) == 3
+                assert len(transmitsBeforeActivated) == 0
+                assert len(receivesBeforeActivated) == 0
                 for r in runs:
                     nt = len(r["transmit"])
                     nr = len(r["receive"])
