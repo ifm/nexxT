@@ -635,6 +635,9 @@ class ConfigurationModel(QAbstractItemModel):
                 lib = mockup.getLibrary()
                 ffunc = mockup.getFactoryFunction()
                 return f"{lib}::{ffunc}"
+        if role == ITEM_ROLE:
+            return item
+        return None
 
     def flags(self, index): # pylint: disable=too-many-return-statements,too-many-branches
         """
