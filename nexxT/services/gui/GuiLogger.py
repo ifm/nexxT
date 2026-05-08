@@ -374,46 +374,55 @@ class GuiLogger(ConsoleLogger):
         self.actClear.triggered.connect(self.logWidget.clear)
         self.actSingleLine.toggled.connect(self.logWidget.setUniformRowHeights)
 
+        self._populateLogLevelMenu(logMenu)
+        self._populateLogCustomMenu(logMenu)
+        self._populateLogMaxEntryMenu(logMenu)
+
+    def _populateLogLevelMenu(self, logMenu):
         self.actDisable = QAction("Disable")
+        self.actDisable.setData(100)
         self.actDisable.setCheckable(True)
         self.actDisable.triggered.connect(self.setLogLevel)
 
-        self.actGroup = QActionGroup(self)
-        self.actGroup.setExclusive(True)
+        mainLogger = logging.getLogger()
+        actGroup = QActionGroup(self)
+        actGroup.setExclusive(True)
         levelno = mainLogger.level
 
-        self.loglevelMap = {}
         for lv in ["INTERNAL", "DEBUG", "INFO", "WARNING", "ERROR"]:
             a = QAction(lv[:1] + lv[1:].lower())
             a.setCheckable(True)
             loglevel = getattr(logging, lv)
-            self.loglevelMap[a] = loglevel
+            a.setData(loglevel)
             setattr(self, "setLogLevel_" + lv, self.setLogLevel)
             a.triggered.connect(getattr(self, "setLogLevel_" + lv))
-            self.actGroup.addAction(a)
+            actGroup.addAction(a)
             if levelno == loglevel:
                 a.setChecked(True)
             else:
                 a.setChecked(False)
             logMenu.addAction(a)
-        self.loglevelMap[self.actDisable] = 100
         logMenu.addAction(self.actDisable)
-        self.actGroup.addAction(self.actDisable)
+        actGroup.addAction(self.actDisable)
+
+    def _populateLogCustomMenu(self, logMenu):
         logMenu.addSeparator()
         logMenu.addAction(self.actClear)
         logMenu.addAction(self.actFollow)
         logMenu.addAction(self.actSingleLine)
+
+    def _populateLogMaxEntryMenu(self, logMenu):
         logMenu.addSeparator()
-        self.nlogGroup = QActionGroup(self)
-        self.nlogGroup.setExclusive(True)
+        nlogGroup = QActionGroup(self)
+        nlogGroup.setExclusive(True)
         for maxNumLogentries in [100, 1000, "unlimited"]:
-            a = QAction("Show %s entries" % maxNumLogentries)
+            a = QAction(f"Show {maxNumLogentries} entries")
             a.setData(maxNumLogentries)
             a.setCheckable(True)
-            setattr(self, "setNumEntries_%s" % maxNumLogentries, self.setNumEntries)
-            a.triggered.connect(getattr(self, "setNumEntries_%s" % maxNumLogentries))
+            setattr(self, f"setNumEntries_{maxNumLogentries}", self.setNumEntries)
+            a.triggered.connect(getattr(self, f"setNumEntries_{maxNumLogentries}"))
             a.setChecked(maxNumLogentries == MIN_ENTRIES)
-            self.nlogGroup.addAction(a)
+            nlogGroup.addAction(a)
             logMenu.addAction(a)
 
     @Slot()
@@ -438,7 +447,7 @@ class GuiLogger(ConsoleLogger):
 
         :return: None
         """
-        lv = self.loglevelMap[self.sender()]
+        lv = self.sender().data()
         logging.getLogger().setLevel(lv)
 
     def setNumEntries(self):
