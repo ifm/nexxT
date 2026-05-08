@@ -22,7 +22,7 @@ class StatCache:
     """
     Class for caching file-system related accesses to prevent unnecessary slowliness for network drives.
     """
-    MAX_NUM_CACHE_ENTRIES = 20*1024 # 1024 entries are ~40 kB -> ~ 1 MB cache
+    MAX_NUM_CACHE_ENTRIES = 1024*1024 # 1024 entries are ~40 kB -> ~ 40 MB cache
 
     def __init__(self):
         self._cache = {}
@@ -159,6 +159,9 @@ class FolderListModel(QAbstractTableModel):
         """
         return len(self._children)
 
+    def _fileIcon(self, path):
+        return self._iconProvider.icon(QFileInfo(str(path.absolute())))
+
     def data(self, index, role):
         """
         overwritten from base class
@@ -187,14 +190,15 @@ class FolderListModel(QAbstractTableModel):
                 return s
             if index.column() == 2:
                 try:
-                    return QDateTime.fromMSecsSinceEpoch(int(c.stat().st_mtime*1000))
+                    mtime = int(self.statCache(c.stat).st_mtime*1000)
+                    return QDateTime.fromMSecsSinceEpoch(mtime)
                 except Exception: # pylint: disable=broad-except
                     return ""
         if role == Qt.DecorationRole:
             if index.column() == 0:
                 if self.statCache(c.is_dir):
-                    return self._iconProvider.icon(QFileIconProvider.Drive)
-                return self._iconProvider.icon(QFileInfo(str(c.absolute())))
+                    return self.statCache(self._iconProvider.icon, QFileIconProvider.Drive)
+                return self.statCache(self._fileIcon, c)
         if role == Qt.UserRole:
             if index.column() == 0:
                 return c
@@ -343,6 +347,38 @@ class BrowserWidget(QWidget):
         :return: a string instance
         """
         return self.active()
+
+    def activateNext(self):
+        """
+        Load next recording in the current directory.
+        """
+        cidx = self._view.currentIndex()
+        row = (cidx.row() + 1) % self._model.rowCount()
+        c = self._model.data(cidx, Qt.UserRole)
+        if c is not None:
+            while row != cidx.row():
+                n = self._model.data(self._model.index(row, 0, cidx.parent()), Qt.UserRole)
+                if n is not None and n.is_file():
+                    self.setActive(n)
+                    return
+                row = (row + 1) % self._model.rowCount()
+        logger.warning("can't find next file")
+
+    def activatePrev(self):
+        """
+        Load previous recording in the current directory.
+        """
+        cidx = self._view.currentIndex()
+        row = (cidx.row() - 1) % self._model.rowCount()
+        c = self._model.data(cidx, Qt.UserRole)
+        if c is not None:
+            while row != cidx.row():
+                n = self._model.data(self._model.index(row, 0, cidx.parent()), Qt.UserRole)
+                if n is not None and n.is_file():
+                    self.setActive(n)
+                    return
+                row = (row - 1) % self._model.rowCount()
+        logger.warning("can't find previous file")
 
     def setFilter(self, flt):
         """

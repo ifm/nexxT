@@ -44,17 +44,34 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         playbackMenu = srv.menuBar().addMenu("&Playback")
 
         style = QApplication.style()
+        self.actPrevFile = QAction(QIcon.fromTheme("document-open-prev", style.standardIcon(QStyle.SP_ArrowBack)),
+                                   "Previous File", self)
+        self.actPrevFile.setToolTip("Previous File (F2)")
+        self.actPrevFile.setShortcut(Qt.Key.Key_F2)
+        self.actNextFile = QAction(QIcon.fromTheme("document-open-next", style.standardIcon(QStyle.SP_ArrowForward)),
+                                   "Next File", self)
+        self.actNextFile.setToolTip("Next File (F3)")
+        self.actNextFile.setShortcut(Qt.Key.Key_F3)
+
         self.actStart = QAction(QIcon.fromTheme("media-playback-start", style.standardIcon(QStyle.SP_MediaPlay)),
                                 "Start Playback", self)
+        self.actStart.setToolTip("Start Playback (F5)")
+        self.actStart.setShortcut(Qt.Key.Key_F5)
         self.actPause = QAction(QIcon.fromTheme("media-playback-pause", style.standardIcon(QStyle.SP_MediaPause)),
                                 "Pause Playback", self)
+        self.actPause.setToolTip("Pause Playback (F5)")
         self.actPause.setEnabled(False)
+        self.actPause.setShortcut(Qt.Key.Key_F5)
         self.actStepFwd = QAction(QIcon.fromTheme("media-seek-forward",
                                                   style.standardIcon(QStyle.SP_MediaSeekForward)),
                                   "Step Forward", self)
+        self.actStepFwd.setToolTip("Step Forward (F6)")
+        self.actStepFwd.setShortcut(Qt.Key.Key_F6)
         self.actStepBwd = QAction(QIcon.fromTheme("media-seek-backward",
                                                   style.standardIcon(QStyle.SP_MediaSeekBackward)),
                                   "Step Backward", self)
+        self.actStepBwd.setToolTip("Step Backward (F4)")
+        self.actStepBwd.setShortcut(Qt.Key.Key_F4)
         self.actSeekEnd = QAction(QIcon.fromTheme("media-skip-forward",
                                                   style.standardIcon(QStyle.SP_MediaSkipForward)),
                                   "Seek End", self)
@@ -66,6 +83,8 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
 
         # pylint: disable=unnecessary-lambda
         # let's stay on the safe side and do not use emit as a slot...
+        self.actPrevFile.triggered.connect(self._prevFile)
+        self.actNextFile.triggered.connect(self._nextFile)
         self.actStart.triggered.connect(self.startPlayback)
         self.actPause.triggered.connect(self.pausePlayback)
         self.actStepFwd.triggered.connect(self._stepForwardActivated)
@@ -89,12 +108,14 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         toolLayout.setContentsMargins(0, 0, 0, 0)
         toolBar = QToolBar()
         toolLayout.addWidget(toolBar)
+        toolBar.addAction(self.actPrevFile)
         toolBar.addAction(self.actSeekBegin)
         toolBar.addAction(self.actStepBwd)
         toolBar.addAction(self.actStart)
         toolBar.addAction(self.actPause)
         toolBar.addAction(self.actStepFwd)
         toolBar.addAction(self.actSeekEnd)
+        toolBar.addAction(self.actNextFile)
         playbackMenu.addAction(self.actSeekBegin)
         playbackMenu.addAction(self.actStepBwd)
         playbackMenu.addAction(self.actStart)
@@ -188,6 +209,8 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         self.actSeekEnd.setEnabled("seekEnd" in featureset)
         self.positionSlider.setEnabled("seekTime" in featureset)
         self.browser.setEnabled("setSequence" in featureset)
+        self.actNextFile.setEnabled("setSequence" in featureset)
+        self.actPrevFile.setEnabled("setSequence" in featureset)
         self.timeRatioLabel.setEnabled("setTimeFactor" in featureset)
         for f in self.actSetTimeFactor:
             self.actSetTimeFactor[f].setEnabled("setTimeFactor" in featureset)
@@ -354,6 +377,14 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
 
     def _stepBackwardActivated(self):
         self.stepBackward(self.selectedStream())
+
+    def _prevFile(self):
+        if self.browser.isEnabled():
+            self.browser.activatePrev()
+
+    def _nextFile(self):
+        if self.browser.isEnabled():
+            self.browser.activateNext()
 
     def openRecent(self):
         """
