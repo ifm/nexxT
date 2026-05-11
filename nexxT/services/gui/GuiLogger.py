@@ -20,6 +20,11 @@ from nexxT.services.ConsoleLogger import ConsoleLogger
 from nexxT.interface import Services
 from nexxT.core.Utils import assertMainThread
 
+logger = logging.getLogger(__name__)
+
+MAX_ENTRIES = 1500
+MIN_ENTRIES = 1000
+
 class LogHandler(logging.Handler):
     """
     Python logging handler which passes python log records to the gui.
@@ -102,6 +107,12 @@ class LogView(QTableView):
                 items = queue.get()
                 toInsert.append(items)
             if len(toInsert) > 0:
+                newCount = len(toInsert) + len(self.entries)
+                if newCount > MAX_ENTRIES:
+                    remove = min(len(self.entries), newCount - MIN_ENTRIES)
+                    self.beginRemoveRows(QModelIndex(), 0, remove - 1)
+                    del self.entries[:remove]
+                    self.endRemoveRows()
                 self.beginInsertRows(QModelIndex(), len(self.entries), len(self.entries) + len(toInsert) - 1)
                 self.entries.extend(toInsert)
                 self.endInsertRows()
@@ -363,33 +374,56 @@ class GuiLogger(ConsoleLogger):
         self.actClear.triggered.connect(self.logWidget.clear)
         self.actSingleLine.toggled.connect(self.logWidget.setUniformRowHeights)
 
+        self._populateLogLevelMenu(logMenu)
+        self._populateLogCustomMenu(logMenu)
+        self._populateLogMaxEntryMenu(logMenu)
+
+    def _populateLogLevelMenu(self, logMenu):
         self.actDisable = QAction("Disable")
+        self.actDisable.setData(100)
+        self.actDisable.setCheckable(True)
         self.actDisable.triggered.connect(self.setLogLevel)
 
-        self.actGroup = QActionGroup(self)
-        self.actGroup.setExclusive(True)
+        mainLogger = logging.getLogger()
+        actGroup = QActionGroup(self)
+        actGroup.setExclusive(True)
         levelno = mainLogger.level
 
-        self.loglevelMap = {}
         for lv in ["INTERNAL", "DEBUG", "INFO", "WARNING", "ERROR"]:
             a = QAction(lv[:1] + lv[1:].lower())
             a.setCheckable(True)
             loglevel = getattr(logging, lv)
-            self.loglevelMap[a] = loglevel
+            a.setData(loglevel)
             setattr(self, "setLogLevel_" + lv, self.setLogLevel)
             a.triggered.connect(getattr(self, "setLogLevel_" + lv))
-            self.actGroup.addAction(a)
+            actGroup.addAction(a)
             if levelno == loglevel:
                 a.setChecked(True)
             else:
                 a.setChecked(False)
             logMenu.addAction(a)
-        self.loglevelMap[self.actDisable] = 100
         logMenu.addAction(self.actDisable)
+        actGroup.addAction(self.actDisable)
+
+    def _populateLogCustomMenu(self, logMenu):
         logMenu.addSeparator()
         logMenu.addAction(self.actClear)
         logMenu.addAction(self.actFollow)
         logMenu.addAction(self.actSingleLine)
+
+    def _populateLogMaxEntryMenu(self, logMenu):
+        logMenu.addSeparator()
+        nlogGroup = QActionGroup(self)
+        nlogGroup.setExclusive(True)
+        for maxNumLogentries in [100, 1000, "unlimited"]:
+            a = QAction(f"Show {maxNumLogentries} entries")
+            a.setData(maxNumLogentries)
+            a.setCheckable(True)
+            setattr(self, f"setNumEntries_{maxNumLogentries}", self.setNumEntries)
+            a.triggered.connect(getattr(self, f"setNumEntries_{maxNumLogentries}"))
+            a.setChecked(maxNumLogentries == MIN_ENTRIES)
+            nlogGroup.addAction(a)
+            logMenu.addAction(a)
 
     @Slot()
     def detach(self):
@@ -413,5 +447,19 @@ class GuiLogger(ConsoleLogger):
 
         :return: None
         """
-        lv = self.loglevelMap[self.sender()]
+        lv = self.sender().data()
         logging.getLogger().setLevel(lv)
+
+    def setNumEntries(self):
+        """
+        Sets the number of displayed log entries from the calling action.
+        """
+        global MAX_ENTRIES, MIN_ENTRIES
+        maxNumEntries = self.sender().data()
+        if maxNumEntries != "unlimited":
+            MIN_ENTRIES = maxNumEntries
+            MAX_ENTRIES = int(maxNumEntries*1.1)
+        else:
+            MIN_ENTRIES = 1 << 31
+            MAX_ENTRIES = 1 << 32
+        logger.info("Number of displayed log entries=%s", maxNumEntries)
