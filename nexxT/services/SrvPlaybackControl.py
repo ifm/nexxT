@@ -393,6 +393,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         self._playing = False
         self._appConn = None
         self._currentSequence = None
+        self._stepAwaitingPause = False
 
     def startPlayback(self):
         """
@@ -408,7 +409,19 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
 
         :return:
         """
+        self._stepAwaitingPause = False
         self._pausePlayback.emit()
+
+    def finishStep(self):
+        """
+        Finish a previously started stepForward or stepBackward operation by calling pause.
+        If no such operation was started, this function does nothing. The idea is that 
+        this slot can be called from filters.
+        
+        :return:
+        """
+        if self._stepAwaitingPause:
+            self.pausePlayback()
 
     def stepForward(self, stream):
         """
@@ -417,6 +430,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         :param stream: a string containing the selected stream.
         :return:
         """
+        self._stepAwaitingPause = True
         self._stepForward.emit(stream)
 
     def stepBackward(self, stream):
@@ -426,6 +440,7 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
         :param stream: a string containing the selected stream.
         :return:
         """
+        self._stepAwaitingPause = True
         self._stepBackward.emit(stream)
 
     def seekBeginning(self):

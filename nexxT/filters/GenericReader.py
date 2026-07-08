@@ -330,7 +330,7 @@ class GenericReader(Filter):
                 srv = None
             pc = self.propertyCollection()
             stepStream = pc.getProperty("defaultStepStream")
-            if stepStream not in self._portToIdx:
+            if stepStream not in self._portToIdx and stepStream != "<swcontrol>":
                 stepStream = None
             if srv is not None and hasattr(srv, "setSelectedStream"):
                 MethodInvoker(srv.setSelectedStream, Qt.QueuedConnection, stepStream)
@@ -479,3 +479,23 @@ class GenericReader(Filter):
     def _updateCurrentTimestamp(self):
         if self._currentTimestamp is not None:
             self.currentTimestampChanged.emit(self._currentTimestamp)
+
+class FinishStepFilter(Filter):
+    """
+    If Playback -> StepStream is set to '<swcontrol>', this filter can be used to finish a pending step
+    operation whenever new data arrives on its input port.
+    """
+    
+    def __init__(self, env):
+        super().__init__(False, False, env)
+        self.addStaticInputPort("in")
+    
+    @handleException
+    def onPortDataChanged(self, port):
+        """
+        Callback from nexxT to inform the filter about new data on port.
+        
+        :param port: the input port which has changed.
+        """
+        pb = Services.getService("PlaybackControl")
+        pb.finishStep()
