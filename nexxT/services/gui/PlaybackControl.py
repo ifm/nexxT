@@ -167,7 +167,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         playbackMenu.addSeparator()
         self.actGroupStreamMenu = playbackMenu.addMenu("Step Stream")
         self._selectedStream = None
-        for actName, stream in (("<None>", None), ("<swcontrol>", "<swcontrol>")):
+        for actName, stream in (("<all>", None), ("<swcontrol>", "<swcontrol>")):
             act = QAction(actName, self.actGroupStream)
             act.setData(stream)
             act.triggered.connect(self._setSelectedStreamActivated)
@@ -272,8 +272,9 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
             self.browser.blockSignals(False)
         self._selectedStream = None
         for a in self.actGroupStream.actions():
-            logger.debug("Remove stream group action: %s", a.data())
-            self.actGroupStream.removeAction(a)
+            if a.data() is not None and a.data() != "<swcontrol>":
+                logger.debug("Remove stream group action: %s", a.data())
+                self.actGroupStream.removeAction(a)
         for stream in streams:
             act = QAction(stream, self.actGroupStream)
             act.setData(stream)
