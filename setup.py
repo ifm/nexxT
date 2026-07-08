@@ -179,6 +179,7 @@ setup(name='nexxT',
         'nexxT.filters' : [
             'harddisk.HDF5Reader = nexxT.filters.hdf5:Hdf5Reader',
             'harddisk.HDF5Writer = nexxT.filters.hdf5:Hdf5Writer',
+            'harddisk.FinishStep = nexxT.filters.GenericReader:FinishStepFilter',
             'examples.videoplayback.AviReader = nexxT.examples:AviReader',
             'examples.framework.CameraGrabber = nexxT.examples:CameraGrabber',
             'examples.framework.ImageBlur = nexxT.examples.framework.ImageBlur:ImageBlur',
