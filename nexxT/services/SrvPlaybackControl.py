@@ -415,9 +415,9 @@ class PlaybackControlConsole(MVCPlaybackControlBase):
     def finishStep(self):
         """
         Finish a previously started stepForward or stepBackward operation by calling pause.
-        If no such operation was started, this function does nothing. The idea is that 
+        If no such operation was started, this function does nothing. The idea is that
         this slot can be called from filters.
-        
+
         :return:
         """
         if self._stepAwaitingPause:

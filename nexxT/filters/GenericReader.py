@@ -485,16 +485,16 @@ class FinishStepFilter(Filter):
     If Playback -> StepStream is set to '<swcontrol>', this filter can be used to finish a pending step
     operation whenever new data arrives on its input port.
     """
-    
+
     def __init__(self, env):
         super().__init__(False, False, env)
         self.addStaticInputPort("in")
-    
+
     @handleException
-    def onPortDataChanged(self, port):
+    def onPortDataChanged(self, _port):
         """
         Callback from nexxT to inform the filter about new data on port.
-        
+
         :param port: the input port which has changed.
         """
         pb = Services.getService("PlaybackControl")
