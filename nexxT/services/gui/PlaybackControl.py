@@ -167,6 +167,14 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         playbackMenu.addSeparator()
         self.actGroupStreamMenu = playbackMenu.addMenu("Step Stream")
         self._selectedStream = None
+        for actName, stream in (("<all>", None), ("<swcontrol>", "<swcontrol>")):
+            act = QAction(actName, self.actGroupStream)
+            act.setData(stream)
+            act.triggered.connect(self._setSelectedStreamActivated)
+            act.setCheckable(True)
+            act.setChecked(self._selectedStream == stream)
+            logger.debug("Add stream group action: %s", act.data())
+            self.actGroupStreamMenu.addAction(act)
 
         self.recentSeqs = [QAction() for i in range(10)]
         playbackMenu.addSeparator()
@@ -264,8 +272,9 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
             self.browser.blockSignals(False)
         self._selectedStream = None
         for a in self.actGroupStream.actions():
-            logger.debug("Remove stream group action: %s", a.data())
-            self.actGroupStream.removeAction(a)
+            if a.data() is not None and a.data() != "<swcontrol>":
+                logger.debug("Remove stream group action: %s", a.data())
+                self.actGroupStream.removeAction(a)
         for stream in streams:
             act = QAction(stream, self.actGroupStream)
             act.setData(stream)
@@ -455,7 +464,7 @@ class MVCPlaybackControlGUI(PlaybackControlConsole):
         """
         for a in self.actGroupStream.actions():
             a.setChecked(False)
-        action = [a for a in self.actGroupStream.actions() if a.text() == stream and not a.isChecked()]
+        action = [a for a in self.actGroupStream.actions() if a.data() == stream and not a.isChecked()]
         if len(action) != 0:
             action[0].setChecked(True)
         self._selectedStream = stream
